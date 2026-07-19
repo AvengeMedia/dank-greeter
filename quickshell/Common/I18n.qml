@@ -101,6 +101,10 @@ Singleton {
         }
     }
 
+    function locale() {
+        return Qt.locale();
+    }
+
     function _loadPresentLocales() {
         if (Object.keys(presentLocales).length > 1)
             return;
