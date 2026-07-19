@@ -3,7 +3,7 @@ module github.com/AvengeMedia/dank-greeter/core
 go 1.26.4
 
 require (
-	github.com/AvengeMedia/dankgo v0.0.0-20260714205715-37751ad4fa70
+	github.com/AvengeMedia/dankgo v0.0.0-20260718184203-ed59ffc6e599
 	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/sblinch/kdl-go v0.0.0-20260121213736-8b7053306ca6
 	github.com/spf13/cobra v1.10.2
