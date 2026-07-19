@@ -51,7 +51,6 @@ Item {
     property int passwordFailureCount: 0
     property int passwordAttemptLimitHint: 0
     property string authFeedbackMessage: ""
-    property string authSuccessMessage: ""
     property string greetdPamText: ""
     property string systemAuthPamText: ""
     property string commonAuthPamText: ""
@@ -84,7 +83,7 @@ Item {
             return I18n.tr("Awaiting fingerprint authentication");
         return I18n.tr("Awaiting security key authentication");
     }
-    readonly property string authDisplayMessage: authFeedbackMessage || authSuccessMessage || externalAuthStatusMessage
+    readonly property string authDisplayMessage: authFeedbackMessage || externalAuthStatusMessage
     readonly property bool autoLoginAvailable: GreetdSettings.rememberLastUser && GreetdSettings.rememberLastSession
     readonly property bool multipleUsersAvailable: GreeterUsersService.loaded && GreeterUsersService.users.length > 1
     // Single-user systems get the picker too when auto-login is available, so the
@@ -276,7 +275,6 @@ Item {
     function clearAuthFeedback() {
         GreeterState.pamState = "";
         authFeedbackMessage = "";
-        authSuccessMessage = "";
     }
 
     function resetPasswordSessionTransition(clearSubmitRequest) {
@@ -1420,11 +1418,11 @@ Item {
 
                 StyledText {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.authDisplayMessage !== "" ? 38 : 0
+                    Layout.preferredHeight: 38
                     Layout.topMargin: -Theme.spacingS
                     Layout.bottomMargin: -Theme.spacingS
                     text: root.authDisplayMessage
-                    color: root.authFeedbackMessage !== "" ? Theme.error : (root.authSuccessMessage !== "" ? Theme.success : Theme.surfaceVariantText)
+                    color: root.authFeedbackMessage !== "" ? Theme.error : Theme.surfaceVariantText
                     font.pixelSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -1989,7 +1987,6 @@ Item {
             authTimeout.stop();
             passwordFailureCount = 0;
             clearAuthFeedback();
-            authSuccessMessage = I18n.tr("Authenticated!");
             const sessionCmd = GreeterState.selectedSession || GreeterState.sessionExecs[GreeterState.currentSessionIndex];
             const sessionPath = GreeterState.selectedSessionPath || GreeterState.sessionPaths[GreeterState.currentSessionIndex];
             const sessionDesktopId = GreeterState.selectedSessionDesktopId || GreeterState.sessionDesktopIds[GreeterState.currentSessionIndex] || desktopIdFromPath(sessionPath);
