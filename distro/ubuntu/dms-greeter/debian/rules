@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+DEB_VERSION := $(shell dpkg-parsechangelog -S Version)
+UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed 's/^[0-9]*://; s/ppa[0-9]*$$//')
+SRCDIR := dank-greeter-$(UPSTREAM_VERSION)
+
+# Go needs writable directories for its caches
+export HOME := $(CURDIR)/debian/tmp-home
+export GOCACHE := $(CURDIR)/debian/tmp-home/go-cache
+export GOMODCACHE := $(CURDIR)/debian/tmp-home/go-mod
+
+# Launchpad has no network access: dependencies are vendored in the source
+# tarball and the distro golang-go toolchain is used as-is
+export GOTOOLCHAIN := local
+export GOFLAGS := -mod=vendor
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	mkdir -p $(HOME) $(GOCACHE) $(GOMODCACHE)
+
+	test -f dms-greeter-source.tar.gz || (echo "ERROR: dms-greeter-source.tar.gz not found!" && exit 1)
+	tar -xzf dms-greeter-source.tar.gz
+	test -d $(SRCDIR)/core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
+
+	# Align the go directive (and vendored annotations) with the distro toolchain
+	GO_VERSION=$$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/'); \
+	if [ -n "$$GO_VERSION" ]; then \
+		sed -E -i "s/^go 1\.[0-9]+(\.[0-9]+)?/go $$GO_VERSION/" $(SRCDIR)/core/go.mod; \
+		sed -E -i "s/^(## explicit; go )1\.[0-9]+(\.[0-9]+)?$$/\1$$GO_VERSION/" $(SRCDIR)/core/vendor/modules.txt; \
+	fi
+	sed -E -i '/^toolchain go[0-9.]+$$/d' $(SRCDIR)/core/go.mod
+
+	$(MAKE) -C $(SRCDIR)/core build VERSION="$(UPSTREAM_VERSION)" COMMIT=release
+
+override_dh_auto_install:
+	install -Dm755 $(SRCDIR)/core/bin/dms-greeter debian/dms-greeter/usr/bin/dms-greeter
+
+	install -d debian/dms-greeter/usr/share/bash-completion/completions
+	install -d debian/dms-greeter/usr/share/zsh/vendor-completions
+	install -d debian/dms-greeter/usr/share/fish/vendor_completions.d
+	$(SRCDIR)/core/bin/dms-greeter completion bash > debian/dms-greeter/usr/share/bash-completion/completions/dms-greeter
+	$(SRCDIR)/core/bin/dms-greeter completion zsh > debian/dms-greeter/usr/share/zsh/vendor-completions/_dms-greeter
+	$(SRCDIR)/core/bin/dms-greeter completion fish > debian/dms-greeter/usr/share/fish/vendor_completions.d/dms-greeter.fish
+
+	install -Dpm0644 $(SRCDIR)/assets/systemd/sysusers-dms-greeter.conf \
+		debian/dms-greeter/usr/lib/sysusers.d/dms-greeter.conf
+	install -Dpm0644 $(SRCDIR)/assets/systemd/tmpfiles-dms-greeter.conf \
+		debian/dms-greeter/usr/lib/tmpfiles.d/dms-greeter.conf
+
+	install -Dm644 $(SRCDIR)/README.md debian/dms-greeter/usr/share/doc/dms-greeter/README.md
+	install -Dm644 $(SRCDIR)/LICENSE debian/dms-greeter/usr/share/doc/dms-greeter/LICENSE
+	install -d debian/dms-greeter/usr/share/doc/dms-greeter/examples
+	install -m644 $(SRCDIR)/assets/examples/* debian/dms-greeter/usr/share/doc/dms-greeter/examples/
+
+override_dh_auto_clean:
+	rm -rf dank-greeter-*
+	rm -rf debian/tmp-home
+	dh_auto_clean

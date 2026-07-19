@@ -1,0 +1,60 @@
+name: Copr Stable Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build (e.g. 1.0.0, leave empty for latest release)"
+        required: false
+        default: ""
+      release:
+        description: "Release number (e.g. 1, 2, 3 for hotfixes)"
+        required: false
+        default: "1"
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm wget curl jq gzip python3-pip
+          pip3 install copr-cli
+
+      - name: Configure Copr CLI
+        run: |
+          mkdir -p ~/.config
+          cat > ~/.config/copr << EOF
+          [copr-cli]
+          login = ${{ secrets.COPR_LOGIN }}
+          username = avengemedia
+          token = ${{ secrets.COPR_TOKEN }}
+          copr_url = https://copr.fedorainfracloud.org
+          EOF
+          chmod 600 ~/.config/copr
+
+      - name: Build SRPM and upload to Copr
+        run: |
+          bash distro/scripts/copr-upload.sh \
+            "${{ github.event.inputs.version }}" \
+            "${{ github.event.inputs.release || '1' }}"
+
+      - name: Upload SRPM artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: dms-greeter-srpm
+          path: ~/rpmbuild/SRPMS/dms-greeter-*.src.rpm
+          retention-days: 90
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo "### dms-greeter Copr Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}-${{ github.event.inputs.release || '1' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Project:** https://copr.fedorainfracloud.org/coprs/avengemedia/danklinux/" >> $GITHUB_STEP_SUMMARY

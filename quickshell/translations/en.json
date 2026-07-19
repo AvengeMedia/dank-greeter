@@ -1,0 +1,296 @@
+[
+  {
+    "term": "Afternoon",
+    "context": "Afternoon",
+    "reference": "Services/WeatherService.qml:262",
+    "comment": ""
+  },
+  {
+    "term": "Authenticated!",
+    "context": "Authenticated!",
+    "reference": "Modules/Greetd/GreeterContent.qml:1992",
+    "comment": ""
+  },
+  {
+    "term": "Authenticating...",
+    "context": "Authenticating...",
+    "reference": "Modules/Greetd/GreeterContent.qml:1249",
+    "comment": ""
+  },
+  {
+    "term": "Authentication error - try again",
+    "context": "Authentication error - try again",
+    "reference": "Modules/Greetd/GreeterContent.qml:259",
+    "comment": ""
+  },
+  {
+    "term": "Authentication failed - attempt %1 of %2",
+    "context": "Authentication failed - attempt %1 of %2",
+    "reference": "Modules/Greetd/GreeterContent.qml:267",
+    "comment": ""
+  },
+  {
+    "term": "Authentication failed - lockout can occur",
+    "context": "Authentication failed - lockout can occur",
+    "reference": "Modules/Greetd/GreeterContent.qml:269",
+    "comment": ""
+  },
+  {
+    "term": "Authentication failed - try again",
+    "context": "Authentication failed - try again",
+    "reference": "Modules/Greetd/GreeterContent.qml:271",
+    "comment": ""
+  },
+  {
+    "term": "Auto-login",
+    "context": "Auto-login",
+    "reference": "Modules/Greetd/GreeterUserPicker.qml:223",
+    "comment": ""
+  },
+  {
+    "term": "Awaiting fingerprint authentication",
+    "context": "Awaiting fingerprint authentication",
+    "reference": "Modules/Greetd/GreeterContent.qml:84",
+    "comment": ""
+  },
+  {
+    "term": "Awaiting fingerprint or security key authentication",
+    "context": "Awaiting fingerprint or security key authentication",
+    "reference": "Modules/Greetd/GreeterContent.qml:82",
+    "comment": ""
+  },
+  {
+    "term": "Awaiting security key authentication",
+    "context": "Awaiting security key authentication",
+    "reference": "Modules/Greetd/GreeterContent.qml:85",
+    "comment": ""
+  },
+  {
+    "term": "Back to user list",
+    "context": "Back to user list",
+    "reference": "Modules/Greetd/GreeterContent.qml:1405",
+    "comment": "greeter link to return from manual username entry to user picker"
+  },
+  {
+    "term": "Clear Sky",
+    "context": "Clear Sky",
+    "reference": "Services/WeatherService.qml:124, Services/WeatherService.qml:125",
+    "comment": ""
+  },
+  {
+    "term": "Dawn (Astronomical Twilight)",
+    "context": "Dawn (Astronomical Twilight)",
+    "reference": "Services/WeatherService.qml:232",
+    "comment": ""
+  },
+  {
+    "term": "Dawn (Civil Twilight)",
+    "context": "Dawn (Civil Twilight)",
+    "reference": "Services/WeatherService.qml:242",
+    "comment": ""
+  },
+  {
+    "term": "Dawn (Nautical Twilight)",
+    "context": "Dawn (Nautical Twilight)",
+    "reference": "Services/WeatherService.qml:237",
+    "comment": ""
+  },
+  {
+    "term": "Drizzle",
+    "context": "Drizzle",
+    "reference": "Services/WeatherService.qml:130, Services/WeatherService.qml:131, Services/WeatherService.qml:132",
+    "comment": ""
+  },
+  {
+    "term": "Dusk (Astronomical Twilight)",
+    "context": "Dusk (Astronomical Twilight)",
+    "reference": "Services/WeatherService.qml:287",
+    "comment": ""
+  },
+  {
+    "term": "Dusk (Civil Twighlight)",
+    "context": "Dusk (Civil Twighlight)",
+    "reference": "Services/WeatherService.qml:277",
+    "comment": ""
+  },
+  {
+    "term": "Dusk (Nautical Twilight)",
+    "context": "Dusk (Nautical Twilight)",
+    "reference": "Services/WeatherService.qml:282",
+    "comment": ""
+  },
+  {
+    "term": "Fog",
+    "context": "Fog",
+    "reference": "Services/WeatherService.qml:128, Services/WeatherService.qml:129",
+    "comment": ""
+  },
+  {
+    "term": "Freezing Drizzle",
+    "context": "Freezing Drizzle",
+    "reference": "Services/WeatherService.qml:133, Services/WeatherService.qml:134",
+    "comment": ""
+  },
+  {
+    "term": "Golden Hour",
+    "context": "Golden Hour",
+    "reference": "Services/WeatherService.qml:252, Services/WeatherService.qml:267",
+    "comment": ""
+  },
+  {
+    "term": "Heavy Rain",
+    "context": "Heavy Rain",
+    "reference": "Services/WeatherService.qml:137, Services/WeatherService.qml:139, Services/WeatherService.qml:146",
+    "comment": ""
+  },
+  {
+    "term": "Heavy Snow",
+    "context": "Heavy Snow",
+    "reference": "Services/WeatherService.qml:142",
+    "comment": ""
+  },
+  {
+    "term": "Heavy Snow Showers",
+    "context": "Heavy Snow Showers",
+    "reference": "Services/WeatherService.qml:148",
+    "comment": ""
+  },
+  {
+    "term": "Light Rain",
+    "context": "Light Rain",
+    "reference": "Services/WeatherService.qml:135, Services/WeatherService.qml:138, Services/WeatherService.qml:144",
+    "comment": ""
+  },
+  {
+    "term": "Light Snow",
+    "context": "Light Snow",
+    "reference": "Services/WeatherService.qml:140",
+    "comment": ""
+  },
+  {
+    "term": "Light Snow Showers",
+    "context": "Light Snow Showers",
+    "reference": "Services/WeatherService.qml:147",
+    "comment": ""
+  },
+  {
+    "term": "Local Weather",
+    "context": "Local Weather",
+    "reference": "Services/WeatherService.qml:470, Services/WeatherService.qml:554",
+    "comment": ""
+  },
+  {
+    "term": "Logging in...",
+    "context": "Logging in...",
+    "reference": "Modules/Greetd/GreeterContent.qml:1246",
+    "comment": ""
+  },
+  {
+    "term": "Morning",
+    "context": "Morning",
+    "reference": "Services/WeatherService.qml:257",
+    "comment": ""
+  },
+  {
+    "term": "Night",
+    "context": "Night",
+    "reference": "Services/WeatherService.qml:315",
+    "comment": ""
+  },
+  {
+    "term": "Not listed?",
+    "context": "Not listed?",
+    "reference": "Modules/Greetd/GreeterUserPicker.qml:184",
+    "comment": "greeter link to switch to manual username entry"
+  },
+  {
+    "term": "Overcast",
+    "context": "Overcast",
+    "reference": "Services/WeatherService.qml:127",
+    "comment": ""
+  },
+  {
+    "term": "Partly Cloudy",
+    "context": "Partly Cloudy",
+    "reference": "Services/WeatherService.qml:126",
+    "comment": ""
+  },
+  {
+    "term": "Password...",
+    "context": "Password...",
+    "reference": "Modules/Greetd/GreeterContent.qml:1252",
+    "comment": ""
+  },
+  {
+    "term": "Rain",
+    "context": "Rain",
+    "reference": "Services/WeatherService.qml:136, Services/WeatherService.qml:145",
+    "comment": ""
+  },
+  {
+    "term": "Select user...",
+    "context": "Select user...",
+    "reference": "Modules/Greetd/GreeterUserPicker.qml:73",
+    "comment": "greeter user picker placeholder"
+  },
+  {
+    "term": "Snow",
+    "context": "Snow",
+    "reference": "Services/WeatherService.qml:141, Services/WeatherService.qml:143",
+    "comment": ""
+  },
+  {
+    "term": "Sunrise",
+    "context": "Sunrise",
+    "reference": "Services/WeatherService.qml:247",
+    "comment": ""
+  },
+  {
+    "term": "Sunset",
+    "context": "Sunset",
+    "reference": "Services/WeatherService.qml:272",
+    "comment": ""
+  },
+  {
+    "term": "Thunderstorm",
+    "context": "Thunderstorm",
+    "reference": "Services/WeatherService.qml:149",
+    "comment": ""
+  },
+  {
+    "term": "Thunderstorm with Hail",
+    "context": "Thunderstorm with Hail",
+    "reference": "Services/WeatherService.qml:150, Services/WeatherService.qml:151",
+    "comment": ""
+  },
+  {
+    "term": "Today",
+    "context": "Today",
+    "reference": "Services/WeatherService.qml:443",
+    "comment": ""
+  },
+  {
+    "term": "Tomorrow",
+    "context": "Tomorrow",
+    "reference": "Services/WeatherService.qml:445",
+    "comment": ""
+  },
+  {
+    "term": "Too many failed attempts - account may be locked",
+    "context": "Too many failed attempts - account may be locked",
+    "reference": "Modules/Greetd/GreeterContent.qml:261",
+    "comment": ""
+  },
+  {
+    "term": "Unknown",
+    "context": "Unknown",
+    "reference": "Services/WeatherService.qml:153, Services/WeatherService.qml:716, Services/WeatherService.qml:717, Services/WeatherService.qml:758, Services/WeatherService.qml:759, Services/WeatherService.qml:794, Services/WeatherService.qml:795, Services/WeatherService.qml:993, Services/WeatherService.qml:994",
+    "comment": ""
+  },
+  {
+    "term": "Username...",
+    "context": "Username...",
+    "reference": "Modules/Greetd/GreeterContent.qml:1257",
+    "comment": ""
+  }
+]

@@ -1,0 +1,197 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  CGO_ENABLED: "0"
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./core/go.mod
+
+      - name: Run tests
+        run: go test -v ./...
+
+  build:
+    name: Build Binaries
+    needs: [test]
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./core/go.mod
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          VERSION=${{ github.ref_name }}
+          BUILD_TIME=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          BINARY_NAME="dms-greeter-${{ matrix.goos }}-${{ matrix.goarch }}"
+          make -C core sync-shell
+          cd core
+          go build -tags withshell -ldflags "-s -w -X main.Version=${VERSION#v} -X main.Commit=${{ github.sha }} -X main.BuildTime=${BUILD_TIME}" -o "../${BINARY_NAME}" ./cmd/dms-greeter
+          cd ..
+          gzip -c "${BINARY_NAME}" > "${BINARY_NAME}.gz"
+          tar -czf "${BINARY_NAME}.tar.gz" "${BINARY_NAME}"
+          sha256sum "${BINARY_NAME}.gz" > "${BINARY_NAME}.gz.sha256"
+          sha256sum "${BINARY_NAME}.tar.gz" > "${BINARY_NAME}.tar.gz.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dms-greeter-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: |
+            dms-greeter-${{ matrix.goos }}-${{ matrix.goarch }}.gz
+            dms-greeter-${{ matrix.goos }}-${{ matrix.goarch }}.gz.sha256
+            dms-greeter-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+            dms-greeter-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz.sha256
+
+  package_completions:
+    name: Package Shell Completions
+    needs: [test]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./core/go.mod
+
+      - name: Generate completions
+        run: |
+          VERSION_NUM=${GITHUB_REF_NAME#v}
+          cd core
+          go build -o /tmp/dms-greeter ./cmd/dms-greeter
+          mkdir -p completions
+          /tmp/dms-greeter completion bash > completions/dms-greeter
+          /tmp/dms-greeter completion zsh > completions/_dms-greeter
+          /tmp/dms-greeter completion fish > completions/dms-greeter.fish
+          /tmp/dms-greeter completion powershell > completions/dms-greeter.ps1
+          tar -czf "../dms-greeter-completions-${VERSION_NUM}.tar.gz" -C completions .
+          cd ..
+          sha256sum "dms-greeter-completions-${VERSION_NUM}.tar.gz" > "dms-greeter-completions-${VERSION_NUM}.tar.gz.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dms-greeter-completions
+          path: |
+            dms-greeter-completions-*.tar.gz
+            dms-greeter-completions-*.tar.gz.sha256
+
+  create_release:
+    name: Create GitHub Release
+    runs-on: ubuntu-24.04
+    needs: [build, package_completions]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --oneline --pretty=format:"- %s (%h)" | head -50)
+          else
+            CHANGELOG=$(git log --oneline --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD)
+          fi
+
+          cat > CHANGELOG.md << EOF
+          ## What's Changed
+
+          $CHANGELOG
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${{ github.ref_name }}
+          EOF
+
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          cat CHANGELOG.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./core/go.mod
+
+      # Distro packages build offline from this tarball: it carries the checked-out
+      # dank-qml-common submodule plus vendored Go dependencies.
+      - name: Generate vendored source tarball
+        run: |
+          VERSION_NUM=${GITHUB_REF_NAME#v}
+          cd core && go mod vendor && cd ..
+          tar czf "dank-greeter-${VERSION_NUM}.tar.gz" \
+            --transform "s,^,dank-greeter-${VERSION_NUM}/," \
+            --exclude-vcs \
+            --exclude=artifacts --exclude="dank-greeter-*.tar.gz" *
+
+      - name: Create release and upload assets
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ github.ref_name }}
+          PRERELEASE_FLAG=""
+          case "$VERSION" in
+            *-*) PRERELEASE_FLAG="--prerelease" ;;
+          esac
+
+          gh release create "$VERSION" \
+            --title "Release $VERSION" \
+            --notes-file CHANGELOG.md \
+            $PRERELEASE_FLAG
+
+          find ./artifacts -type f -name "dms-greeter-*" | while read file; do
+            echo "Uploading: $file"
+            gh release upload "$VERSION" "$file" --clobber
+          done
+
+          VERSION_NUM=${VERSION#v}
+          gh release upload "$VERSION" "dank-greeter-${VERSION_NUM}.tar.gz" --clobber

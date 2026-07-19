@@ -1,0 +1,82 @@
+name: Update PPA Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to upload (e.g. 1.0.0, leave empty for latest release)"
+        required: false
+        default: ""
+      rebuild_release:
+        description: "Base ppa number for rebuilds (e.g. 2 for ppa2; the second series gets +1)"
+        required: false
+        default: ""
+
+jobs:
+  upload-ppa:
+    name: Upload ${{ matrix.series }}
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        series: [resolute, stonking]
+    concurrency:
+      group: ppa-dms-greeter-${{ matrix.series }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            debhelper \
+            devscripts \
+            dput \
+            build-essential \
+            fakeroot \
+            dpkg-dev \
+            openssh-client
+
+      - name: Configure GPG
+        env:
+          GPG_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          echo "$GPG_KEY" | gpg --import
+          GPG_KEY_ID=$(gpg --list-secret-keys --keyid-format LONG | grep sec | awk '{print $2}' | cut -d'/' -f2)
+          echo "DEBSIGN_KEYID=$GPG_KEY_ID" >> "$GITHUB_ENV"
+
+      - name: Upload to PPA
+        env:
+          LAUNCHPAD_SSH_PRIVATE_KEY: ${{ secrets.LAUNCHPAD_SSH_PRIVATE_KEY }}
+          LAUNCHPAD_SSH_LOGIN: ${{ secrets.LAUNCHPAD_SSH_LOGIN }}
+        run: |
+          BASE_NUM="${{ github.event.inputs.rebuild_release }}"
+          BASE_NUM="${BASE_NUM:-1}"
+          # Native source format: distinct version per series, so stonking gets +1
+          if [[ "${{ matrix.series }}" == "stonking" ]]; then
+            PPA_NUM=$((BASE_NUM + 1))
+          else
+            PPA_NUM=$BASE_NUM
+          fi
+
+          ARGS=("${{ matrix.series }}" "$PPA_NUM")
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            ARGS+=("--version=${{ github.event.inputs.version }}")
+          fi
+          bash distro/scripts/ppa-upload.sh "${ARGS[@]}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### PPA Package Upload" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Series:** ${{ matrix.series }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **PPA:** https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux/+packages" >> "$GITHUB_STEP_SUMMARY"

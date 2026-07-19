@@ -1,0 +1,1 @@
+# obs-upload.sh builds the combined native tarball (source + debian/ + bundled Go); no extra excludes needed

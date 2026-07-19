@@ -1,0 +1,199 @@
+name: Void Linux XBPS Repository
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Stable release tag/version to build (e.g. v1.0.0 or 1.0.0). Leave blank for the latest release"
+        type: string
+        required: false
+      force_rebuild:
+        description: "Force rebuilding the package even if it already exists in the repository"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: void-xbps-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy XBPS package
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_EC2_METADATA_DISABLED: true
+      R2_BUCKET: danklinux-void
+      R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
+      # The old dms-greeter package shipped in the dms repository; publishing
+      # there keeps existing installs upgrading without config changes.
+      R2_PREFIX: dms
+      REPOSITORY_DIR: ${{ github.workspace }}/r2-repo
+      SOURCE_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine release version
+        id: version
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
+          fi
+          VERSION="${VERSION#v}"
+          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
+            echo "Could not determine release version" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Building dms-greeter $VERSION"
+
+      - name: Download current R2 repository
+        run: |
+          aws --version
+          bash distro/scripts/publish-void-r2.sh download
+
+      - name: Install XBPS Static Utilities
+        run: |
+          mkdir -p ${{ github.workspace }}/xbps
+          curl -s -L https://repo-default.voidlinux.org/static/xbps-static-latest.x86_64-musl.tar.xz | tar -xJ -C ${{ github.workspace }}/xbps
+          echo "${{ github.workspace }}/xbps/usr/bin" >> $GITHUB_PATH
+
+      - name: Clone void-packages
+        run: |
+          git clone --depth=1 https://github.com/void-linux/void-packages.git
+
+      - name: Inject template
+        run: |
+          cp -R distro/void/srcpkgs/dms-greeter void-packages/srcpkgs/
+
+      - name: Enable unprivileged user namespaces (Ubuntu 24.04)
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
+
+      - name: Bootstrap xbps-src
+        run: |
+          cd void-packages
+          ./xbps-src binary-bootstrap
+
+      - name: Configure signing keys and trust
+        run: |
+          echo "${{ secrets.XBPS_PRIVATE_KEY }}" > /tmp/xbps_privkey.pem
+          chmod 600 /tmp/xbps_privkey.pem
+
+          openssl rsa -in /tmp/xbps_privkey.pem -pubout -out /tmp/dms-key.pub
+          rm -f /tmp/xbps_privkey.pem
+
+          FINGERPRINT=$(openssl rsa -pubin -in /tmp/dms-key.pub -outform DER 2>/dev/null | openssl dgst -md5 -c | tr '[:upper:]' '[:lower:]' | awk '{print $NF}')
+
+          mkdir -p /tmp/keys
+          cat <<EOF > "/tmp/keys/${FINGERPRINT}.plist"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <plist version="1.0">
+          <dict>
+          	<key>public-key</key>
+          	<data>$(base64 -w0 /tmp/dms-key.pub)</data>
+          	<key>public-key-size</key>
+          	<integer>4096</integer>
+          	<key>signature-by</key>
+          	<string>AvengeMedia</string>
+          </dict>
+          </plist>
+          EOF
+
+          sudo mkdir -p /var/db/xbps/keys
+          sudo cp "/tmp/keys/${FINGERPRINT}.plist" "/var/db/xbps/keys/${FINGERPRINT}.plist"
+
+          mkdir -p void-packages/masterdir/var/db/xbps/keys
+          cp "/tmp/keys/${FINGERPRINT}.plist" "void-packages/masterdir/var/db/xbps/keys/${FINGERPRINT}.plist"
+
+          mkdir -p void-packages/etc/xbps.d/keys
+          cp "/tmp/keys/${FINGERPRINT}.plist" "void-packages/etc/xbps.d/keys/${FINGERPRINT}.plist"
+
+          mkdir -p void-packages/common/repo-keys
+          cp "/tmp/keys/${FINGERPRINT}.plist" "void-packages/common/repo-keys/${FINGERPRINT}.plist"
+
+          rm -rf /tmp/keys /tmp/dms-key.pub
+
+      - name: Configure repositories
+        run: |
+          echo "repository=https://void.danklinux.com/danklinux/current" >> void-packages/etc/xbps.d/repos-remote.conf
+          echo "repository=https://void.danklinux.com/danklinux/current" >> void-packages/etc/xbps.d/repos-remote-x86_64-multilib.conf
+
+          if [ -d "r2-repo/current" ]; then
+            mkdir -p void-packages/hostdir/binpkgs
+            cp -L r2-repo/current/*.xbps void-packages/hostdir/binpkgs/ 2>/dev/null || true
+            xbps-rindex -a void-packages/hostdir/binpkgs/*.xbps 2>/dev/null || true
+          fi
+
+      - name: Build package
+        run: |
+          mkdir -p r2-repo/current
+
+          RELEASE_VER="${{ steps.version.outputs.version }}"
+          FORCE_REBUILD="${{ github.event.inputs.force_rebuild || 'false' }}"
+
+          cd void-packages
+
+          echo "🔧 Updating template for v${RELEASE_VER}"
+          TARBALL="$(mktemp)"
+          curl -fsSL -o "$TARBALL" "https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VER}/dank-greeter-${RELEASE_VER}.tar.gz"
+          RELEASE_CHECKSUM="$(sha256sum "$TARBALL" | cut -d' ' -f1)"
+          rm -f "$TARBALL"
+
+          sed -i "s/^version=.*/version=${RELEASE_VER}/" srcpkgs/dms-greeter/template
+          sed -i "s/^checksum=.*/checksum=${RELEASE_CHECKSUM}/" srcpkgs/dms-greeter/template
+
+          GREETER_REV=$(grep -E '^revision=' srcpkgs/dms-greeter/template | cut -d= -f2 | tr -d '"')
+          EXPECTED_FILE="dms-greeter-${RELEASE_VER}_${GREETER_REV}.x86_64.xbps"
+
+          if [ -f "../r2-repo/current/$EXPECTED_FILE" ] && [ "$FORCE_REBUILD" != "true" ]; then
+            echo "✅ $EXPECTED_FILE already exists, skipping build."
+          else
+            echo "🔨 Compiling dms-greeter (${RELEASE_VER})..."
+            ./xbps-src pkg dms-greeter
+            rm -f "../r2-repo/current/${EXPECTED_FILE}"
+            cp -L "hostdir/binpkgs/${EXPECTED_FILE}" ../r2-repo/current/
+          fi
+
+      - name: Index and sign repository
+        run: |
+          cd r2-repo/current
+
+          rm -f *.sig
+
+          if ! ls *.xbps 1>/dev/null 2>&1; then
+            echo "⚠️ No .xbps files found to index, skipping."
+            exit 0
+          fi
+
+          xbps-rindex -a $(pwd)/*.xbps
+          xbps-rindex --remove-obsoletes $(pwd)
+
+          # Remove signatures left behind by obsolete packages. Signatures for
+          # unchanged immutable packages are retained byte-for-byte.
+          for sig in *.sig2; do
+            [ -e "$sig" ] || break
+            [ -f "${sig%.sig2}" ] || rm -f "$sig"
+          done
+
+          echo "${{ secrets.XBPS_PRIVATE_KEY }}" > /tmp/xbps_privkey.pem
+          chmod 600 /tmp/xbps_privkey.pem
+
+          xbps-rindex --sign --signedby "AvengeMedia <AvengeMedia.US@gmail.com>" --privkey /tmp/xbps_privkey.pem $(pwd)
+          xbps-rindex --sign-pkg --privkey /tmp/xbps_privkey.pem $(pwd)/*.xbps
+
+          rm -f /tmp/xbps_privkey.pem
+
+      - name: Publish repository to R2
+        run: bash distro/scripts/publish-void-r2.sh publish

@@ -1,0 +1,70 @@
+name: Update OBS Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to upload (e.g. 1.0.0, leave empty for latest release)"
+        required: false
+        default: ""
+      rebuild_release:
+        description: "Release number for rebuilds (e.g. 2, 3 to increment spec Release / db suffix)"
+        required: false
+        default: ""
+
+jobs:
+  update-obs:
+    name: Upload to OBS
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install OSC
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y osc
+
+          mkdir -p ~/.config/osc
+          cat > ~/.config/osc/oscrc << EOF
+          [general]
+          apiurl = https://api.opensuse.org
+
+          [https://api.opensuse.org]
+          user = ${{ secrets.OBS_USERNAME }}
+          pass = ${{ secrets.OBS_PASSWORD }}
+          EOF
+          chmod 600 ~/.config/osc/oscrc
+
+      - name: Cache OBS bundled Go toolchains
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.cache/dms-greeter-obs-go-toolchain
+          key: dms-greeter-obs-go-toolchain-${{ runner.os }}-${{ hashFiles('core/go.mod') }}
+          restore-keys: |
+            dms-greeter-obs-go-toolchain-${{ runner.os }}-
+
+      - name: Upload to OBS
+        env:
+          REBUILD_RELEASE: ${{ github.event.inputs.rebuild_release }}
+        run: |
+          ARGS=()
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            ARGS+=("--version=${{ github.event.inputs.version }}")
+          fi
+          bash distro/scripts/obs-upload.sh "${ARGS[@]}"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### OBS Package Upload" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package:** dms-greeter" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}" >> $GITHUB_STEP_SUMMARY
+          if [[ -n "${{ github.event.inputs.rebuild_release }}" ]]; then
+            echo "- **Rebuild:** db${{ github.event.inputs.rebuild_release }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- **Builds:** https://build.opensuse.org/package/show/home:AvengeMedia:danklinux/dms-greeter" >> $GITHUB_STEP_SUMMARY

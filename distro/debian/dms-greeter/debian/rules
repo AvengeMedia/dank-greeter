@@ -1,0 +1,70 @@
+#!/usr/bin/make -f
+
+export DH_VERBOSE = 1
+
+DEB_VERSION := $(shell dpkg-parsechangelog -S Version)
+UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed 's/^[0-9]*://; s/db[0-9]*$$//')
+DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+# Go needs writable directories for its caches
+export HOME := $(CURDIR)/debian/tmp-home
+export GOCACHE := $(CURDIR)/debian/tmp-home/go-cache
+export GOMODCACHE := $(CURDIR)/debian/tmp-home/go-mod
+
+# OBS builds are offline: dependencies are vendored, the toolchain is bundled
+export GOTOOLCHAIN := local
+export GOFLAGS := -mod=vendor
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	mkdir -p $(HOME) $(GOCACHE) $(GOMODCACHE)
+
+	test -d core || (echo "ERROR: core directory not found!" && exit 1)
+	test -d core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
+
+	# Bundled Go at source root (go$$VER.linux-{amd64,arm64}.tar.gz); staged by obs-upload.sh
+	GO_TOOLCHAIN_VERSION=$$(grep -m1 '^go ' core/go.mod | awk '{print $$2}'); \
+	case "$(DEB_HOST_ARCH)" in \
+	amd64) GO_LINUX_ARCH=amd64 ;; \
+	arm64) GO_LINUX_ARCH=arm64 ;; \
+	*) echo "ERROR: Unsupported architecture: $(DEB_HOST_ARCH)" && exit 1 ;; \
+	esac; \
+	GO_TARBALL="$(CURDIR)/go$$GO_TOOLCHAIN_VERSION.linux-$$GO_LINUX_ARCH.tar.gz"; \
+	test -f "$$GO_TARBALL" || (echo "ERROR: Missing bundled Go toolchain $$GO_TARBALL" && exit 1); \
+	rm -rf "$(CURDIR)/go-bootstrap" "$(CURDIR)/.go-toolchain"; \
+	mkdir -p "$(CURDIR)/go-bootstrap"; \
+	tar -xzf "$$GO_TARBALL" -C "$(CURDIR)/go-bootstrap"; \
+	mv "$(CURDIR)/go-bootstrap/go" "$(CURDIR)/.go-toolchain"; \
+	export PATH="$(CURDIR)/.go-toolchain/bin:$$PATH"; \
+	export GOROOT="$(CURDIR)/.go-toolchain"; \
+	go version; \
+	sed -i "s/^go [0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$$/go $$GO_TOOLCHAIN_VERSION/" core/go.mod; \
+	sed -i "s/^\(## explicit; go \)[0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$$/\1$$GO_TOOLCHAIN_VERSION/" core/vendor/modules.txt; \
+	$(MAKE) -C core build VERSION="$(UPSTREAM_VERSION)" COMMIT=release
+
+override_dh_auto_install:
+	install -Dm755 core/bin/dms-greeter debian/dms-greeter/usr/bin/dms-greeter
+
+	install -d debian/dms-greeter/usr/share/bash-completion/completions
+	install -d debian/dms-greeter/usr/share/zsh/vendor-completions
+	install -d debian/dms-greeter/usr/share/fish/vendor_completions.d
+	core/bin/dms-greeter completion bash > debian/dms-greeter/usr/share/bash-completion/completions/dms-greeter
+	core/bin/dms-greeter completion zsh > debian/dms-greeter/usr/share/zsh/vendor-completions/_dms-greeter
+	core/bin/dms-greeter completion fish > debian/dms-greeter/usr/share/fish/vendor_completions.d/dms-greeter.fish
+
+	install -Dpm0644 assets/systemd/sysusers-dms-greeter.conf \
+		debian/dms-greeter/usr/lib/sysusers.d/dms-greeter.conf
+	install -Dpm0644 assets/systemd/tmpfiles-dms-greeter.conf \
+		debian/dms-greeter/usr/lib/tmpfiles.d/dms-greeter.conf
+
+	install -Dm644 README.md debian/dms-greeter/usr/share/doc/dms-greeter/README.md
+	install -Dm644 LICENSE debian/dms-greeter/usr/share/doc/dms-greeter/LICENSE
+	install -d debian/dms-greeter/usr/share/doc/dms-greeter/examples
+	install -m644 assets/examples/* debian/dms-greeter/usr/share/doc/dms-greeter/examples/
+
+override_dh_auto_clean:
+	rm -rf core/bin core/internal/shellembed/dist
+	rm -rf debian/tmp-home go-bootstrap .go-toolchain
+	dh_auto_clean

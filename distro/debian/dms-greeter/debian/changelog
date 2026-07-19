@@ -1,0 +1,11 @@
+dms-greeter (1:1.0.0db1) unstable; urgency=medium
+
+  * Greeter extracted from DankMaterialShell into the dank-greeter repository;
+    the bash wrapper and /usr/share/quickshell/dms-greeter QML tree are
+    replaced by a single Go binary with the Quickshell UI embedded.
+  * Existing /etc/greetd/config.toml commands
+    (dms-greeter --command COMPOSITOR) keep working unchanged.
+  * Epoch 1 introduced: versions restarted at 1.0.0 below the old
+    DMS-versioned 1.5.x package.
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Sat, 18 Jul 2026 00:00:00 +0000
