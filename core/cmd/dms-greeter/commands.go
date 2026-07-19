@@ -41,7 +41,7 @@ var versionCmd = &cobra.Command{
 
 func runGreeter(cmd *cobra.Command, _ []string) error {
 	if launchFlags.compositor == "" {
-		cmd.Help()
+		_ = cmd.Help()
 		return fmt.Errorf("--command COMPOSITOR is required")
 	}
 

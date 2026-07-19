@@ -67,7 +67,7 @@ func logSink(logTag, cacheDir string) (*os.File, func(), error) {
 			journal.Stdin = readEnd
 			if journal.Start() == nil {
 				readEnd.Close()
-				return writeEnd, func() { writeEnd.Close(); journal.Wait() }, nil
+				return writeEnd, func() { writeEnd.Close(); _ = journal.Wait() }, nil
 			}
 			readEnd.Close()
 			writeEnd.Close()
