@@ -67,8 +67,15 @@ See the [Installation guide](https://danklinux.com/docs/dankgreeter/installation
 ### Fedora / RHEL / Rocky / Alma
 
 ```bash
-sudo dnf copr enable avenge/dms
+sudo dnf copr enable avengemedia/danklinux
 sudo dnf install dms-greeter
+```
+
+For the latest development build from `master` (Conflicts with the stable package):
+
+```bash
+sudo dnf copr enable avengemedia/danklinux
+sudo dnf install dms-greeter-git
 ```
 
 ### Void Linux

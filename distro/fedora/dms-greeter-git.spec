@@ -1,23 +1,30 @@
-# Spec for DMS Greeter - Stable releases (Fedora/Copr)
+# Spec for DMS Greeter - Git builds using rpkg macros (Fedora/Copr)
+# Package name is dms-greeter-git so it can coexist in avengemedia/danklinux
+# beside stable dms-greeter (mutual Conflicts).
 
 %global debug_package %{nil}
-%global version VERSION_PLACEHOLDER
-%global pkg_summary DMS Greeter for greetd
+%global version {{{ git_repo_version }}}
+%global pkg_summary DMS Greeter for greetd (git)
+%global go_toolchain_version 1.26.4
 
-Name:           dms-greeter
-# Epoch 1: versions restarted at 1.0.0 when the greeter moved to its own repo;
-# the old package (built from DankMaterialShell) had reached 1.5.x.
+Name:           dms-greeter-git
+# Epoch 1: align with stable dms-greeter after the dank-greeter repo split
 Epoch:          1
 Version:        %{version}
-Release:        RELEASE_PLACEHOLDER%{?dist}
+Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
 URL:            https://github.com/AvengeMedia/dank-greeter
+VCS:            {{{ git_repo_vcs }}}
+Source0:        {{{ git_repo_pack }}}
+Source1:        https://go.dev/dl/go%{go_toolchain_version}.linux-amd64.tar.gz
+Source2:        https://go.dev/dl/go%{go_toolchain_version}.linux-arm64.tar.gz
+# git_repo_pack archives skip submodule content, so pack dank-qml-common separately
+Source3:        {{{ git_pack path=$GIT_ROOT/dank-qml-common dir_name=dank-qml-common source_name=dank-qml-common.tar.gz }}}
 
-Source0:        dank-greeter-%{version}.tar.gz
-
-BuildRequires:  golang >= 1.24
+BuildRequires:  git-core
+BuildRequires:  gzip
 BuildRequires:  make
 BuildRequires:  systemd-rpm-macros
 
@@ -26,7 +33,8 @@ Requires:       (quickshell-git or quickshell)
 Requires(post): /usr/sbin/useradd
 Requires(post): /usr/sbin/groupadd
 
-Conflicts:      dms-greeter-git
+Provides:       dms-greeter = %{epoch}:%{version}-%{release}
+Conflicts:      dms-greeter
 
 Recommends:     policycoreutils-python-utils
 Recommends:     acl
@@ -36,6 +44,7 @@ Suggests:       sway
 
 %description
 DMS Greeter is a greetd login screen with the Dank Material aesthetic.
+This git package builds from the tip of the dank-greeter repository.
 A single Go binary with the Quickshell UI embedded; the UI is extracted
 to the greeter cache directory at startup.
 
@@ -43,26 +52,58 @@ Supports multiple compositors including Niri, Hyprland, and Sway with
 session selection, user authentication, and dynamic theming synced from
 DankMaterialShell.
 
+Conflicts with the stable dms-greeter package; both install /usr/bin/dms-greeter.
+
 %prep
-%setup -q -n dank-greeter-%{version}
-test -d core/vendor || { echo "ERROR: vendored Go dependencies missing from source tarball"; exit 1; }
+{{{ git_repo_setup_macro }}}
+rm -rf dank-qml-common
+tar -xzf %{SOURCE3}
+# git_repo_pack may leave an empty submodule dir or a dangling symlink;
+# restore quickshell/DankCommon → ../dank-qml-common/DankCommon
+rm -rf quickshell/DankCommon
+ln -sfn ../dank-qml-common/DankCommon quickshell/DankCommon
+test -e quickshell/DankCommon/Widgets/DankIcon.qml || { echo "DankCommon missing after submodule unpack"; exit 1; }
 
 %build
+VERSION="%{version}"
+COMMIT=$(echo "%{version}" | grep -oP '[a-f0-9]{7,}' | head -n1 || echo "unknown")
+
+# Use pinned bundled Go toolchain (deterministic across chroots)
+case "%{_arch}" in
+  x86_64)
+    GO_TARBALL="%{_sourcedir}/go%{go_toolchain_version}.linux-amd64.tar.gz"
+    ;;
+  aarch64)
+    GO_TARBALL="%{_sourcedir}/go%{go_toolchain_version}.linux-arm64.tar.gz"
+    ;;
+  *)
+    echo "Unsupported architecture for bundled Go: %{_arch}"
+    exit 1
+    ;;
+esac
+
+rm -rf .go
+tar -xzf "$GO_TARBALL"
+mv go .go
+export GOROOT="$PWD/.go"
+export PATH="$GOROOT/bin:$PATH"
+export GOTOOLCHAIN=local
 export HOME=%{_builddir}/go-home
 export GOCACHE=%{_builddir}/go-cache
 export GOMODCACHE=%{_builddir}/go-mod
-mkdir -p $HOME $GOCACHE $GOMODCACHE
-export GOTOOLCHAIN=local
-export GOFLAGS=-mod=vendor
+mkdir -p "$HOME" "$GOCACHE" "$GOMODCACHE"
+go version
 
-# Align the go directive (and vendored annotations) with the distro toolchain;
-# builds are offline so a newer requested toolchain cannot be downloaded.
-GO_VERSION=$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/')
-sed -E -i "s/^go 1\.[0-9]+(\.[0-9]+)?/go $GO_VERSION/" core/go.mod
-sed -E -i "s/^(## explicit; go )1\.[0-9]+(\.[0-9]+)?$/\1$GO_VERSION/" core/vendor/modules.txt
-sed -E -i '/^toolchain go[0-9.]+$/d' core/go.mod
+# Prefer vendored deps when present (release-style trees); otherwise allow module download
+if [ -d core/vendor ]; then
+  export GOFLAGS=-mod=vendor
+  GO_VERSION=$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/')
+  sed -E -i "s/^go 1\.[0-9]+(\.[0-9]+)?/go $GO_VERSION/" core/go.mod
+  sed -E -i "s/^(## explicit; go )1\.[0-9]+(\.[0-9]+)?$/\1$GO_VERSION/" core/vendor/modules.txt
+  sed -E -i '/^toolchain go[0-9.]+$/d' core/go.mod
+fi
 
-make -C core build VERSION=%{version} COMMIT=release
+make -C core build VERSION="$VERSION" COMMIT="$COMMIT"
 
 %install
 install -Dm755 core/bin/dms-greeter %{buildroot}%{_bindir}/dms-greeter
@@ -111,27 +152,21 @@ exit 0
 
 # Set SELinux contexts for greeter files on Fedora systems
 if [ -x /usr/sbin/semanage ] && [ -x /usr/sbin/restorecon ]; then
-    # Greeter launcher binary
     semanage fcontext -a -t bin_t '%{_bindir}/dms-greeter' >/dev/null 2>&1 || true
     restorecon %{_bindir}/dms-greeter >/dev/null 2>&1 || true
 
-    # Greeter home directory
     semanage fcontext -a -t user_home_dir_t '%{_sharedstatedir}/greeter(/.*)?' >/dev/null 2>&1 || true
     restorecon -R %{_sharedstatedir}/greeter >/dev/null 2>&1 || true
 
-    # Cache directory for greeter data (also holds the extracted embedded UI)
     semanage fcontext -a -t cache_home_t '%{_localstatedir}/cache/dms-greeter(/.*)?' >/dev/null 2>&1 || true
     restorecon -R %{_localstatedir}/cache/dms-greeter >/dev/null 2>&1 || true
 
-    # PAM configuration
     restorecon %{_sysconfdir}/pam.d/greetd >/dev/null 2>&1 || true
 fi
 
-# Ensure proper ownership of greeter directories
 chown -R greeter:greeter %{_localstatedir}/cache/dms-greeter 2>/dev/null || true
 chown -R greeter:greeter %{_sharedstatedir}/greeter 2>/dev/null || true
 
-# Verify PAM configuration - only fix if insufficient
 PAM_CONFIG="/etc/pam.d/greetd"
 if [ ! -f "$PAM_CONFIG" ]; then
     cat > "$PAM_CONFIG" << 'PAM_EOF'
@@ -152,7 +187,6 @@ session    include     system-auth
 session    include     postlogin
 PAM_EOF
     chmod 644 "$PAM_CONFIG"
-    # Only show message on initial install
     [ "$1" -eq 1 ] && echo "Created PAM configuration for greetd"
 elif ! grep -q "pam_systemd\|system-auth" "$PAM_CONFIG"; then
     cp "$PAM_CONFIG" "$PAM_CONFIG.backup-dms-greeter"
@@ -174,15 +208,12 @@ session    include     system-auth
 session    include     postlogin
 PAM_EOF
     chmod 644 "$PAM_CONFIG"
-    # Only show message on initial install
     [ "$1" -eq 1 ] && echo "Updated PAM configuration (old config backed up to $PAM_CONFIG.backup-dms-greeter)"
 fi
 
-# Auto-configure greetd config
 GREETD_CONFIG="/etc/greetd/config.toml"
 CONFIG_STATUS="Not modified (already configured)"
 
-# Check if niri or hyprland exists
 COMPOSITOR="niri"
 if ! command -v niri >/dev/null 2>&1; then
         if command -v Hyprland >/dev/null 2>&1; then
@@ -190,7 +221,6 @@ if ! command -v niri >/dev/null 2>&1; then
         fi
 fi
 
-# If config doesn't exist, create a default one
 if [ ! -f "$GREETD_CONFIG" ]; then
         mkdir -p /etc/greetd
         cat > "$GREETD_CONFIG" << 'GREETD_EOF'
@@ -208,13 +238,11 @@ elif ! grep -q "dms-greeter" "$GREETD_CONFIG"; then
         BACKUP_FILE="${GREETD_CONFIG}.backup-$(date +%%Y%%m%%d-%%H%%M%%S)"
         cp "$GREETD_CONFIG" "$BACKUP_FILE" 2>/dev/null || true
 
-        # Update command in default_session section
         sed -i "/^\[default_session\]/,/^\[/ s|^command =.*|command = \"/usr/bin/dms-greeter --command $COMPOSITOR\"|" "$GREETD_CONFIG"
         sed -i '/^\[default_session\]/,/^\[/ s|^user =.*|user = "greeter"|' "$GREETD_CONFIG"
         CONFIG_STATUS="Updated existing config (backed up) with $COMPOSITOR ✓"
 fi
 
-# Set graphical.target as default
 CURRENT_TARGET=$(systemctl get-default 2>/dev/null || echo "unknown")
 if [ "$CURRENT_TARGET" != "graphical.target" ]; then
 	systemctl set-default graphical.target >/dev/null 2>&1 || true
@@ -223,12 +251,11 @@ else
 	TARGET_STATUS="Already graphical.target ✓"
 fi
 
-# Only show banner on initial install
 if [ "$1" -eq 1 ]; then
 cat << 'EOF'
 
 =========================================================================
-        DMS Greeter Installation Complete!
+        DMS Greeter (git) Installation Complete!
 =========================================================================
 
 Status:
@@ -244,8 +271,6 @@ Next steps:
 
 1. Enable the greeter:
      dms-greeter enable
-     (This disables gdm, sddm, or lightdm, sets graphical.target,
-      and enables greetd)
 
 2. Sync your theme with the greeter (optional):
      dms-greeter sync
@@ -258,7 +283,6 @@ EOF
 fi
 
 %postun
-# Clean up SELinux contexts on package removal
 if [ "$1" -eq 0 ] && [ -x /usr/sbin/semanage ]; then
     semanage fcontext -d '%{_bindir}/dms-greeter' 2>/dev/null || true
     semanage fcontext -d '%{_sharedstatedir}/greeter(/.*)?' 2>/dev/null || true
@@ -266,12 +290,4 @@ if [ "$1" -eq 0 ] && [ -x /usr/sbin/semanage ]; then
 fi
 
 %changelog
-* CHANGELOG_DATE_PLACEHOLDER AvengeMedia <contact@avengemedia.com> - 1:VERSION_PLACEHOLDER-RELEASE_PLACEHOLDER
-- Stable release VERSION_PLACEHOLDER built from the dank-greeter repository
-- Greeter extracted from DankMaterialShell; the bash wrapper and the
-  /usr/share/quickshell/dms-greeter QML tree are replaced by a single Go
-  binary with the UI embedded
-- Existing /etc/greetd/config.toml commands (dms-greeter --command COMPOSITOR)
-  keep working unchanged
-- Epoch bumped to 1 so the restarted 1.x versioning upgrades over the old
-  DMS-versioned package
+{{{ git_repo_changelog }}}
