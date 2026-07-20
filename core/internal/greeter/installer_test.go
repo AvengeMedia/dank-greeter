@@ -340,3 +340,41 @@ func TestClearGreeterAutoLoginMemory(t *testing.T) {
 		t.Fatalf("expected other memory fields preserved, got: %s", string(data))
 	}
 }
+
+func TestNiriGreeterSyncMergesDebugNodesAcrossIncludes(t *testing.T) {
+	t.Parallel()
+
+	configDir := t.TempDir()
+	configPath := filepath.Join(configDir, "config.kdl")
+	writeTestFile(t, configPath, `debug {
+    honor-xdg-activation-with-invalid-serial
+}
+
+include "dms/debug.kdl"
+include "dms/render.kdl"
+`)
+	writeTestFile(t, filepath.Join(configDir, "dms", "debug.kdl"), `debug {
+    honor-xdg-activation-with-invalid-serial
+}
+`)
+	writeTestFile(t, filepath.Join(configDir, "dms", "render.kdl"), `debug {
+    render-drm-device "/dev/dri/renderD128"
+}
+`)
+
+	extractor := newNiriGreeterSync()
+	if err := extractor.processFile(configPath); err != nil {
+		t.Fatalf("processFile returned error: %v", err)
+	}
+
+	rendered := extractor.render()
+	if got := strings.Count(rendered, "debug {"); got != 1 {
+		t.Fatalf("expected 1 debug node, got %d:\n%s", got, rendered)
+	}
+	if !strings.Contains(rendered, "honor-xdg-activation-with-invalid-serial") {
+		t.Fatalf("expected honor-xdg-activation-with-invalid-serial preserved, got:\n%s", rendered)
+	}
+	if !strings.Contains(rendered, `render-drm-device "/dev/dri/renderD128"`) {
+		t.Fatalf("expected render-drm-device merged, got:\n%s", rendered)
+	}
+}

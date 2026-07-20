@@ -1622,7 +1622,15 @@ type niriGreeterSync struct {
 	debugCount  int
 	cursorNode  *document.Node
 	inputNode   *document.Node
+	debugNode   *document.Node
 	outputNodes map[string]*document.Node
+}
+
+func newNiriGreeterSync() *niriGreeterSync {
+	return &niriGreeterSync{
+		processed:   make(map[string]bool),
+		outputNodes: make(map[string]*document.Node),
+	}
 }
 
 func syncNiriGreeterConfig(logFunc func(string), sudoPassword string) error {
@@ -1639,10 +1647,7 @@ func syncNiriGreeterConfig(logFunc func(string), sudoPassword string) error {
 		return fmt.Errorf("failed to stat niri config: %w", err)
 	}
 
-	extractor := &niriGreeterSync{
-		processed:   make(map[string]bool),
-		outputNodes: make(map[string]*document.Node),
-	}
+	extractor := newNiriGreeterSync()
 
 	if err := extractor.processFile(configPath); err != nil {
 		return err
@@ -1867,7 +1872,13 @@ func (s *niriGreeterSync) processFile(filePath string) error {
 				s.cursorNode.Children = mergeNodeChildren(s.cursorNode.Children, node.Children)
 			}
 		case "debug":
-			s.nodes = append(s.nodes, node)
+			if s.debugNode == nil {
+				s.debugNode = node
+				s.debugNode.Children = dedupeNodeChildren(s.debugNode.Children)
+				s.nodes = append(s.nodes, node)
+			} else if len(node.Children) > 0 {
+				s.debugNode.Children = mergeNodeChildren(s.debugNode.Children, node.Children)
+			}
 			s.debugCount++
 		}
 	}
