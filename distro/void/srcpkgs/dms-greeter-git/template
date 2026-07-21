@@ -1,7 +1,7 @@
 # Template file for 'dms-greeter-git'
 #
-# Git snapshot of DMS Greeter. Built by CI: the workflow stages a local
-# source tarball and patches version/checksum/distfiles before xbps-src.
+# Git snapshot of DMS Greeter. Built by CI: the workflow stages a flat local
+# source tarball (create_wrksrc=yes) and patches version/checksum/distfiles.
 pkgname=dms-greeter-git
 version=1.0.0.git
 revision=1

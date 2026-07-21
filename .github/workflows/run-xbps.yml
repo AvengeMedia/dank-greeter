@@ -180,17 +180,17 @@ jobs:
               echo "Preparing dms-greeter-git version $GIT_VER"
               SRC_CACHE="hostdir/sources/dms-greeter-git-${GIT_VER}"
               mkdir -p "$SRC_CACHE"
-              # Pack checkout with submodule content (no .git)
+              # Flat tarball (no top-level dir): create_wrksrc=yes extracts into
+              # $wrksrc so build_wrksrc=core resolves — same as dms-git.
               TMP=$(mktemp -d)
-              mkdir -p "$TMP/dms-greeter-git-${GIT_VER}"
-              git -C .. archive --format=tar HEAD | tar -x -C "$TMP/dms-greeter-git-${GIT_VER}"
-              rm -rf "$TMP/dms-greeter-git-${GIT_VER}/dank-qml-common"
-              mkdir -p "$TMP/dms-greeter-git-${GIT_VER}/dank-qml-common"
+              git -C .. archive --format=tar HEAD | tar -x -C "$TMP"
+              rm -rf "$TMP/dank-qml-common"
+              mkdir -p "$TMP/dank-qml-common"
               tar -C ../dank-qml-common --exclude='.git' -cf - . \
-                | tar -C "$TMP/dms-greeter-git-${GIT_VER}/dank-qml-common" -xf -
-              rm -rf "$TMP/dms-greeter-git-${GIT_VER}/quickshell/DankCommon"
-              ln -sfn ../dank-qml-common/DankCommon "$TMP/dms-greeter-git-${GIT_VER}/quickshell/DankCommon"
-              tar -C "$TMP" -czhf "${SRC_CACHE}/dms-greeter-git-${GIT_VER}.tar.gz" "dms-greeter-git-${GIT_VER}"
+                | tar -C "$TMP/dank-qml-common" -xf -
+              rm -rf "$TMP/quickshell/DankCommon"
+              ln -sfn ../dank-qml-common/DankCommon "$TMP/quickshell/DankCommon"
+              tar -C "$TMP" -czhf "${SRC_CACHE}/dms-greeter-git-${GIT_VER}.tar.gz" .
               rm -rf "$TMP"
 
               CHECKSUM=$(sha256sum "${SRC_CACHE}/dms-greeter-git-${GIT_VER}.tar.gz" | cut -d' ' -f1)
