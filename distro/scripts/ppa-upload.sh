@@ -206,11 +206,11 @@ fi
 
 info "Building source package..."
 # -d skips build dependency checking (host may not be Ubuntu).
-# --no-lintian: source packages with vendored trees are huge; lintian is slow
-# and not useful for Launchpad acceptance.
+# --no-lintian must precede dpkg-buildpackage flags or debuild forwards it and
+# fails. Vendored trees make lintian slow; Launchpad does not need it.
 # Avoid `yes | debuild`: with pipefail, `yes` dies SIGPIPE (141) after debuild
 # finishes and aborts the script before upload.
-DEBIAN_FRONTEND=noninteractive debuild -S -sa -d --no-lintian </dev/null
+DEBIAN_FRONTEND=noninteractive debuild --no-lintian -S -sa -d </dev/null
 
 CHANGES_FILE=$(find "$TEMP_WORK_DIR" -maxdepth 1 -name "${PACKAGE}_${FILE_VERSION}_source.changes" -type f | head -1)
 if [[ -z "$CHANGES_FILE" ]]; then
