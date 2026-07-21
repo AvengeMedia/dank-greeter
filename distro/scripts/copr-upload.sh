@@ -10,7 +10,8 @@ set -euo pipefail
 # Examples:
 #   ./distro/scripts/copr-upload.sh                         # stable, latest release, release 1
 #   ./distro/scripts/copr-upload.sh dms-greeter 1.0.0 2    # stable, explicit version/rebuild
-#   ./distro/scripts/copr-upload.sh dms-greeter-git        # git snapshot from HEAD
+#   ./distro/scripts/copr-upload.sh dms-greeter-git        # git snapshot from HEAD (release 1)
+#   ./distro/scripts/copr-upload.sh dms-greeter-git 2      # git snapshot, RPM release 2 (same commit rebuild)
 
 REPO="AvengeMedia/dank-greeter"
 COPR_PROJECT="avengemedia/danklinux"
@@ -102,9 +103,10 @@ build_stable() {
     echo "Building SRPM..."
     (cd ~/rpmbuild/SPECS && rpmbuild -bs "${PACKAGE}".spec)
 
+    # Prefer newest by mtime — alphabetical ls picks older gitN (git9 > git14).
     local srpm
-    srpm=$(ls ~/rpmbuild/SRPMS/"${PACKAGE}"-"${VERSION}"-*.src.rpm | tail -n 1)
-    if [[ ! -f "$srpm" ]]; then
+    srpm=$(ls -1t ~/rpmbuild/SRPMS/"${PACKAGE}"-"${VERSION}"-*.src.rpm 2>/dev/null | head -n 1 || true)
+    if [[ -z "$srpm" ]] || [[ ! -f "$srpm" ]]; then
         echo "ERROR: SRPM not found (expected ${PACKAGE}-${VERSION}-*.src.rpm)"
         ls -la ~/rpmbuild/SRPMS/ || true
         exit 1
@@ -135,7 +137,7 @@ build_git() {
         exit 1
     fi
 
-    echo "Building ${PACKAGE} ${version} SRPM for Copr (${COPR_PROJECT})..."
+    echo "Building ${PACKAGE} ${version}-${RELEASE} SRPM for Copr (${COPR_PROJECT})..."
 
     local tmp_pack
     tmp_pack="$(mktemp -d)"
@@ -177,17 +179,18 @@ build_git() {
         -e "s|Source0:        {{{ git_repo_pack }}}|Source0:        ${tarball}|" \
         -e "s|Source3:        {{{ git_pack path=\$GIT_ROOT/dank-qml-common dir_name=dank-qml-common source_name=dank-qml-common.tar.gz }}}|Source3:        dank-qml-common.tar.gz|" \
         -e "s|{{{ git_repo_setup_macro }}}|%setup -q -n ${src_dir_safe}|" \
+        -e "s|RELEASE_PLACEHOLDER|${RELEASE}|g" \
         "$SPEC_SRC" > "$expanded"
 
-    python3 - "$expanded" "$changelog_date" "$version" <<'PY'
+    python3 - "$expanded" "$changelog_date" "$version" "$RELEASE" <<'PY'
 import sys
 from pathlib import Path
 path = Path(sys.argv[1])
-date, version = sys.argv[2], sys.argv[3]
+date, version, release = sys.argv[2], sys.argv[3], sys.argv[4]
 text = path.read_text()
 marker = "{{{ git_repo_changelog }}}"
 entry = (
-    f"* {date} AvengeMedia <contact@avengemedia.com> - 1:{version}-1\n"
+    f"* {date} AvengeMedia <contact@avengemedia.com> - 2:{version}-{release}\n"
     f"- Git snapshot build from dank-greeter ({version})\n"
 )
 if marker not in text:
@@ -202,10 +205,14 @@ PY
     fi
 
     echo "Building SRPM..."
-    rpmbuild -bs "$expanded"
-
-    local srpm
-    srpm="$(ls -1 ~/rpmbuild/SRPMS/"${PACKAGE}"-*.src.rpm 2>/dev/null | tail -n 1 || true)"
+    local rpmbuild_out srpm
+    rpmbuild_out="$(rpmbuild -bs "$expanded")"
+    printf '%s\n' "$rpmbuild_out"
+    srpm="$(printf '%s\n' "$rpmbuild_out" | sed -n 's/^Wrote: //p' | tail -n 1)"
+    if [[ -z "$srpm" ]] || [[ ! -f "$srpm" ]]; then
+        # Fallback: newest by mtime (alphabetical ls picks older gitN wrongly)
+        srpm="$(ls -1t ~/rpmbuild/SRPMS/"${PACKAGE}"-*.src.rpm 2>/dev/null | head -n 1 || true)"
+    fi
     if [[ -z "$srpm" ]] || [[ ! -f "$srpm" ]]; then
         echo "ERROR: SRPM not found for ${PACKAGE}"
         ls -la ~/rpmbuild/SRPMS/ || true

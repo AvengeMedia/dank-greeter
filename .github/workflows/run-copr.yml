@@ -17,7 +17,7 @@ on:
         required: false
         default: ""
       release:
-        description: "Stable release number (e.g. 1, 2, 3 for hotfixes). Ignored for git builds."
+        description: "RPM release number (e.g. 1, 2, 3 for same-version rebuilds). Applies to stable and git."
         required: false
         default: "1"
   schedule:
@@ -127,6 +127,7 @@ jobs:
           echo "- **Package:** \`${PACKAGE}\`" >> "$GITHUB_STEP_SUMMARY"
           if [[ "$PACKAGE" == "dms-greeter-git" ]]; then
             echo "- **Ref:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- **Release:** ${{ github.event.inputs.release || '1' }}" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}-${{ github.event.inputs.release || '1' }}" >> "$GITHUB_STEP_SUMMARY"
           fi

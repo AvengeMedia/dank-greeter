@@ -14,6 +14,7 @@ Depends: ${misc:Depends},
   greetd,
   quickshell-git | quickshell
 Conflicts: dms-greeter-git
+Replaces: dms-greeter-git
 Suggests: niri | hyprland | sway
 Description: DMS Greeter for greetd
  DMS Greeter is a greetd login screen with the Dank Material aesthetic.

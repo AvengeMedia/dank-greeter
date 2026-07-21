@@ -1,6 +1,7 @@
 # Spec for DMS Greeter - OpenSUSE/OBS git snapshots
 # Package name is dms-greeter-git so it can coexist in home:AvengeMedia:danklinux
-# beside stable dms-greeter (mutual Conflicts).
+# beside stable dms-greeter. Mutual Conflicts only — never Obsoletes stable
+# (same-repo Obsoletes would auto-replace stable on zypper up / dnf update).
 # OBS builds are offline: Go dependencies come vendored in the source tarball
 # and the Go toolchain is bundled as Source1/Source2 (staged by obs-upload.sh).
 
@@ -48,6 +49,7 @@ session selection, user authentication, and dynamic theming synced from
 DankMaterialShell.
 
 Conflicts with the stable dms-greeter package; both install /usr/bin/dms-greeter.
+Switch explicitly (e.g. zypper remove dms-greeter && zypper install dms-greeter-git).
 
 %prep
 %setup -q -n dms-greeter-git-source

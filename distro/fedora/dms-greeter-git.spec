@@ -1,6 +1,8 @@
 # Spec for DMS Greeter - Git builds using rpkg macros (Fedora/Copr)
 # Package name is dms-greeter-git so it can coexist in avengemedia/danklinux
-# beside stable dms-greeter (mutual Conflicts).
+# beside stable dms-greeter. Mutual Conflicts only — never Obsoletes stable:
+# both packages live in the same Copr, and Obsoletes makes `dnf update`
+# replace stable with git unprompted.
 
 %global debug_package %{nil}
 %global version {{{ git_repo_version }}}
@@ -10,7 +12,7 @@
 Name:           dms-greeter-git
 Epoch:          2
 Version:        %{version}
-Release:        1%{?dist}
+Release:        RELEASE_PLACEHOLDER%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
@@ -52,6 +54,7 @@ session selection, user authentication, and dynamic theming synced from
 DankMaterialShell.
 
 Conflicts with the stable dms-greeter package; both install /usr/bin/dms-greeter.
+Switch explicitly with: dnf swap dms-greeter dms-greeter-git
 
 %prep
 {{{ git_repo_setup_macro }}}
