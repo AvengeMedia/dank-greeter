@@ -3,18 +3,72 @@ name: Update PPA Package
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Package to upload"
+        required: true
+        type: choice
+        options:
+          - dms-greeter
+          - dms-greeter-git
+          - both
+        default: "dms-greeter"
+      series:
+        description: "Ubuntu series to upload"
+        required: true
+        type: choice
+        options:
+          - all
+          - resolute
+          - stonking
+        default: "all"
       version:
-        description: "Version to upload (e.g. 1.0.0, leave empty for latest release)"
+        description: "Version for stable (e.g. 1.0.0); ignored for git"
         required: false
         default: ""
       rebuild_release:
-        description: "Base ppa number for rebuilds (e.g. 2 for ppa2; the second series gets +1)"
+        description: "Base ppa number for rebuilds (e.g. 2 for ppa2; the second series gets +1 when uploading all)"
         required: false
         default: ""
 
 jobs:
+  determine-matrix:
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    outputs:
+      series: ${{ steps.set.outputs.series }}
+      packages: ${{ steps.set.outputs.packages }}
+    steps:
+      - name: Set series and packages
+        id: set
+        run: |
+          case "${{ github.event.inputs.series }}" in
+            all)
+              echo 'series=["resolute","stonking"]' >> "$GITHUB_OUTPUT"
+              ;;
+            resolute|stonking)
+              echo 'series=["${{ github.event.inputs.series }}"]' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unknown series: ${{ github.event.inputs.series }}" >&2
+              exit 1
+              ;;
+          esac
+          case "${{ github.event.inputs.package }}" in
+            both)
+              echo 'packages=["dms-greeter","dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+              ;;
+            dms-greeter|dms-greeter-git)
+              echo 'packages=["${{ github.event.inputs.package }}"]' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unknown package: ${{ github.event.inputs.package }}" >&2
+              exit 1
+              ;;
+          esac
+
   upload-ppa:
-    name: Upload ${{ matrix.series }}
+    name: Upload ${{ matrix.package }} (${{ matrix.series }})
+    needs: determine-matrix
     runs-on: ubuntu-latest
     if: github.repository == 'AvengeMedia/dank-greeter'
     timeout-minutes: 60
@@ -22,9 +76,10 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        series: [resolute, stonking]
+        package: ${{ fromJSON(needs.determine-matrix.outputs.packages) }}
+        series: ${{ fromJSON(needs.determine-matrix.outputs.series) }}
     concurrency:
-      group: ppa-dms-greeter-${{ matrix.series }}
+      group: ppa-${{ matrix.package }}-${{ matrix.series }}
       cancel-in-progress: false
 
     steps:
@@ -32,6 +87,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          submodules: recursive
 
       - name: Install build dependencies
         run: |
@@ -43,7 +99,8 @@ jobs:
             build-essential \
             fakeroot \
             dpkg-dev \
-            openssh-client
+            openssh-client \
+            golang-go
 
       - name: Configure GPG
         env:
@@ -58,17 +115,17 @@ jobs:
           LAUNCHPAD_SSH_PRIVATE_KEY: ${{ secrets.LAUNCHPAD_SSH_PRIVATE_KEY }}
           LAUNCHPAD_SSH_LOGIN: ${{ secrets.LAUNCHPAD_SSH_LOGIN }}
         run: |
+          PACKAGE="${{ matrix.package }}"
           BASE_NUM="${{ github.event.inputs.rebuild_release }}"
           BASE_NUM="${BASE_NUM:-1}"
-          # Native source format: distinct version per series, so stonking gets +1
-          if [[ "${{ matrix.series }}" == "stonking" ]]; then
+          if [[ "${{ github.event.inputs.series }}" == "all" && "${{ matrix.series }}" == "stonking" ]]; then
             PPA_NUM=$((BASE_NUM + 1))
           else
             PPA_NUM=$BASE_NUM
           fi
 
-          ARGS=("${{ matrix.series }}" "$PPA_NUM")
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+          ARGS=("$PACKAGE" "${{ matrix.series }}" "$PPA_NUM")
+          if [[ "$PACKAGE" == "dms-greeter" && -n "${{ github.event.inputs.version }}" ]]; then
             ARGS+=("--version=${{ github.event.inputs.version }}")
           fi
           bash distro/scripts/ppa-upload.sh "${ARGS[@]}"
@@ -78,5 +135,6 @@ jobs:
         run: |
           echo "### PPA Package Upload" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Package:** ${{ matrix.package }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Series:** ${{ matrix.series }}" >> "$GITHUB_STEP_SUMMARY"
           echo "- **PPA:** https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux/+packages" >> "$GITHUB_STEP_SUMMARY"

@@ -3,8 +3,17 @@ name: Void Linux XBPS Repository
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Package to build"
+        required: true
+        type: choice
+        options:
+          - dms-greeter
+          - dms-greeter-git
+          - both
+        default: "dms-greeter"
       version:
-        description: "Stable release tag/version to build (e.g. v1.0.0 or 1.0.0). Leave blank for the latest release"
+        description: "Stable release tag/version (e.g. v1.0.0). Ignored for git"
         type: string
         required: false
       force_rebuild:
@@ -32,8 +41,7 @@ jobs:
       AWS_EC2_METADATA_DISABLED: true
       R2_BUCKET: danklinux-void
       R2_ENDPOINT: https://${{ secrets.CLOUDFLARE_ACCOUNT_ID }}.r2.cloudflarestorage.com
-      # The old dms-greeter package shipped in the dms repository; publishing
-      # there keeps existing installs upgrading without config changes.
+      # Shared DMS Void prefix so existing installs keep upgrading.
       R2_PREFIX: dms
       REPOSITORY_DIR: ${{ github.workspace }}/r2-repo
       SOURCE_COMMIT: ${{ github.sha }}
@@ -42,21 +50,31 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          submodules: recursive
 
-      - name: Determine release version
-        id: version
+      - name: Determine packages and stable version
+        id: plan
         run: |
+          case "${{ github.event.inputs.package }}" in
+            both)
+              echo 'packages=["dms-greeter","dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+              ;;
+            dms-greeter|dms-greeter-git)
+              echo 'packages=["${{ github.event.inputs.package }}"]' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported package: ${{ github.event.inputs.package }}" >&2
+              exit 1
+              ;;
+          esac
+
           VERSION="${{ github.event.inputs.version }}"
           if [ -z "$VERSION" ]; then
             VERSION=$(curl -s https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r '.tag_name')
           fi
           VERSION="${VERSION#v}"
-          if [ -z "$VERSION" ] || [ "$VERSION" = "null" ]; then
-            echo "Could not determine release version" >&2
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "Building dms-greeter $VERSION"
+          echo "stable_version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Stable version candidate: ${VERSION:-none}"
 
       - name: Download current R2 repository
         run: |
@@ -73,9 +91,10 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/void-linux/void-packages.git
 
-      - name: Inject template
+      - name: Inject templates
         run: |
           cp -R distro/void/srcpkgs/dms-greeter void-packages/srcpkgs/
+          cp -R distro/void/srcpkgs/dms-greeter-git void-packages/srcpkgs/
 
       - name: Enable unprivileged user namespaces (Ubuntu 24.04)
         run: |
@@ -136,35 +155,86 @@ jobs:
             xbps-rindex -a void-packages/hostdir/binpkgs/*.xbps 2>/dev/null || true
           fi
 
-      - name: Build package
+      - name: Build packages
         run: |
           mkdir -p r2-repo/current
-
-          RELEASE_VER="${{ steps.version.outputs.version }}"
           FORCE_REBUILD="${{ github.event.inputs.force_rebuild || 'false' }}"
+          RELEASE_VER="${{ steps.plan.outputs.stable_version }}"
+          PACKAGES='${{ steps.plan.outputs.packages }}'
 
           cd void-packages
 
-          echo "🔧 Updating template for v${RELEASE_VER}"
-          TARBALL="$(mktemp)"
-          curl -fsSL -o "$TARBALL" "https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VER}/dank-greeter-${RELEASE_VER}.tar.gz"
-          RELEASE_CHECKSUM="$(sha256sum "$TARBALL" | cut -d' ' -f1)"
-          rm -f "$TARBALL"
+          for PACKAGE in $(echo "$PACKAGES" | jq -r '.[]'); do
+            echo "=========================================="
+            echo "Building $PACKAGE"
+            echo "=========================================="
 
-          sed -i "s/^version=.*/version=${RELEASE_VER}/" srcpkgs/dms-greeter/template
-          sed -i "s/^checksum=.*/checksum=${RELEASE_CHECKSUM}/" srcpkgs/dms-greeter/template
+            if [[ "$PACKAGE" == "dms-greeter-git" ]]; then
+              BASE=$(git -C .. describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "1.0.0")
+              [[ -z "$BASE" ]] && BASE="1.0.0"
+              COUNT=$(git -C .. rev-list --count HEAD)
+              HASH=$(git -C .. rev-parse --short=8 HEAD)
+              # Void versions cannot contain '+'; use dotted git form
+              GIT_VER="${BASE}.git${COUNT}.${HASH}"
 
-          GREETER_REV=$(grep -E '^revision=' srcpkgs/dms-greeter/template | cut -d= -f2 | tr -d '"')
-          EXPECTED_FILE="dms-greeter-${RELEASE_VER}_${GREETER_REV}.x86_64.xbps"
+              echo "Preparing dms-greeter-git version $GIT_VER"
+              SRC_CACHE="hostdir/sources/dms-greeter-git-${GIT_VER}"
+              mkdir -p "$SRC_CACHE"
+              # Pack checkout with submodule content (no .git)
+              TMP=$(mktemp -d)
+              mkdir -p "$TMP/dms-greeter-git-${GIT_VER}"
+              git -C .. archive --format=tar HEAD | tar -x -C "$TMP/dms-greeter-git-${GIT_VER}"
+              rm -rf "$TMP/dms-greeter-git-${GIT_VER}/dank-qml-common"
+              mkdir -p "$TMP/dms-greeter-git-${GIT_VER}/dank-qml-common"
+              tar -C ../dank-qml-common --exclude='.git' -cf - . \
+                | tar -C "$TMP/dms-greeter-git-${GIT_VER}/dank-qml-common" -xf -
+              rm -rf "$TMP/dms-greeter-git-${GIT_VER}/quickshell/DankCommon"
+              ln -sfn ../dank-qml-common/DankCommon "$TMP/dms-greeter-git-${GIT_VER}/quickshell/DankCommon"
+              tar -C "$TMP" -czhf "${SRC_CACHE}/dms-greeter-git-${GIT_VER}.tar.gz" "dms-greeter-git-${GIT_VER}"
+              rm -rf "$TMP"
 
-          if [ -f "../r2-repo/current/$EXPECTED_FILE" ] && [ "$FORCE_REBUILD" != "true" ]; then
-            echo "✅ $EXPECTED_FILE already exists, skipping build."
-          else
-            echo "🔨 Compiling dms-greeter (${RELEASE_VER})..."
-            ./xbps-src pkg dms-greeter
-            rm -f "../r2-repo/current/${EXPECTED_FILE}"
-            cp -L "hostdir/binpkgs/${EXPECTED_FILE}" ../r2-repo/current/
-          fi
+              CHECKSUM=$(sha256sum "${SRC_CACHE}/dms-greeter-git-${GIT_VER}.tar.gz" | cut -d' ' -f1)
+              sed -i "s/^version=.*/version=${GIT_VER}/" srcpkgs/dms-greeter-git/template
+              sed -i "s/^checksum=.*/checksum=${CHECKSUM}/" srcpkgs/dms-greeter-git/template
+              sed -i "s|^distfiles=.*|distfiles=\"dms-greeter-git-${GIT_VER}.tar.gz\"|" srcpkgs/dms-greeter-git/template
+
+              REV=$(grep -E '^revision=' srcpkgs/dms-greeter-git/template | cut -d= -f2 | tr -d '"')
+              EXPECTED_FILE="dms-greeter-git-${GIT_VER}_${REV}.x86_64.xbps"
+              if [ -f "../r2-repo/current/$EXPECTED_FILE" ] && [ "$FORCE_REBUILD" != "true" ]; then
+                echo "✅ $EXPECTED_FILE already exists, skipping build."
+              else
+                echo "🔨 Compiling dms-greeter-git..."
+                ./xbps-src pkg dms-greeter-git
+                rm -f "../r2-repo/current/${EXPECTED_FILE}"
+                cp -L "hostdir/binpkgs/${EXPECTED_FILE}" ../r2-repo/current/
+              fi
+            else
+              if [ -z "$RELEASE_VER" ] || [ "$RELEASE_VER" = "null" ]; then
+                echo "Could not determine release version for stable package" >&2
+                exit 1
+              fi
+              echo "Updating template for v${RELEASE_VER}"
+              TARBALL="$(mktemp)"
+              curl -fsSL -o "$TARBALL" "https://github.com/${{ github.repository }}/releases/download/v${RELEASE_VER}/dank-greeter-${RELEASE_VER}.tar.gz"
+              RELEASE_CHECKSUM="$(sha256sum "$TARBALL" | cut -d' ' -f1)"
+              rm -f "$TARBALL"
+
+              sed -i "s/^version=.*/version=${RELEASE_VER}/" srcpkgs/dms-greeter/template
+              sed -i "s/^checksum=.*/checksum=${RELEASE_CHECKSUM}/" srcpkgs/dms-greeter/template
+
+              GREETER_REV=$(grep -E '^revision=' srcpkgs/dms-greeter/template | cut -d= -f2 | tr -d '"')
+              EXPECTED_FILE="dms-greeter-${RELEASE_VER}_${GREETER_REV}.x86_64.xbps"
+
+              if [ -f "../r2-repo/current/$EXPECTED_FILE" ] && [ "$FORCE_REBUILD" != "true" ]; then
+                echo "✅ $EXPECTED_FILE already exists, skipping build."
+              else
+                echo "🔨 Compiling dms-greeter (${RELEASE_VER})..."
+                ./xbps-src pkg dms-greeter
+                rm -f "../r2-repo/current/${EXPECTED_FILE}"
+                cp -L "hostdir/binpkgs/${EXPECTED_FILE}" ../r2-repo/current/
+              fi
+            fi
+          done
 
       - name: Index and sign repository
         run: |
@@ -180,8 +250,6 @@ jobs:
           xbps-rindex -a $(pwd)/*.xbps
           xbps-rindex --remove-obsoletes $(pwd)
 
-          # Remove signatures left behind by obsolete packages. Signatures for
-          # unchanged immutable packages are retained byte-for-byte.
           for sig in *.sig2; do
             [ -e "$sig" ] || break
             [ -f "${sig%.sig2}" ] || rm -f "$sig"

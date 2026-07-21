@@ -19,6 +19,9 @@ export GOFLAGS := -mod=vendor
 %:
 	dh $@
 
+override_dh_auto_test:
+	@echo "Skipping dh_auto_test (Launchpad offline; tests run in CI)"
+
 override_dh_auto_build:
 	mkdir -p $(HOME) $(GOCACHE) $(GOMODCACHE)
 

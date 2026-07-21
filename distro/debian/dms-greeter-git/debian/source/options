@@ -1,0 +1,2 @@
+# obs-upload.sh builds the combined native tarball (source + debian/ + bundled Go);
+# DankCommon submodule content is packed into the tree before upload.

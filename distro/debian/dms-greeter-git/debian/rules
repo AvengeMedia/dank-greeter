@@ -28,6 +28,7 @@ override_dh_auto_build:
 
 	test -d core || (echo "ERROR: core directory not found!" && exit 1)
 	test -d core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
+	test -e quickshell/DankCommon/Widgets/DankIcon.qml || (echo "ERROR: DankCommon missing!" && exit 1)
 
 	# Bundled Go at source root (go$$VER.linux-{amd64,arm64}.tar.gz); staged by obs-upload.sh
 	GO_TOOLCHAIN_VERSION=$$(grep -m1 '^go ' core/go.mod | awk '{print $$2}'); \
@@ -47,27 +48,28 @@ override_dh_auto_build:
 	go version; \
 	sed -i "s/^go [0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$$/go $$GO_TOOLCHAIN_VERSION/" core/go.mod; \
 	sed -i "s/^\(## explicit; go \)[0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$$/\1$$GO_TOOLCHAIN_VERSION/" core/vendor/modules.txt; \
-	$(MAKE) -C core build VERSION="$(UPSTREAM_VERSION)" COMMIT=release
+	COMMIT=$$(echo "$(UPSTREAM_VERSION)" | grep -oP '(?<=git)[0-9]+\.[a-f0-9]+' | cut -d. -f2 | head -c8 || echo "unknown"); \
+	$(MAKE) -C core build VERSION="$(UPSTREAM_VERSION)" COMMIT="$$COMMIT"
 
 override_dh_auto_install:
-	install -Dm755 core/bin/dms-greeter debian/dms-greeter/usr/bin/dms-greeter
+	install -Dm755 core/bin/dms-greeter debian/dms-greeter-git/usr/bin/dms-greeter
 
-	install -d debian/dms-greeter/usr/share/bash-completion/completions
-	install -d debian/dms-greeter/usr/share/zsh/vendor-completions
-	install -d debian/dms-greeter/usr/share/fish/vendor_completions.d
-	core/bin/dms-greeter completion bash > debian/dms-greeter/usr/share/bash-completion/completions/dms-greeter
-	core/bin/dms-greeter completion zsh > debian/dms-greeter/usr/share/zsh/vendor-completions/_dms-greeter
-	core/bin/dms-greeter completion fish > debian/dms-greeter/usr/share/fish/vendor_completions.d/dms-greeter.fish
+	install -d debian/dms-greeter-git/usr/share/bash-completion/completions
+	install -d debian/dms-greeter-git/usr/share/zsh/vendor-completions
+	install -d debian/dms-greeter-git/usr/share/fish/vendor_completions.d
+	core/bin/dms-greeter completion bash > debian/dms-greeter-git/usr/share/bash-completion/completions/dms-greeter
+	core/bin/dms-greeter completion zsh > debian/dms-greeter-git/usr/share/zsh/vendor-completions/_dms-greeter
+	core/bin/dms-greeter completion fish > debian/dms-greeter-git/usr/share/fish/vendor_completions.d/dms-greeter.fish
 
 	install -Dpm0644 assets/systemd/sysusers-dms-greeter.conf \
-		debian/dms-greeter/usr/lib/sysusers.d/dms-greeter.conf
+		debian/dms-greeter-git/usr/lib/sysusers.d/dms-greeter.conf
 	install -Dpm0644 assets/systemd/tmpfiles-dms-greeter.conf \
-		debian/dms-greeter/usr/lib/tmpfiles.d/dms-greeter.conf
+		debian/dms-greeter-git/usr/lib/tmpfiles.d/dms-greeter.conf
 
-	install -Dm644 README.md debian/dms-greeter/usr/share/doc/dms-greeter/README.md
-	install -Dm644 LICENSE debian/dms-greeter/usr/share/doc/dms-greeter/LICENSE
-	install -d debian/dms-greeter/usr/share/doc/dms-greeter/examples
-	install -m644 assets/examples/* debian/dms-greeter/usr/share/doc/dms-greeter/examples/
+	install -Dm644 README.md debian/dms-greeter-git/usr/share/doc/dms-greeter/README.md
+	install -Dm644 LICENSE debian/dms-greeter-git/usr/share/doc/dms-greeter/LICENSE
+	install -d debian/dms-greeter-git/usr/share/doc/dms-greeter/examples
+	install -m644 assets/examples/* debian/dms-greeter-git/usr/share/doc/dms-greeter/examples/
 
 override_dh_auto_clean:
 	rm -rf core/bin core/internal/shellembed/dist

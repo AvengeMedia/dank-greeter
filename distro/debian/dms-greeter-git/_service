@@ -1,0 +1,10 @@
+<services>
+  <!-- Reference only: obs-upload.sh packs from the local checkout (with
+       dank-qml-common + vendored Go) rather than letting OBS fetch SCM. -->
+  <service name="tar_scm" mode="disabled">
+    <param name="scm">git</param>
+    <param name="url">https://github.com/AvengeMedia/dank-greeter.git</param>
+    <param name="revision">master</param>
+    <param name="filename">dms-greeter-git-source</param>
+  </service>
+</services>

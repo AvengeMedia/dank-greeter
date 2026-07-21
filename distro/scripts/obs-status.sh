@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# OBS build status for dms-greeter (all repos/arches); pulls logs on failure.
-# Usage: ./distro/scripts/obs-status.sh
+# OBS build status for dms-greeter / dms-greeter-git (all repos/arches); pulls logs on failure.
+# Usage: ./distro/scripts/obs-status.sh [dms-greeter|dms-greeter-git]
 
 OBS_PROJECT="home:AvengeMedia:danklinux"
-PACKAGE="dms-greeter"
+PACKAGE="${1:-dms-greeter}"
 OBS_BASE="$HOME/.cache/osc-checkouts"
 
 REPOS=("Debian_13" "openSUSE_Tumbleweed" "16.0")

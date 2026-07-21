@@ -3,8 +3,26 @@ name: Update OBS Package
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Package to upload"
+        required: true
+        type: choice
+        options:
+          - dms-greeter
+          - dms-greeter-git
+          - both
+        default: "dms-greeter"
+      target:
+        description: "OBS target(s) to upload"
+        required: true
+        type: choice
+        options:
+          - all
+          - debian
+          - opensuse
+        default: "all"
       version:
-        description: "Version to upload (e.g. 1.0.0, leave empty for latest release)"
+        description: "Version to upload for stable (e.g. 1.0.0, leave empty for latest release); ignored for git"
         required: false
         default: ""
       rebuild_release:
@@ -14,19 +32,24 @@ on:
 
 jobs:
   update-obs:
-    name: Upload to OBS
+    name: Upload ${{ matrix.package }} (${{ github.event.inputs.target }})
     runs-on: ubuntu-latest
     if: github.repository == 'AvengeMedia/dank-greeter'
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ github.event.inputs.package == 'both' && fromJSON('["dms-greeter","dms-greeter-git"]') || fromJSON(format('["{0}"]', github.event.inputs.package)) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          submodules: recursive
 
-      - name: Install OSC
+      - name: Install OSC and Go
         run: |
           sudo apt-get update
-          sudo apt-get install -y osc
+          sudo apt-get install -y osc golang-go
 
           mkdir -p ~/.config/osc
           cat > ~/.config/osc/oscrc << EOF
@@ -51,8 +74,18 @@ jobs:
         env:
           REBUILD_RELEASE: ${{ github.event.inputs.rebuild_release }}
         run: |
-          ARGS=()
-          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+          PACKAGE="${{ matrix.package }}"
+          ARGS=("$PACKAGE")
+          case "${{ github.event.inputs.target }}" in
+            debian) ARGS+=("debian") ;;
+            opensuse) ARGS+=("opensuse") ;;
+            all) ;;
+            *)
+              echo "Unknown target: ${{ github.event.inputs.target }}" >&2
+              exit 1
+              ;;
+          esac
+          if [[ "$PACKAGE" == "dms-greeter" && -n "${{ github.event.inputs.version }}" ]]; then
             ARGS+=("--version=${{ github.event.inputs.version }}")
           fi
           bash distro/scripts/obs-upload.sh "${ARGS[@]}"
@@ -62,9 +95,14 @@ jobs:
         run: |
           echo "### OBS Package Upload" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Package:** dms-greeter" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Package:** ${{ matrix.package }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target:** ${{ github.event.inputs.target }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ matrix.package }}" == "dms-greeter" ]]; then
+            echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Version:** git snapshot from checkout" >> $GITHUB_STEP_SUMMARY
+          fi
           if [[ -n "${{ github.event.inputs.rebuild_release }}" ]]; then
             echo "- **Rebuild:** db${{ github.event.inputs.rebuild_release }}" >> $GITHUB_STEP_SUMMARY
           fi
-          echo "- **Builds:** https://build.opensuse.org/package/show/home:AvengeMedia:danklinux/dms-greeter" >> $GITHUB_STEP_SUMMARY
+          echo "- **Builds:** https://build.opensuse.org/package/show/home:AvengeMedia:danklinux/${{ matrix.package }}" >> $GITHUB_STEP_SUMMARY

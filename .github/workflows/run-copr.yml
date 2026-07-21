@@ -1,29 +1,95 @@
-name: Copr Stable Release
+name: Copr Release
 
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: "Package to build"
+        required: true
+        type: choice
+        options:
+          - dms-greeter
+          - dms-greeter-git
+          - both
+        default: "dms-greeter"
       version:
-        description: "Version to build (e.g. 1.0.0, leave empty for latest release)"
+        description: "Stable version (e.g. 1.0.0). Leave empty for latest GitHub release. Ignored for git builds."
         required: false
         default: ""
       release:
-        description: "Release number (e.g. 1, 2, 3 for hotfixes)"
+        description: "Stable release number (e.g. 1, 2, 3 for hotfixes). Ignored for git builds."
         required: false
         default: "1"
+  schedule:
+    # Git snapshots four times daily (UTC)
+    - cron: "0 2,8,14,20 * * *"
+  push:
+    branches: [master]
+    paths:
+      - "core/**"
+      - "quickshell/**"
+      - "assets/**"
+      - "Makefile"
+      - "distro/fedora/dms-greeter-git.spec"
+      - "distro/scripts/copr-upload.sh"
+      - ".gitmodules"
+      - "dank-qml-common"
+      - ".github/workflows/run-copr.yml"
+
+concurrency:
+  group: copr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build-and-upload:
+  determine-packages:
     runs-on: ubuntu-latest
     if: github.repository == 'AvengeMedia/dank-greeter'
+    outputs:
+      packages: ${{ steps.set.outputs.packages }}
+    steps:
+      - name: Set package list
+        id: set
+        run: |
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            # schedule / push → git snapshot only
+            echo 'packages=["dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "${{ github.event.inputs.package }}" in
+            dms-greeter)
+              echo 'packages=["dms-greeter"]' >> "$GITHUB_OUTPUT"
+              ;;
+            dms-greeter-git)
+              echo 'packages=["dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+              ;;
+            both)
+              echo 'packages=["dms-greeter","dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unknown package: ${{ github.event.inputs.package }}" >&2
+              exit 1
+              ;;
+          esac
+
+  build-and-upload:
+    needs: determine-packages
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.determine-packages.outputs.packages) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: recursive
 
       - name: Setup build environment
         run: |
           sudo apt-get update
-          sudo apt-get install -y rpm wget curl jq gzip python3-pip
+          sudo apt-get install -y rpm wget curl jq gzip python3 python3-pip
           pip3 install copr-cli
 
       - name: Configure Copr CLI
@@ -40,21 +106,28 @@ jobs:
 
       - name: Build SRPM and upload to Copr
         run: |
-          bash distro/scripts/copr-upload.sh \
+          bash distro/scripts/copr-upload.sh "${{ matrix.package }}" \
             "${{ github.event.inputs.version }}" \
             "${{ github.event.inputs.release || '1' }}"
 
       - name: Upload SRPM artifact
         uses: actions/upload-artifact@v5
         with:
-          name: dms-greeter-srpm
-          path: ~/rpmbuild/SRPMS/dms-greeter-*.src.rpm
+          name: ${{ matrix.package }}-srpm
+          path: ~/rpmbuild/SRPMS/${{ matrix.package }}-*.src.rpm
           retention-days: 90
+          if-no-files-found: warn
 
       - name: Build summary
         if: always()
         run: |
-          echo "### dms-greeter Copr Build Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}-${{ github.event.inputs.release || '1' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Project:** https://copr.fedorainfracloud.org/coprs/avengemedia/danklinux/" >> $GITHUB_STEP_SUMMARY
+          PACKAGE="${{ matrix.package }}"
+          echo "### ${PACKAGE} Copr Build Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Package:** \`${PACKAGE}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$PACKAGE" == "dms-greeter-git" ]]; then
+            echo "- **Ref:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}-${{ github.event.inputs.release || '1' }}" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "- **Project:** https://copr.fedorainfracloud.org/coprs/avengemedia/danklinux/" >> "$GITHUB_STEP_SUMMARY"

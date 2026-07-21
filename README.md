@@ -52,17 +52,19 @@ yay -S greetd-dms-greeter-git
 
 ### Debian / openSUSE
 
-Official packages are available from the [DankLinux OBS repository](https://software.opensuse.org/download/package?package=dms-greeter&project=home%3AAvengeMedia%3Adanklinux). Add the repo for your distribution, then:
+Official packages are available from the [DankLinux OBS repository](https://software.opensuse.org/download/package?package=dms-greeter&project=home%3AAvengeMedia%3Adanklinux). Add the repo for your distribution, then install **`dms-greeter`** (stable) or **`dms-greeter-git`** (master; Conflicts with stable):
 
 ```bash
 # Debian 13
 sudo apt install dms-greeter
+# sudo apt install dms-greeter-git
 
 # openSUSE Tumbleweed
 zypper install dms-greeter
+# zypper install dms-greeter-git
 ```
 
-See the [Installation guide](https://danklinux.com/docs/dankgreeter/installation) for full repository setup.
+Ubuntu uses the same package names from [`ppa:avengemedia/danklinux`](https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux). See the [Installation guide](https://danklinux.com/docs/dankgreeter/installation) for full repository setup.
 
 ### Fedora / RHEL / Rocky / Alma
 
@@ -83,6 +85,7 @@ sudo dnf install dms-greeter-git
 ```bash
 echo 'repository=https://void.danklinux.com/dms/current' | sudo tee /etc/xbps.d/dms.conf
 sudo xbps-install -S dms-greeter
+# sudo xbps-install -S dms-greeter-git   # master snapshots; Conflicts with stable
 ```
 
 The packages create the greeter user (via `systemd-sysusers` for atomic/immutable compatibility, with package script fallback), set up directories and permissions, and apply SELinux contexts where relevant.

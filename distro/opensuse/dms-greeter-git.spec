@@ -1,24 +1,23 @@
-# Spec for DMS Greeter - OpenSUSE/OBS
+# Spec for DMS Greeter - OpenSUSE/OBS git snapshots
+# Package name is dms-greeter-git so it can coexist in home:AvengeMedia:danklinux
+# beside stable dms-greeter (mutual Conflicts).
 # OBS builds are offline: Go dependencies come vendored in the source tarball
 # and the Go toolchain is bundled as Source1/Source2 (staged by obs-upload.sh).
 
 %global debug_package %{nil}
 %global go_toolchain_version 1.26.4
-%global version VERSION_PLACEHOLDER
-%global pkg_summary DMS Greeter for greetd
+%global pkg_summary DMS Greeter for greetd (git)
 
-Name:           dms-greeter
-# Epoch 1: versions restarted at 1.0.0 when the greeter moved to its own repo;
-# the old package (built from DankMaterialShell) had reached 1.5.x.
-Epoch:          1
-Version:        %{version}
-Release:        RELEASE_PLACEHOLDER%{?dist}
+Name:           dms-greeter-git
+Epoch:          2
+Version:        0.0.0+git0.00000000
+Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
 URL:            https://github.com/AvengeMedia/dank-greeter
 
-Source0:        dank-greeter-%{version}.tar.gz
+Source0:        dms-greeter-git-source.tar.gz
 Source1:        go%{go_toolchain_version}.linux-amd64.tar.gz
 Source2:        go%{go_toolchain_version}.linux-arm64.tar.gz
 
@@ -30,7 +29,8 @@ Requires:       (quickshell-git or quickshell)
 Requires(post): /usr/sbin/useradd
 Requires(post): /usr/sbin/groupadd
 
-Conflicts:      dms-greeter-git
+Provides:       dms-greeter = %{epoch}:%{version}-%{release}
+Conflicts:      dms-greeter
 
 Recommends:     acl
 Suggests:       niri
@@ -39,6 +39,7 @@ Suggests:       sway
 
 %description
 DMS Greeter is a greetd login screen with the Dank Material aesthetic.
+This git package builds from the tip of the dank-greeter repository.
 A single Go binary with the Quickshell UI embedded; the UI is extracted
 to the greeter cache directory at startup.
 
@@ -46,9 +47,13 @@ Supports multiple compositors including Niri, Hyprland, and Sway with
 session selection, user authentication, and dynamic theming synced from
 DankMaterialShell.
 
+Conflicts with the stable dms-greeter package; both install /usr/bin/dms-greeter.
+
 %prep
-%setup -q -n dank-greeter-%{version}
+%setup -q -n dms-greeter-git-source
 test -d core/vendor || { echo "ERROR: vendored Go dependencies missing from source tarball"; exit 1; }
+# Ensure DankCommon submodule content is present (packed by obs-upload.sh)
+test -e quickshell/DankCommon/Widgets/DankIcon.qml || { echo "ERROR: DankCommon missing from source tarball"; exit 1; }
 
 %build
 case "%{_arch}" in
@@ -86,7 +91,9 @@ go version
 sed -i "s/^go [0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$/go %{go_toolchain_version}/" core/go.mod
 sed -i "s/^\(## explicit; go \)[0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$/\1%{go_toolchain_version}/" core/vendor/modules.txt
 
-make -C core build VERSION=%{version} COMMIT=release
+VERSION="%{version}"
+COMMIT=$(echo "%{version}" | grep -oP '(?<=git)[0-9]+\.[a-f0-9]+' | cut -d. -f2 | head -c8 || echo "unknown")
+make -C core build VERSION="$VERSION" COMMIT="$COMMIT"
 
 %install
 install -Dm755 core/bin/dms-greeter %{buildroot}%{_bindir}/dms-greeter
@@ -324,7 +331,7 @@ if [ "$1" -eq 1 ]; then
 cat << 'EOF'
 
 =========================================================================
-        DMS Greeter Installation Complete!
+        DMS Greeter (git) Installation Complete!
 =========================================================================
 
 Status:
@@ -359,12 +366,5 @@ if [ "$1" -eq 0 ] && [ -x /usr/sbin/semanage ]; then
 fi
 
 %changelog
-* CHANGELOG_DATE_PLACEHOLDER AvengeMedia <contact@avengemedia.com> - 1:VERSION_PLACEHOLDER-RELEASE_PLACEHOLDER
-- Stable release VERSION_PLACEHOLDER built from the dank-greeter repository
-- Greeter extracted from DankMaterialShell; the bash wrapper and the
-  /usr/share/quickshell/dms-greeter QML tree are replaced by a single Go
-  binary with the UI embedded
-- Existing /etc/greetd/config.toml commands (dms-greeter --command COMPOSITOR)
-  keep working unchanged
-- Epoch bumped to 1 so the restarted 1.x versioning upgrades over the old
-  DMS-versioned package
+* Mon Jul 20 2026 AvengeMedia <contact@avengemedia.com> - 1:0.0.0+git0.00000000-1
+- Git snapshot packaging for dank-greeter (version rewritten by obs-upload.sh)

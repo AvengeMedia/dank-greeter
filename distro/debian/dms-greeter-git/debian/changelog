@@ -1,0 +1,6 @@
+dms-greeter-git (1:0.0.0+git0.00000000) unstable; urgency=medium
+
+  * Placeholder; obs-upload.sh rewrites this with the current git snapshot
+    version on each upload.
+
+ -- Avenge Media <AvengeMedia.US@gmail.com>  Mon, 20 Jul 2026 00:00:00 +0000

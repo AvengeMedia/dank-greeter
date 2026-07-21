@@ -8,8 +8,7 @@
 %global go_toolchain_version 1.26.4
 
 Name:           dms-greeter-git
-# Epoch 1: align with stable dms-greeter after the dank-greeter repo split
-Epoch:          1
+Epoch:          2
 Version:        %{version}
 Release:        1%{?dist}
 Summary:        %{pkg_summary}
