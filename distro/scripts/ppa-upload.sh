@@ -187,29 +187,6 @@ EOF
         fi
         (cd "$SRC_DIR/core" && go mod vendor)
     fi
-
-    # Bundle Go toolchains (dankcalendar-git pattern) so Launchpad builds
-    # offline with the go.mod version on both amd64 and arm64.
-    GO_VER=$(grep -E '^go ' "$SRC_DIR/core/go.mod" | awk '{print $2}')
-    if [[ -z "$GO_VER" ]]; then
-        error "Could not determine Go version from core/go.mod"
-        exit 1
-    fi
-    info "Bundling Go ${GO_VER} toolchain for offline Launchpad builds..."
-    mkdir -p "$WORK_PACKAGE_DIR/.go-toolchain"
-    for arch in amd64 arm64; do
-        GO_TGZ="go${GO_VER}.linux-${arch}.tar.gz"
-        if [[ ! -f "$WORK_PACKAGE_DIR/.go-toolchain/${GO_TGZ}" ]]; then
-            if ! { wget -q -O "$WORK_PACKAGE_DIR/.go-toolchain/${GO_TGZ}" "https://go.dev/dl/${GO_TGZ}" \
-                || curl -fsSL -o "$WORK_PACKAGE_DIR/.go-toolchain/${GO_TGZ}" "https://go.dev/dl/${GO_TGZ}"; }; then
-                error "Failed to download ${GO_TGZ}"
-                exit 1
-            fi
-        fi
-        mkdir -p "$WORK_PACKAGE_DIR/.go-toolchain/${arch}"
-        tar -C "$WORK_PACKAGE_DIR/.go-toolchain/${arch}" -xzf "$WORK_PACKAGE_DIR/.go-toolchain/${GO_TGZ}"
-    done
-    success "Go toolchain bundled"
 else
     cat > debian/changelog <<EOF
 ${PACKAGE} (${NEW_VERSION}) ${SERIES}; urgency=medium
@@ -229,9 +206,11 @@ fi
 
 info "Building source package..."
 # -d skips build dependency checking (host may not be Ubuntu).
+# --no-lintian: source packages with vendored trees are huge; lintian is slow
+# and not useful for Launchpad acceptance.
 # Avoid `yes | debuild`: with pipefail, `yes` dies SIGPIPE (141) after debuild
 # finishes and aborts the script before upload.
-DEBIAN_FRONTEND=noninteractive debuild -S -sa -d </dev/null
+DEBIAN_FRONTEND=noninteractive debuild -S -sa -d --no-lintian </dev/null
 
 CHANGES_FILE=$(find "$TEMP_WORK_DIR" -maxdepth 1 -name "${PACKAGE}_${FILE_VERSION}_source.changes" -type f | head -1)
 if [[ -z "$CHANGES_FILE" ]]; then
@@ -248,12 +227,14 @@ success "Source package built: $(basename "$CHANGES_FILE")"
 setup_launchpad_sftp() {
     if [[ -z "${LAUNCHPAD_SSH_PRIVATE_KEY:-}" ]]; then
         error "LAUNCHPAD_SSH_PRIVATE_KEY is required for CI SFTP uploads."
+        error "Add a GitHub Actions secret containing a private SSH key whose public key is registered in Launchpad."
+        error "Optional: set LAUNCHPAD_SSH_LOGIN if the Launchpad login is not 'avengemedia'."
         exit 1
     fi
 
     local ssh_dir="$HOME/.ssh"
     local key_file="$ssh_dir/launchpad_ppa"
-    local login="${LAUNCHPAD_SSH_LOGIN:-$PPA_OWNER}"
+    local login="${LAUNCHPAD_SSH_LOGIN:-avengemedia}"
     local strict_host_key_checking="yes"
 
     mkdir -p "$ssh_dir"
@@ -264,7 +245,7 @@ setup_launchpad_sftp() {
     if ssh-keyscan -H ppa.launchpad.net >> "$ssh_dir/known_hosts" 2>/dev/null; then
         chmod 600 "$ssh_dir/known_hosts"
     else
-        warn "Could not prefetch ppa.launchpad.net host key; trusting on first connection"
+        warn "Could not prefetch ppa.launchpad.net SSH host key; allowing OpenSSH to trust it on first SFTP connection"
         strict_host_key_checking="accept-new"
     fi
 

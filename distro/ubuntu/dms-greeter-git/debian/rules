@@ -7,17 +7,13 @@ UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed 's/^[0-9]*://; s/ppa[0-9]*
 COMMIT_HASH := $(shell echo $(UPSTREAM_VERSION) | sed -n 's/.*\.\([a-f0-9]\{7,8\}\)$$/\1/p')
 SRCDIR := dms-greeter-git-source
 
-# Bundled toolchain (staged by ppa-upload.sh) — same pattern as dankcalendar-git
-DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
-GO_HOST_ARCH := $(if $(filter arm64,$(DEB_HOST_ARCH)),arm64,amd64)
-export PATH := $(CURDIR)/.go-toolchain/$(GO_HOST_ARCH)/go/bin:$(PATH)
-
 # Go needs writable directories for its caches
 export HOME := $(CURDIR)/debian/tmp-home
 export GOCACHE := $(CURDIR)/debian/tmp-home/go-cache
 export GOMODCACHE := $(CURDIR)/debian/tmp-home/go-mod
 
-# Launchpad has no network: vendored deps + bundled Go (GOTOOLCHAIN=local)
+# Launchpad has no network access: dependencies are vendored in the source
+# tree and the distro golang-go toolchain is used as-is (same as stable).
 export GOTOOLCHAIN := local
 export GOFLAGS := -mod=vendor
 
@@ -30,11 +26,17 @@ override_dh_auto_test:
 override_dh_auto_build:
 	mkdir -p $(HOME) $(GOCACHE) $(GOMODCACHE)
 
-	test -x "$(CURDIR)/.go-toolchain/$(GO_HOST_ARCH)/go/bin/go" || \
-		(echo "ERROR: bundled Go missing at .go-toolchain/$(GO_HOST_ARCH)/go/bin/go" && exit 1)
 	test -d $(SRCDIR)/core || (echo "ERROR: $(SRCDIR)/core not found!" && exit 1)
 	test -d $(SRCDIR)/core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
 	test -e $(SRCDIR)/quickshell/DankCommon/Widgets/DankIcon.qml || (echo "ERROR: DankCommon missing!" && exit 1)
+
+	# Align the go directive (and vendored annotations) with the distro toolchain
+	GO_VERSION=$$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/'); \
+	if [ -n "$$GO_VERSION" ]; then \
+		sed -E -i "s/^go 1\.[0-9]+(\.[0-9]+)?/go $$GO_VERSION/" $(SRCDIR)/core/go.mod; \
+		sed -E -i "s/^(## explicit; go )1\.[0-9]+(\.[0-9]+)?$$/\1$$GO_VERSION/" $(SRCDIR)/core/vendor/modules.txt; \
+	fi
+	sed -E -i '/^toolchain go[0-9.]+$$/d' $(SRCDIR)/core/go.mod
 
 	$(MAKE) -C $(SRCDIR)/core build VERSION="$(UPSTREAM_VERSION)" COMMIT="$(COMMIT_HASH)"
 

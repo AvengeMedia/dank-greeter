@@ -1,2 +1,2 @@
 # ppa-upload.sh packs dms-greeter-git-source/ (checkout + submodule + vendor)
-# and .go-toolchain/ (bundled Go, dankcalendar-git pattern) before debuild.
+# into the native source package before debuild. Uses distro golang-go on Launchpad.
