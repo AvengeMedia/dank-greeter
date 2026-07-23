@@ -21,8 +21,8 @@ on:
         required: false
         default: "1"
   schedule:
-    # Git snapshots four times daily (UTC)
-    - cron: "0 2,8,14,20 * * *"
+    # Git snapshots three times daily
+    - cron: "0 5,17,23 * * *" # 12am, 12pm, 6pm EST (05:00, 17:00, 23:00 UTC)
   push:
     branches: [master]
     paths:

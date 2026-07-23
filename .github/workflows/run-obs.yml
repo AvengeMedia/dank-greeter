@@ -29,16 +29,49 @@ on:
         description: "Release number for rebuilds (e.g. 2, 3 to increment spec Release / db suffix)"
         required: false
         default: ""
+  schedule:
+    - cron: "0 5,17,23 * * *" # 12am, 12pm, 6pm EST (05:00, 17:00, 23:00 UTC)
 
 jobs:
+  determine-packages:
+    runs-on: ubuntu-latest
+    if: github.repository == 'AvengeMedia/dank-greeter'
+    outputs:
+      packages: ${{ steps.set.outputs.packages }}
+      target: ${{ steps.set.outputs.target }}
+    steps:
+      - name: Set package list and target
+        id: set
+        run: |
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            # schedule → git snapshot only, all targets
+            echo 'packages=["dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+            echo "target=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "${{ github.event.inputs.package }}" in
+            both)
+              echo 'packages=["dms-greeter","dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+              ;;
+            dms-greeter|dms-greeter-git)
+              echo 'packages=["${{ github.event.inputs.package }}"]' >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unknown package: ${{ github.event.inputs.package }}" >&2
+              exit 1
+              ;;
+          esac
+          echo "target=${{ github.event.inputs.target }}" >> "$GITHUB_OUTPUT"
+
   update-obs:
-    name: Upload ${{ matrix.package }} (${{ github.event.inputs.target }})
+    name: Upload ${{ matrix.package }} (${{ needs.determine-packages.outputs.target }})
+    needs: determine-packages
     runs-on: ubuntu-latest
     if: github.repository == 'AvengeMedia/dank-greeter'
     strategy:
       fail-fast: false
       matrix:
-        package: ${{ github.event.inputs.package == 'both' && fromJSON('["dms-greeter","dms-greeter-git"]') || fromJSON(format('["{0}"]', github.event.inputs.package)) }}
+        package: ${{ fromJSON(needs.determine-packages.outputs.packages) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -75,13 +108,14 @@ jobs:
           REBUILD_RELEASE: ${{ github.event.inputs.rebuild_release }}
         run: |
           PACKAGE="${{ matrix.package }}"
+          TARGET="${{ needs.determine-packages.outputs.target }}"
           ARGS=("$PACKAGE")
-          case "${{ github.event.inputs.target }}" in
+          case "$TARGET" in
             debian) ARGS+=("debian") ;;
             opensuse) ARGS+=("opensuse") ;;
             all) ;;
             *)
-              echo "Unknown target: ${{ github.event.inputs.target }}" >&2
+              echo "Unknown target: $TARGET" >&2
               exit 1
               ;;
           esac
@@ -96,7 +130,7 @@ jobs:
           echo "### OBS Package Upload" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Package:** ${{ matrix.package }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target:** ${{ github.event.inputs.target }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target:** ${{ needs.determine-packages.outputs.target }}" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ matrix.package }}" == "dms-greeter" ]]; then
             echo "- **Version:** ${{ github.event.inputs.version || 'latest release' }}" >> $GITHUB_STEP_SUMMARY
           else

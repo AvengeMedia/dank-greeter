@@ -29,6 +29,8 @@ on:
         description: "Base ppa number for rebuilds (e.g. 2 for ppa2; the second series gets +1 when uploading all)"
         required: false
         default: ""
+  schedule:
+    - cron: "0 5,17,23 * * *" # 12am, 12pm, 6pm EST (05:00, 17:00, 23:00 UTC)
 
 jobs:
   determine-matrix:
@@ -37,10 +39,18 @@ jobs:
     outputs:
       series: ${{ steps.set.outputs.series }}
       packages: ${{ steps.set.outputs.packages }}
+      series_mode: ${{ steps.set.outputs.series_mode }}
     steps:
       - name: Set series and packages
         id: set
         run: |
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            # schedule → git snapshot only, all series
+            echo 'series=["resolute","stonking"]' >> "$GITHUB_OUTPUT"
+            echo 'packages=["dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+            echo "series_mode=all" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           case "${{ github.event.inputs.series }}" in
             all)
               echo 'series=["resolute","stonking"]' >> "$GITHUB_OUTPUT"
@@ -53,6 +63,7 @@ jobs:
               exit 1
               ;;
           esac
+          echo "series_mode=${{ github.event.inputs.series }}" >> "$GITHUB_OUTPUT"
           case "${{ github.event.inputs.package }}" in
             both)
               echo 'packages=["dms-greeter","dms-greeter-git"]' >> "$GITHUB_OUTPUT"
@@ -118,7 +129,7 @@ jobs:
           PACKAGE="${{ matrix.package }}"
           BASE_NUM="${{ github.event.inputs.rebuild_release }}"
           BASE_NUM="${BASE_NUM:-1}"
-          if [[ "${{ github.event.inputs.series }}" == "all" && "${{ matrix.series }}" == "stonking" ]]; then
+          if [[ "${{ needs.determine-matrix.outputs.series_mode }}" == "all" && "${{ matrix.series }}" == "stonking" ]]; then
             PPA_NUM=$((BASE_NUM + 1))
           else
             PPA_NUM=$BASE_NUM

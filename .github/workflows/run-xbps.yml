@@ -1,6 +1,8 @@
 name: Void Linux XBPS Repository
 
 on:
+  schedule:
+    - cron: "0 5,17,23 * * *" # 12am, 12pm, 6pm EST (05:00, 17:00, 23:00 UTC)
   workflow_dispatch:
     inputs:
       package:
@@ -55,6 +57,13 @@ jobs:
       - name: Determine packages and stable version
         id: plan
         run: |
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            # schedule → git snapshot only
+            echo 'packages=["dms-greeter-git"]' >> "$GITHUB_OUTPUT"
+            echo "stable_version=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           case "${{ github.event.inputs.package }}" in
             both)
               echo 'packages=["dms-greeter","dms-greeter-git"]' >> "$GITHUB_OUTPUT"
