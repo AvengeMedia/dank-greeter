@@ -9,11 +9,11 @@
 #
 #include <tunables/global>
 
-profile dms-greeter /usr/bin/dms-greeter flags=(complain) {
+profile dms-greeter /{usr,usr/local}/bin/dms-greeter{,-local} flags=(complain) {
   #include <abstractions/base>
 
   # The greeter binary itself
-  /usr/bin/dms-greeter rm,
+  /{usr,usr/local}/bin/dms-greeter{,-local} rm,
   @{PROC}/self/exe r,
 
   # Cache directory — created by dms-greeter sync/enable with greeter:greeter

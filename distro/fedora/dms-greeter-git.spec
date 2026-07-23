@@ -31,13 +31,13 @@ BuildRequires:  systemd-rpm-macros
 
 Requires:       greetd
 Requires:       (quickshell-git or quickshell)
+Requires:       policycoreutils-python-utils
 Requires(post): /usr/sbin/useradd
 Requires(post): /usr/sbin/groupadd
 
 Provides:       dms-greeter = %{epoch}:%{version}-%{release}
 Conflicts:      dms-greeter
 
-Recommends:     policycoreutils-python-utils
 Recommends:     acl
 Suggests:       niri
 Suggests:       hyprland
@@ -49,7 +49,7 @@ This git package builds from the tip of the dank-greeter repository.
 A single Go binary with the Quickshell UI embedded; the UI is extracted
 to the greeter cache directory at startup.
 
-Supports multiple compositors including Niri, Hyprland, and Sway with
+Supports multiple compositors including Niri, Hyprland, Mango, and Sway with
 session selection, user authentication, and dynamic theming synced from
 DankMaterialShell.
 
@@ -257,7 +257,7 @@ if [ "$1" -eq 1 ]; then
 cat << 'EOF'
 
 =========================================================================
-        DMS Greeter (git) Installation Complete!
+        DMS Greeter Git Package Installed
 =========================================================================
 
 Status:
@@ -265,19 +265,16 @@ EOF
 echo "    ✓ Greetd config: $CONFIG_STATUS"
 echo "    ✓ Default target: $TARGET_STATUS"
 cat << 'EOF'
-    ✓ Greeter user: Created
-    ✓ Greeter directories: /var/cache/dms-greeter, /var/lib/greeter
-    ✓ SELinux contexts: Applied
+    ✓ Greeter runtime account and directories prepared
 
-Next steps:
-
-1. Enable the greeter:
+Finish setup before rebooting:
+1. Enable greetd and prepare runtime permissions/security labels:
      dms-greeter enable
 
-2. Sync your theme with the greeter (optional):
+2. Sync your existing DMS theme and settings to the greeter after reboot:
      dms-greeter sync
 
-Ready to test? Run: sudo systemctl start greetd or simply reboot
+Verify with: dms-greeter status
 Documentation: https://danklinux.com/docs/dankgreeter/
 =========================================================================
 

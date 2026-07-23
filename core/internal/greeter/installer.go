@@ -27,6 +27,8 @@ var appArmorProfileData []byte
 
 const appArmorProfileDest = "/etc/apparmor.d/usr.bin.dms-greeter"
 
+const LocalGreeterBinaryPath = "/usr/local/bin/dms-greeter-local"
+
 const GreeterCacheDir = "/var/cache/dms-greeter"
 
 // IsNixOS returns true when running on NixOS, which manages PAM configs through
@@ -896,10 +898,8 @@ func EnsureGreeterCacheDir(logFunc func(string), sudoPassword string) error {
 		return err
 	}
 
-	if isSELinuxEnforcing() && utils.CommandExists("restorecon") {
-		if err := privesc.Run(context.Background(), sudoPassword, "restorecon", "-Rv", cacheDir); err != nil {
-			logFunc(fmt.Sprintf("⚠ Warning: Failed to restore SELinux context for %s: %v", cacheDir, err))
-		}
+	if err := ensureGreeterCacheSELinuxContext(cacheDir, logFunc, sudoPassword, defaultCacheSELinuxDeps()); err != nil {
+		return err
 	}
 
 	if created {
@@ -907,6 +907,62 @@ func EnsureGreeterCacheDir(logFunc func(string), sudoPassword string) error {
 	} else {
 		logFunc(fmt.Sprintf("✓ Ensured cache directory %s permissions (owner: %s, mode: 2770)", cacheDir, owner))
 	}
+	return nil
+}
+
+type cacheSELinuxDeps struct {
+	isEnforcing   func() bool
+	commandExists func(string) bool
+	run           func(string, string, ...string) error
+	runQuiet      func(string, string, ...string) error
+}
+
+func defaultCacheSELinuxDeps() cacheSELinuxDeps {
+	return cacheSELinuxDeps{
+		isEnforcing:   isSELinuxEnforcing,
+		commandExists: utils.CommandExists,
+		run: func(password, command string, args ...string) error {
+			return privesc.Run(context.Background(), password, append([]string{command}, args...)...)
+		},
+		runQuiet: func(password, command string, args ...string) error {
+			argv := append([]string{command}, args...)
+			cmd := privesc.ExecCommand(context.Background(), password, privesc.QuoteArgsForShell(argv))
+			return cmd.Run()
+		},
+	}
+}
+
+// ensureGreeterCacheSELinuxContext makes the cache label persistent before
+// applying it. This ordering matters after stable <-> git RPM swaps: older
+// package removal scriptlets could delete the shared local fcontext mapping,
+// causing a bare restorecon to relabel the cache as var_t and block xdm_t.
+func ensureGreeterCacheSELinuxContext(cacheDir string, logFunc func(string), sudoPassword string, deps cacheSELinuxDeps) error {
+	if !deps.isEnforcing() {
+		return nil
+	}
+	if !deps.commandExists("semanage") {
+		return fmt.Errorf("SELinux is enforcing but semanage is unavailable; install policycoreutils-python-utils before syncing the greeter")
+	}
+	if !deps.commandExists("restorecon") {
+		return fmt.Errorf("SELinux is enforcing but restorecon is unavailable; install policycoreutils before syncing the greeter")
+	}
+
+	pattern := cacheDir + "(/.*)?"
+	// A missing local mapping is expected after some package swaps. Keep that
+	// probe quiet, then surface an error only if the fallback add also fails.
+	modifyErr := deps.runQuiet(sudoPassword, "semanage", "fcontext", "-m", "-t", "cache_home_t", pattern)
+	if modifyErr != nil {
+		if addErr := deps.run(sudoPassword, "semanage", "fcontext", "-a", "-t", "cache_home_t", pattern); addErr != nil {
+			return fmt.Errorf("failed to persist SELinux context for %s (modify: %v; add: %w)", cacheDir, modifyErr, addErr)
+		}
+	}
+
+	// Keep recursive relabeling quiet: a repaired cache can contain hundreds of
+	// shader-cache files. restorecon still reports failures through stderr
+	if err := deps.run(sudoPassword, "restorecon", "-R", cacheDir); err != nil {
+		return fmt.Errorf("failed to apply SELinux context to %s: %w", cacheDir, err)
+	}
+	logFunc(fmt.Sprintf("✓ Ensured SELinux context for %s (cache_home_t)", cacheDir))
 	return nil
 }
 
@@ -1980,10 +2036,15 @@ func (s *niriGreeterSync) render() string {
 	return builder.String()
 }
 
-// ConfigureGreetd writes the dms-greeter default_session into greetd config.
-// shellDir points the greeter at a local quickshell checkout (sync --local);
-// when empty, the UI embedded in the binary is used.
+// ConfigureGreetd writes the packaged dms-greeter into greetd config. When
+// shellDir is empty, the UI embedded in the binary is used.
 func ConfigureGreetd(shellDir, compositor string, logFunc func(string), sudoPassword string) error {
+	return ConfigureGreetdWithBinary(ResolveGreeterBinaryPath(), shellDir, compositor, logFunc, sudoPassword)
+}
+
+// ConfigureGreetdWithBinary writes an explicit greeter binary into greetd
+// config. It is used by sync --local after staging a checkout build.
+func ConfigureGreetdWithBinary(greeterCmd, shellDir, compositor string, logFunc func(string), sudoPassword string) error {
 	configPath := "/etc/greetd/config.toml"
 
 	backupPath := fmt.Sprintf("%s.backup-%s", configPath, time.Now().Format("20060102-150405"))
@@ -2009,12 +2070,50 @@ vt = 1
 		return fmt.Errorf("failed to read greetd config: %w", err)
 	}
 
-	commandValue := buildGreetdCommand(ResolveGreeterBinaryPath(), compositor, shellDir, IsVoidLinux())
+	commandValue := buildGreetdCommand(greeterCmd, compositor, shellDir, IsVoidLinux())
 
 	commandLine := fmt.Sprintf(`command = "%s"`, commandValue)
 	newConfig := upsertDefaultSession(configContent, greeterUser, commandLine)
 
 	return writeGreetdConfig(configPath, newConfig, logFunc, sudoPassword, fmt.Sprintf("✓ Updated greetd configuration (user: %s, command: %s)", greeterUser, commandValue))
+}
+
+type localGreeterInstallDeps struct {
+	isEnforcing   func() bool
+	commandExists func(string) bool
+	run           func(string, string, ...string) error
+}
+
+func defaultLocalGreeterInstallDeps() localGreeterInstallDeps {
+	return localGreeterInstallDeps{
+		isEnforcing:   isSELinuxEnforcing,
+		commandExists: utils.CommandExists,
+		run: func(password, command string, args ...string) error {
+			return privesc.Run(context.Background(), password, append([]string{command}, args...)...)
+		},
+	}
+}
+
+// InstallLocalGreeterBinary stages a checkout build at a system executable
+// path without replacing the package-owned /usr/bin/dms-greeter.
+func InstallLocalGreeterBinary(sourcePath string, logFunc func(string), sudoPassword string) (string, error) {
+	return installLocalGreeterBinary(sourcePath, logFunc, sudoPassword, defaultLocalGreeterInstallDeps())
+}
+
+func installLocalGreeterBinary(sourcePath string, logFunc func(string), sudoPassword string, deps localGreeterInstallDeps) (string, error) {
+	if deps.isEnforcing() && !deps.commandExists("restorecon") {
+		return "", fmt.Errorf("SELinux is enforcing but restorecon is unavailable; cannot safely install the local greeter binary")
+	}
+	if err := deps.run(sudoPassword, "install", "-D", "-m", "0755", sourcePath, LocalGreeterBinaryPath); err != nil {
+		return "", fmt.Errorf("failed to install local greeter binary at %s: %w", LocalGreeterBinaryPath, err)
+	}
+	if deps.isEnforcing() {
+		if err := deps.run(sudoPassword, "restorecon", "-v", LocalGreeterBinaryPath); err != nil {
+			return "", fmt.Errorf("failed to apply SELinux context to local greeter binary %s: %w", LocalGreeterBinaryPath, err)
+		}
+	}
+	logFunc(fmt.Sprintf("✓ Installed local greeter binary at %s (packaged binary unchanged)", LocalGreeterBinaryPath))
+	return LocalGreeterBinaryPath, nil
 }
 
 func buildGreetdCommand(greeterCmd, compositor, shellDir string, useVoidLogind bool) string {

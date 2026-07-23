@@ -129,15 +129,15 @@ func syncGreeter(nonInteractive bool, forceAuth bool, local bool, profileOnly bo
 		fmt.Println(msg)
 	}
 
-	localShellDir := ""
+	var localCheckout *localGreeterCheckout
 	if local {
-		var err error
-		localShellDir, err = resolveLocalShellDir()
+		checkout, err := resolveLocalGreeterCheckout()
 		if err != nil {
 			return err
 		}
+		localCheckout = &checkout
 		if !nonInteractive {
-			fmt.Printf("✓ Using local greeter UI path: %s\n", localShellDir)
+			fmt.Printf("✓ Using local greeter checkout: %s\n", checkout.rootDir)
 		}
 	}
 
@@ -235,12 +235,17 @@ func syncGreeter(nonInteractive bool, forceAuth bool, local bool, profileOnly bo
 	}
 
 	if local {
-		fmt.Println("\nUpdating greetd command to use local greeter UI path...")
-		if err := greeter.ConfigureGreetd(localShellDir, compositor, logFunc, ""); err != nil {
-			return fmt.Errorf("failed to apply local greeter path: %w", err)
+		fmt.Println("\nBuilding local greeter (Go + embedded QML)...")
+		localBinary, err := buildAndInstallLocalGreeter(*localCheckout, logFunc, "", defaultLocalGreeterBuildDeps())
+		if err != nil {
+			return err
+		}
+		if err := greeter.ConfigureGreetdWithBinary(localBinary, "", compositor, logFunc, ""); err != nil {
+			return fmt.Errorf("failed to apply local greeter binary: %w", err)
 		}
 		if !nonInteractive {
-			fmt.Println("ℹ Local mode points the greetd command at the local quickshell checkout via -c instead of the embedded UI.")
+			fmt.Printf("ℹ Local mode uses %s, built from this checkout with its QML embedded.\n", localBinary)
+			fmt.Println("ℹ Run dms-greeter sync (without --local) to switch greetd back to the packaged binary.")
 		}
 	} else {
 		fmt.Println("\nUpdating greetd command...")
@@ -256,7 +261,7 @@ func syncGreeter(nonInteractive bool, forceAuth bool, local bool, profileOnly bo
 		return err
 	}
 	if err := greeter.EnsureGreeterCacheDir(logFunc, ""); err != nil {
-		return fmt.Errorf("failed to ensure greeter cache directory at %s: %w\nRun: sudo mkdir -p %s && sudo chown root:%s %s && sudo chmod 2770 %s", cacheDir, err, cacheDir, greeterGroup, cacheDir, cacheDir)
+		return fmt.Errorf("failed to ensure greeter cache directory at %s: %w", cacheDir, err)
 	}
 
 	fmt.Println("\nSynchronizing DMS configurations...")
@@ -314,54 +319,69 @@ func rejectLegacyWrapper() error {
 	return fmt.Errorf("legacy dms-greeter shell wrapper detected at %s\nRemove the old wrapper (or the old dms-greeter package) before using this binary: sudo rm -f %s", strings.Join(paths, ", "), strings.Join(paths, " "))
 }
 
-func hasGreeterShellQml(dir string) bool {
-	info, err := os.Stat(filepath.Join(dir, "shell.qml"))
-	return err == nil && !info.IsDir()
+type localGreeterCheckout struct {
+	rootDir  string
+	shellDir string
 }
 
-func resolveLocalShellCandidate(path string) (string, bool) {
+func hasLocalGreeterSource(rootDir string) bool {
+	for _, path := range []string{
+		filepath.Join(rootDir, "core", "go.mod"),
+		filepath.Join(rootDir, "core", "Makefile"),
+		filepath.Join(rootDir, "quickshell", "shell.qml"),
+	} {
+		info, err := os.Stat(path)
+		if err != nil || info.IsDir() {
+			return false
+		}
+	}
+	return true
+}
+
+func resolveLocalCheckoutCandidate(path string) (localGreeterCheckout, bool) {
 	if path == "" {
-		return "", false
-	}
-	if hasGreeterShellQml(path) {
-		abs, err := filepath.Abs(path)
-		if err != nil {
-			return path, true
-		}
-		return abs, true
+		return localGreeterCheckout{}, false
 	}
 
-	quickshellPath := filepath.Join(path, "quickshell")
-	if hasGreeterShellQml(quickshellPath) {
-		abs, err := filepath.Abs(quickshellPath)
-		if err != nil {
-			return quickshellPath, true
-		}
-		return abs, true
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		abs = path
 	}
 
-	return "", false
+	for dir := abs; ; dir = filepath.Dir(dir) {
+		if hasLocalGreeterSource(dir) {
+			return localGreeterCheckout{
+				rootDir:  dir,
+				shellDir: filepath.Join(dir, "quickshell"),
+			}, true
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+	}
+
+	return localGreeterCheckout{}, false
 }
 
-// resolveLocalShellDir finds a local greeter quickshell checkout for
-// `sync --local`, which wires the greetd command to it via -c/--shell-dir
-// instead of the embedded UI.
-func resolveLocalShellDir() (string, error) {
+// resolveLocalGreeterCheckout finds a source tree containing both the Go
+// launcher and the QML that `sync --local` embeds in its development binary.
+func resolveLocalGreeterCheckout() (localGreeterCheckout, error) {
 	if override := strings.TrimSpace(os.Getenv("DMS_LOCAL_PATH")); override != "" {
-		if resolved, ok := resolveLocalShellCandidate(override); ok {
+		if resolved, ok := resolveLocalCheckoutCandidate(override); ok {
 			return resolved, nil
 		}
-		return "", fmt.Errorf("DMS_LOCAL_PATH is set but does not point to a valid quickshell path: %s", override)
+		return localGreeterCheckout{}, fmt.Errorf("DMS_LOCAL_PATH is set but does not point to a complete dank-greeter checkout: %s", override)
 	}
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
+		return localGreeterCheckout{}, fmt.Errorf("failed to get current directory: %w", err)
 	}
 
 	dir := wd
 	for {
-		if resolved, ok := resolveLocalShellCandidate(dir); ok {
+		if resolved, ok := resolveLocalCheckoutCandidate(dir); ok {
 			return resolved, nil
 		}
 
@@ -380,7 +400,7 @@ func resolveLocalShellDir() (string, error) {
 			filepath.Join(homeDir, "src", "dank-greeter"),
 			filepath.Join(homeDir, "repos", "dank-greeter"),
 		} {
-			if resolved, ok := resolveLocalShellCandidate(candidate); ok {
+			if resolved, ok := resolveLocalCheckoutCandidate(candidate); ok {
 				return resolved, nil
 			}
 		}
@@ -394,7 +414,7 @@ func resolveLocalShellDir() (string, error) {
 				if !strings.Contains(name, "dms") && !strings.Contains(name, "dank") {
 					continue
 				}
-				if resolved, ok := resolveLocalShellCandidate(filepath.Join(homeDir, entry.Name())); ok {
+				if resolved, ok := resolveLocalCheckoutCandidate(filepath.Join(homeDir, entry.Name())); ok {
 					return resolved, nil
 				}
 			}
@@ -403,12 +423,65 @@ func resolveLocalShellDir() (string, error) {
 
 	configuredCommand := readDefaultSessionCommand("/etc/greetd/config.toml")
 	if pathOverride := extractGreeterShellDirFromCommand(configuredCommand); pathOverride != "" {
-		if resolved, ok := resolveLocalShellCandidate(pathOverride); ok {
+		if resolved, ok := resolveLocalCheckoutCandidate(pathOverride); ok {
 			return resolved, nil
 		}
 	}
 
-	return "", fmt.Errorf("could not locate a local greeter quickshell checkout from %s; run from repo root, set DMS_LOCAL_PATH=/absolute/path/to/repo, or configure greetd with -c /path/to/quickshell", wd)
+	return localGreeterCheckout{}, fmt.Errorf("could not locate a complete dank-greeter checkout from %s; run from the repo or set DMS_LOCAL_PATH=/absolute/path/to/dank-greeter", wd)
+}
+
+type localGreeterBuildDeps struct {
+	commandExists func(string) bool
+	runBuild      func(string, string, ...string) error
+	install       func(string, func(string), string) (string, error)
+}
+
+func defaultLocalGreeterBuildDeps() localGreeterBuildDeps {
+	return localGreeterBuildDeps{
+		commandExists: utils.CommandExists,
+		runBuild: func(dir, command string, args ...string) error {
+			cmd := exec.Command(command, args...)
+			cmd.Dir = dir
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			return cmd.Run()
+		},
+		install: greeter.InstallLocalGreeterBinary,
+	}
+}
+
+func buildAndInstallLocalGreeter(checkout localGreeterCheckout, logFunc func(string), sudoPassword string, deps localGreeterBuildDeps) (string, error) {
+	for _, command := range []string{"make", "go", "tar"} {
+		if !deps.commandExists(command) {
+			return "", fmt.Errorf("cannot build local greeter: required command %q is not installed", command)
+		}
+	}
+
+	commonMarker := filepath.Join(checkout.shellDir, "DankCommon", "Widgets", "DankIcon.qml")
+	if info, err := os.Stat(commonMarker); err != nil || info.IsDir() {
+		return "", fmt.Errorf("dank-qml-common is missing from %s; run 'git submodule update --init dank-qml-common' in the checkout", checkout.rootDir)
+	}
+
+	coreDir := filepath.Join(checkout.rootDir, "core")
+	if err := deps.runBuild(coreDir, "make", "build", "BINARY_NAME=dms-greeter-local"); err != nil {
+		return "", fmt.Errorf("failed to build local greeter from %s: %w", checkout.rootDir, err)
+	}
+
+	builtBinary := filepath.Join(coreDir, "bin", "dms-greeter-local")
+	info, err := os.Stat(builtBinary)
+	if err != nil {
+		return "", fmt.Errorf("local greeter build did not produce %s: %w", builtBinary, err)
+	}
+	if info.IsDir() || info.Mode()&0o111 == 0 {
+		return "", fmt.Errorf("local greeter build output is not executable: %s", builtBinary)
+	}
+
+	installedPath, err := deps.install(builtBinary, logFunc, sudoPassword)
+	if err != nil {
+		return "", err
+	}
+	return installedPath, nil
 }
 
 func promptCompositorChoice(compositors []string) (string, error) {

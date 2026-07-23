@@ -143,8 +143,6 @@ func enableGreeter(nonInteractive bool) error {
 	logFunc := func(msg string) {
 		fmt.Println(msg)
 	}
-	greeterGroup := greeter.DetectGreeterGroup()
-
 	if configAlreadyCorrect {
 		fmt.Println("✓ Greeter is already configured with dms-greeter")
 		if configuredCompositor != "" {
@@ -156,7 +154,7 @@ func enableGreeter(nonInteractive bool) error {
 			return err
 		}
 		if err := greeter.EnsureGreeterCacheDir(logFunc, ""); err != nil {
-			fmt.Printf("⚠ Could not ensure cache directory: %v\n  Run: sudo mkdir -p %s && sudo chown root:%s %s && sudo chmod 2770 %s\n", err, greeter.GreeterCacheDir, greeterGroup, greeter.GreeterCacheDir, greeter.GreeterCacheDir)
+			return fmt.Errorf("failed to prepare greeter cache: %w", err)
 		}
 		if err := greeter.EnsureVoidLogindGreetdCommand(logFunc, ""); err != nil {
 			return err
@@ -227,7 +225,7 @@ func enableGreeter(nonInteractive bool) error {
 		return err
 	}
 	if err := greeter.EnsureGreeterCacheDir(logFunc, ""); err != nil {
-		fmt.Printf("⚠ Could not ensure cache directory: %v\n  Run: sudo mkdir -p %s && sudo chown root:%s %s && sudo chmod 2770 %s\n", err, greeter.GreeterCacheDir, greeterGroup, greeter.GreeterCacheDir, greeter.GreeterCacheDir)
+		return fmt.Errorf("failed to prepare greeter cache: %w", err)
 	}
 
 	if greeter.IsAppArmorEnabled() {

@@ -181,7 +181,7 @@ func init() {
 	greeterSyncCmd.Flags().BoolP("yes", "y", false, "Non-interactive mode: skip prompts, use defaults (for UI)")
 	greeterSyncCmd.Flags().BoolP("terminal", "t", false, "Run sync in a new terminal (for entering sudo password); terminal auto-closes when done")
 	greeterSyncCmd.Flags().BoolP("auth", "a", false, "Configure PAM for fingerprint and U2F (adds both if modules exist); overrides UI toggles")
-	greeterSyncCmd.Flags().BoolP("local", "l", false, "Developer mode: force greetd config to use a local quickshell checkout path")
+	greeterSyncCmd.Flags().BoolP("local", "l", false, "Developer mode: build Go + embedded QML from a local checkout and configure greetd to use it")
 	greeterSyncCmd.Flags().BoolP("profile", "p", false, "Sync only your per-user greeter slot (no sudo; for secondary accounts)")
 	greeterSyncCmd.Flags().Bool("autologin", false, "Apply only greeter auto-login on startup settings to greetd (no theme or auth sync)")
 

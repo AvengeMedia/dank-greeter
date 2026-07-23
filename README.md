@@ -231,6 +231,12 @@ Before that, an administrator must add each user to the `greeter` group in DMS *
 
 Per-user settings are stored under `/var/cache/dms-greeter/users/<username>/` for the login picker; the root cache remains the default fallback and is owned by whoever ran full sync.
 
+### Local development
+
+Run `dms-greeter sync --local` from a `dank-greeter` checkout to build its Go launcher with the checkout's QML embedded. The development binary is installed separately at `/usr/local/bin/dms-greeter-local`; the package-owned `/usr/bin/dms-greeter` is not replaced. Re-run the command after Go, QML, or `dank-qml-common` changes. Run `dms-greeter sync` without `--local` to point greetd back at the packaged binary.
+
+The `dank-qml-common` submodule must be initialized (`git submodule update --init dank-qml-common`). `dankgo` is consumed at the version pinned in `core/go.mod`; use a Go workspace or `replace` directive explicitly when testing a local `dankgo` checkout.
+
 **Manual method:** if you want greeter settings to always mirror your shell:
 
 ```bash

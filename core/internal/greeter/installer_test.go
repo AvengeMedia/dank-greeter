@@ -1,11 +1,167 @@
 package greeter
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestEnsureGreeterCacheSELinuxContext(t *testing.T) {
+	t.Parallel()
+
+	t.Run("skips when SELinux is not enforcing", func(t *testing.T) {
+		t.Parallel()
+		var commands []string
+		deps := cacheSELinuxDeps{
+			isEnforcing:   func() bool { return false },
+			commandExists: func(string) bool { return true },
+			run: func(_ string, command string, _ ...string) error {
+				commands = append(commands, command)
+				return nil
+			},
+			runQuiet: func(_ string, command string, _ ...string) error {
+				commands = append(commands, command)
+				return nil
+			},
+		}
+		if err := ensureGreeterCacheSELinuxContext(GreeterCacheDir, func(string) {}, "", deps); err != nil {
+			t.Fatalf("ensureGreeterCacheSELinuxContext returned error: %v", err)
+		}
+		if len(commands) != 0 {
+			t.Fatalf("ran commands with SELinux disabled: %v", commands)
+		}
+	})
+
+	t.Run("repairs missing mapping before restorecon", func(t *testing.T) {
+		t.Parallel()
+		var commands []string
+		run := func(_ string, command string, args ...string) error {
+			call := strings.Join(append([]string{command}, args...), " ")
+			commands = append(commands, call)
+			if strings.Contains(call, "fcontext -m") {
+				return errors.New("mapping does not exist")
+			}
+			return nil
+		}
+		deps := cacheSELinuxDeps{
+			isEnforcing:   func() bool { return true },
+			commandExists: func(string) bool { return true },
+			run:           run,
+			runQuiet:      run,
+		}
+		if err := ensureGreeterCacheSELinuxContext(GreeterCacheDir, func(string) {}, "", deps); err != nil {
+			t.Fatalf("ensureGreeterCacheSELinuxContext returned error: %v", err)
+		}
+		want := []string{
+			"semanage fcontext -m -t cache_home_t /var/cache/dms-greeter(/.*)?",
+			"semanage fcontext -a -t cache_home_t /var/cache/dms-greeter(/.*)?",
+			"restorecon -R /var/cache/dms-greeter",
+		}
+		if strings.Join(commands, "\n") != strings.Join(want, "\n") {
+			t.Fatalf("commands:\n%s\nwant:\n%s", strings.Join(commands, "\n"), strings.Join(want, "\n"))
+		}
+	})
+
+	t.Run("uses existing mapping without adding it again", func(t *testing.T) {
+		t.Parallel()
+		var commands []string
+		run := func(_ string, command string, args ...string) error {
+			commands = append(commands, strings.Join(append([]string{command}, args...), " "))
+			return nil
+		}
+		deps := cacheSELinuxDeps{
+			isEnforcing:   func() bool { return true },
+			commandExists: func(string) bool { return true },
+			run:           run,
+			runQuiet:      run,
+		}
+		if err := ensureGreeterCacheSELinuxContext(GreeterCacheDir, func(string) {}, "", deps); err != nil {
+			t.Fatalf("ensureGreeterCacheSELinuxContext returned error: %v", err)
+		}
+		if len(commands) != 2 || !strings.Contains(commands[0], "fcontext -m") || !strings.HasPrefix(commands[1], "restorecon ") {
+			t.Fatalf("unexpected command sequence: %v", commands)
+		}
+	})
+
+	t.Run("does not relabel when mapping repair fails", func(t *testing.T) {
+		t.Parallel()
+		var restoreCalled bool
+		run := func(_ string, command string, _ ...string) error {
+			if command == "restorecon" {
+				restoreCalled = true
+				return nil
+			}
+			return errors.New("semanage failed")
+		}
+		deps := cacheSELinuxDeps{
+			isEnforcing:   func() bool { return true },
+			commandExists: func(string) bool { return true },
+			run:           run,
+			runQuiet:      run,
+		}
+		if err := ensureGreeterCacheSELinuxContext(GreeterCacheDir, func(string) {}, "", deps); err == nil {
+			t.Fatal("expected mapping repair error")
+		}
+		if restoreCalled {
+			t.Fatal("restorecon ran without a persistent mapping")
+		}
+	})
+}
+
+func TestInstallLocalGreeterBinary(t *testing.T) {
+	t.Parallel()
+
+	t.Run("installs without replacing packaged binary and restores SELinux label", func(t *testing.T) {
+		t.Parallel()
+		var commands []string
+		deps := localGreeterInstallDeps{
+			isEnforcing:   func() bool { return true },
+			commandExists: func(string) bool { return true },
+			run: func(_ string, command string, args ...string) error {
+				commands = append(commands, strings.Join(append([]string{command}, args...), " "))
+				return nil
+			},
+		}
+
+		got, err := installLocalGreeterBinary("/checkout/core/bin/dms-greeter-local", func(string) {}, "", deps)
+		if err != nil {
+			t.Fatalf("installLocalGreeterBinary returned error: %v", err)
+		}
+		if got != LocalGreeterBinaryPath {
+			t.Fatalf("installed path = %q, want %q", got, LocalGreeterBinaryPath)
+		}
+		want := []string{
+			"install -D -m 0755 /checkout/core/bin/dms-greeter-local /usr/local/bin/dms-greeter-local",
+			"restorecon -v /usr/local/bin/dms-greeter-local",
+		}
+		if !reflect.DeepEqual(commands, want) {
+			t.Fatalf("commands = %v, want %v", commands, want)
+		}
+	})
+
+	t.Run("fails before install when enforcing system cannot label binary", func(t *testing.T) {
+		t.Parallel()
+		runCalled := false
+		deps := localGreeterInstallDeps{
+			isEnforcing:   func() bool { return true },
+			commandExists: func(string) bool { return false },
+			run: func(string, string, ...string) error {
+				runCalled = true
+				return nil
+			},
+		}
+
+		if _, err := installLocalGreeterBinary("/tmp/local", func(string) {}, "", deps); err == nil {
+			t.Fatal("expected missing restorecon error")
+		}
+		if runCalled {
+			t.Fatal("install ran before SELinux prerequisites were validated")
+		}
+	})
+}
 
 func writeTestFile(t *testing.T, path string, content string) {
 	t.Helper()

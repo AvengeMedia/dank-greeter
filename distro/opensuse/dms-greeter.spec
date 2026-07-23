@@ -32,6 +32,7 @@ Requires(post): /usr/sbin/groupadd
 
 Conflicts:      dms-greeter-git
 
+Recommends:     policycoreutils-python-utils
 Recommends:     acl
 Suggests:       niri
 Suggests:       hyprland
@@ -136,7 +137,7 @@ getent passwd greeter >/dev/null || \
 exit 0
 
 %post
-# SELinux contexts (no-op on OpenSUSE - semanage/restorecon not present)
+# SELinux contexts for current Tumbleweed/Leap when SELinux tooling is installed
 if [ -x /usr/sbin/semanage ] && [ -x /usr/sbin/restorecon ]; then
     semanage fcontext -a -t bin_t '%{_bindir}/dms-greeter' >/dev/null 2>&1 || true
     restorecon %{_bindir}/dms-greeter >/dev/null 2>&1 || true
@@ -324,7 +325,7 @@ if [ "$1" -eq 1 ]; then
 cat << 'EOF'
 
 =========================================================================
-        DMS Greeter Installation Complete!
+        DMS Greeter Package Installed
 =========================================================================
 
 Status:
@@ -332,19 +333,16 @@ EOF
 echo "    ✓ Greetd config: $CONFIG_STATUS"
 echo "    ✓ Default target: $TARGET_STATUS"
 cat << 'EOF'
-    ✓ Greeter user: Created
-    ✓ Greeter directories: /var/cache/dms-greeter, /var/lib/greeter
-    ✓ SELinux contexts: Applied (if applicable)
+    ✓ Greeter runtime account and directories prepared
 
-Next steps:
-
-1. Enable the greeter:
+Finish setup before rebooting:
+1. Enable greetd and prepare runtime permissions/security labels:
      dms-greeter enable
 
-2. Sync your theme with the greeter (optional):
+2. Sync your existing DMS theme and settings to the greeter after reboot:
      dms-greeter sync
 
-Ready to test? Run: sudo systemctl start greetd
+Verify with: dms-greeter status
 Documentation: https://danklinux.com/docs/dankgreeter/
 =========================================================================
 
