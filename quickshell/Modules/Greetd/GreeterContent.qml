@@ -1771,6 +1771,7 @@ Item {
                     const idx = GreeterState.sessionList.indexOf(value);
                     if (idx < 0)
                         return;
+                    GreeterState.sessionManuallySelected = true;
                     GreeterState.currentSessionIndex = idx;
                     GreeterState.selectedSession = GreeterState.sessionExecs[idx];
                     GreeterState.selectedSessionPath = GreeterState.sessionPaths[idx];
@@ -1783,6 +1784,8 @@ Item {
     property string currentSessionName: GreeterState.sessionList[GreeterState.currentSessionIndex] || ""
 
     function finalizeSessionSelection() {
+        if (GreeterState.sessionManuallySelected)
+            return;
         if (GreeterState.sessionList.length === 0)
             return;
         if (!GreetdMemory.memoryReady)
