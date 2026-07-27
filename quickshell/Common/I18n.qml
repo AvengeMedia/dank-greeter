@@ -186,12 +186,4 @@ Singleton {
         }
         return term;
     }
-
-    function trContext(context, term) {
-        if (translationsLoaded && translations[context] && translations[context][term])
-            return translations[context][term];
-        if (commonTranslationsLoaded && commonTranslations[context] && commonTranslations[context][term])
-            return commonTranslations[context][term];
-        return term;
-    }
 }

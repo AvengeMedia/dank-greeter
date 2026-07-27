@@ -14,10 +14,12 @@ POEXPORTS_DIR = REPO_ROOT / "translations" / "poexports"
 SYNC_STATE = REPO_ROOT.parent / ".git" / "i18n_sync_state.json"
 
 # dms-greeter terms live in the shared DMS POEditor project under this tag.
-# Everything here is tag-scoped: uploads union tags on existing terms, prune
-# deletes only dms-greeter-tagged terms, downloads export only the tag.
-# dank-qml-common translations ship inside the submodule and are not synced
-# from this repo.
+# Everything here is tag-scoped: uploads only add terms (never sync_terms or
+# overwrite, so DMS-owned terms and translations are untouched), tagging
+# merges with existing tags, prune only removes this tag from stale terms
+# (never deletes — the term may still be owned by DMS), and downloads export
+# only the tag. dank-qml-common translations ship inside the submodule and
+# are not synced from this repo.
 APP_TAG = "dms-greeter"
 
 LANGUAGES = {
@@ -117,6 +119,36 @@ def tag_entries(entries, remote_terms):
         tagged.append({**entry, "tags": sorted(merged)})
     return tagged
 
+def ensure_remote_tags(api_token, project_id, entries, remote_terms):
+    remote_by_key = {entry_key(t): t for t in remote_terms}
+    updates = []
+    for entry in entries:
+        remote = remote_by_key.get(entry_key(entry))
+        if not remote:
+            continue
+        existing = set(remote.get('tags') or [])
+        if APP_TAG in existing:
+            continue
+        updates.append({
+            'term': entry['term'],
+            'context': entry.get('context') or '',
+            'tags': sorted(existing | {APP_TAG})
+        })
+
+    if not updates:
+        return
+
+    info(f"Tagging {len(updates)} existing terms with {APP_TAG}...")
+    resp = poeditor_request('terms/update', {
+        'api_token': api_token,
+        'id': project_id,
+        'data': json.dumps(updates, ensure_ascii=False)
+    })
+    if resp.get('response', {}).get('status') != 'success':
+        error(f"POEditor terms update failed: {resp}")
+    updated = resp.get('result', {}).get('terms', {}).get('updated', len(updates))
+    success(f"Tagged {updated} terms with {APP_TAG}")
+
 def upload_source_strings(api_token, project_id, entries):
     if not entries:
         warn("No terms to upload")
@@ -174,16 +206,20 @@ def prune_remote_terms(api_token, project_id, local_entries, remote_terms):
         info("No stale dms-greeter terms to prune")
         return
 
-    warn(f"Deleting {len(stale)} POEditor terms tagged {APP_TAG} that are missing locally")
-    payload = json.dumps([{'term': t['term'], 'context': t.get('context', '')} for t in stale])
-    resp = poeditor_request('terms/delete', {
+    warn(f"Removing {APP_TAG} tag from {len(stale)} terms no longer used locally")
+    updates = [{
+        'term': t['term'],
+        'context': t.get('context', ''),
+        'tags': sorted(set(t.get('tags') or []) - {APP_TAG})
+    } for t in stale]
+    resp = poeditor_request('terms/update', {
         'api_token': api_token,
         'id': project_id,
-        'data': payload
+        'data': json.dumps(updates, ensure_ascii=False)
     })
     if resp.get('response', {}).get('status') != 'success':
-        error(f"POEditor terms delete failed: {resp}")
-    success(f"Pruned {len(stale)} terms")
+        error(f"POEditor terms update failed: {resp}")
+    success(f"Untagged {len(stale)} terms")
 
 def write_if_changed(repo_file, new_data):
     if not json_changed(repo_file, new_data):
@@ -223,9 +259,14 @@ def download_translations(api_token, project_id):
 
         try:
             with request.urlopen(url) as response:
-                new_data = json.loads(response.read().decode())
+                raw = response.read().decode()
+            new_data = json.loads(raw) if raw.strip() else {}
         except Exception as e:
             warn(f"Failed to download {po_lang}: {e}")
+            continue
+
+        if not new_data:
+            info(f"No translations for {po_lang}")
             continue
 
         if write_if_changed(repo_file, new_data):
@@ -276,7 +317,8 @@ def check_sync_status():
 
     try:
         with request.urlopen(url) as response:
-            remote_data = json.loads(response.read().decode())
+            raw = response.read().decode()
+        remote_data = json.loads(raw) if raw.strip() else {}
         return json_changed(POEXPORTS_DIR / LANGUAGES[first_lang], remote_data)
     except Exception:
         return False
@@ -307,9 +349,14 @@ def run_sync(force_upload, prune):
             last_en = json.load(f).get('en_json', {})
     strings_changed = json.dumps(current_en, sort_keys=True) != json.dumps(last_en, sort_keys=True)
 
+    remote_terms = list_remote_terms(api_token, project_id)
+    ensure_remote_tags(api_token, project_id, current_en, remote_terms)
+
     if strings_changed or force_upload or prune:
-        remote_terms = list_remote_terms(api_token, project_id)
-        upload_source_strings(api_token, project_id, tag_entries(current_en, remote_terms))
+        uploaded = upload_source_strings(api_token, project_id, tag_entries(current_en, remote_terms))
+        if uploaded:
+            remote_terms = list_remote_terms(api_token, project_id)
+            ensure_remote_tags(api_token, project_id, current_en, remote_terms)
         if prune:
             prune_remote_terms(api_token, project_id, current_en, remote_terms)
     else:

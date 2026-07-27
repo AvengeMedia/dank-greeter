@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "Autenticazione in corso..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "Errore di autenticazione - riprova"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": "Autenticazione non riuscita - tentativo %1 di %2"
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": "Autenticazione non riuscita - possibile blocco dell'account"
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": "Autenticazione non riuscita - riprova"
+  },
+  "Auto-login": {
+    "Auto-login": "Accesso Automatico"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": "In attesa dell'autenticazione tramite impronta digitale"
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": "In attesa dell'autenticazione tramite impronta digitale o chiave di sicurezza"
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": "In attesa dell'autenticazione tramite chiave di sicurezza"
+  },
+  "Back to user list": {
+    "Back to user list": "Torna alla Lista Utenti"
+  },
+  "Logging in...": {
+    "Logging in...": "Accesso in corso..."
+  },
+  "Not listed?": {
+    "Not listed?": "Non elencato?"
+  },
+  "Password...": {
+    "Password...": "Password..."
+  },
+  "Select user...": {
+    "Select user...": "Seleziona l'utente..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "Troppi tentativi falliti - l'account potrebbe essere bloccato"
+  },
+  "Username...": {
+    "Username...": "Nome utente..."
+  }
+}

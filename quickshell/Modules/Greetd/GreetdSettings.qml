@@ -35,7 +35,6 @@ Singleton {
     property bool settingsLoaded: false
     property string customThemeFile: ""
     property var registryThemeVariants: ({})
-    property string matugenScheme: "scheme-tonal-spot"
     property string clockFormat: "auto"
     readonly property bool localeUses24Hour: {
         const fmt = Qt.locale().timeFormat(Locale.ShortFormat).replace(/'[^']*'/g, "");
@@ -48,28 +47,18 @@ Singleton {
     property string greeterFontFamily: ""
     property string greeterWallpaperFillMode: ""
     property bool useFahrenheit: false
-    property bool nightModeEnabled: false
-    property string weatherLocation: "New York, NY"
-    property string weatherCoordinates: "40.7128,-74.0060"
     property bool useAutoLocation: false
     property bool weatherEnabled: true
-    property string iconTheme: "System Default"
-    property bool useOSLogo: false
-    property string osLogoColorOverride: ""
-    property real osLogoBrightness: 0.5
-    property real osLogoContrast: 1
     property string fontFamily: "Inter Variable"
     property string monoFontFamily: "Fira Code"
     property int fontWeight: Font.Normal
     property real fontScale: 1.0
     property real cornerRadius: 12
-    property string widgetBackgroundColor: "sch"
     property string lockDateFormat: ""
     property bool lockScreenShowPowerActions: true
     property bool lockScreenShowProfileImage: true
     property bool rememberLastSession: true
     property bool rememberLastUser: true
-    property bool greeterAutoLogin: false
     property bool greeterEnableFprint: false
     property bool greeterEnableU2f: false
     property string greeterWallpaperPath: ""
@@ -78,8 +67,6 @@ Singleton {
     property var powerMenuActions: ["reboot", "logout", "poweroff", "lock", "suspend", "restart"]
     property string powerMenuDefaultAction: "logout"
     property bool powerMenuGridLayout: false
-    property var screenPreferences: ({})
-    property int animationSpeed: 2
     property string wallpaperFillMode: "Fill"
     property string wallpaperBackgroundColorMode: "black"
     property string wallpaperBackgroundCustomColor: "#000000"
@@ -107,13 +94,12 @@ Singleton {
                 settings = JSON.parse(content);
             }
 
-            const envRememberLastSession = GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_SESSION", "DMS_SAVE_SESSION"], undefined);
-            const envRememberLastUser = GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_USER", "DMS_SAVE_USERNAME"], undefined);
+            const envRememberLastSession = GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_SESSION", "DMS_SAVE_SESSION"], undefined, log);
+            const envRememberLastUser = GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_USER", "DMS_SAVE_USERNAME"], undefined, log);
 
             currentThemeName = settings.currentThemeName !== undefined ? settings.currentThemeName : "purple";
             customThemeFile = settings.customThemeFile !== undefined ? settings.customThemeFile : "";
             registryThemeVariants = settings.registryThemeVariants !== undefined ? settings.registryThemeVariants : ({});
-            matugenScheme = settings.matugenScheme !== undefined ? settings.matugenScheme : "scheme-tonal-spot";
             clockFormat = settings.clockFormat !== undefined ? settings.clockFormat : (settings.use24HourClock !== undefined ? (settings.use24HourClock ? "24h" : "12h") : "auto");
             showSeconds = settings.showSeconds !== undefined ? settings.showSeconds : false;
             padHours12Hour = settings.padHours12Hour !== undefined ? settings.padHours12Hour : false;
@@ -121,22 +107,13 @@ Singleton {
             greeterFontFamily = settings.greeterFontFamily !== undefined ? settings.greeterFontFamily : "";
             greeterWallpaperFillMode = settings.greeterWallpaperFillMode !== undefined ? settings.greeterWallpaperFillMode : "";
             useFahrenheit = settings.useFahrenheit !== undefined ? settings.useFahrenheit : false;
-            nightModeEnabled = settings.nightModeEnabled !== undefined ? settings.nightModeEnabled : false;
-            weatherLocation = settings.weatherLocation !== undefined ? settings.weatherLocation : "New York, NY";
-            weatherCoordinates = settings.weatherCoordinates !== undefined ? settings.weatherCoordinates : "40.7128,-74.0060";
             useAutoLocation = settings.useAutoLocation !== undefined ? settings.useAutoLocation : false;
             weatherEnabled = settings.weatherEnabled !== undefined ? settings.weatherEnabled : true;
-            iconTheme = settings.iconTheme !== undefined ? settings.iconTheme : "System Default";
-            useOSLogo = settings.useOSLogo !== undefined ? settings.useOSLogo : false;
-            osLogoColorOverride = settings.osLogoColorOverride !== undefined ? settings.osLogoColorOverride : "";
-            osLogoBrightness = settings.osLogoBrightness !== undefined ? settings.osLogoBrightness : 0.5;
-            osLogoContrast = settings.osLogoContrast !== undefined ? settings.osLogoContrast : 1;
             fontFamily = settings.fontFamily !== undefined ? settings.fontFamily : Theme.defaultFontFamily;
             monoFontFamily = settings.monoFontFamily !== undefined ? settings.monoFontFamily : Theme.defaultMonoFontFamily;
             fontWeight = settings.fontWeight !== undefined ? settings.fontWeight : Font.Normal;
             fontScale = settings.fontScale !== undefined ? settings.fontScale : 1.0;
             cornerRadius = settings.cornerRadius !== undefined ? settings.cornerRadius : 12;
-            widgetBackgroundColor = settings.widgetBackgroundColor !== undefined ? settings.widgetBackgroundColor : "sch";
             lockDateFormat = settings.lockDateFormat !== undefined ? settings.lockDateFormat : "";
             lockScreenShowPowerActions = settings.lockScreenShowPowerActions !== undefined ? settings.lockScreenShowPowerActions : true;
             lockScreenShowProfileImage = settings.lockScreenShowProfileImage !== undefined ? settings.lockScreenShowProfileImage : true;
@@ -150,9 +127,6 @@ Singleton {
             } else {
                 rememberLastUser = settings.greeterRememberLastUser !== undefined ? settings.greeterRememberLastUser : settings.rememberLastUser !== undefined ? settings.rememberLastUser : true;
             }
-            if (configBaseDir === root._greeterCacheDir) {
-                greeterAutoLogin = settings.greeterAutoLogin !== undefined ? settings.greeterAutoLogin : false;
-            }
             greeterEnableFprint = settings.greeterEnableFprint !== undefined ? settings.greeterEnableFprint : false;
             greeterEnableU2f = settings.greeterEnableU2f !== undefined ? settings.greeterEnableU2f : false;
             greeterWallpaperPath = settings.greeterWallpaperPath !== undefined ? settings.greeterWallpaperPath : "";
@@ -161,8 +135,6 @@ Singleton {
             powerMenuActions = settings.powerMenuActions !== undefined ? settings.powerMenuActions : ["reboot", "logout", "poweroff", "lock", "suspend", "restart"];
             powerMenuDefaultAction = settings.powerMenuDefaultAction !== undefined ? settings.powerMenuDefaultAction : "logout";
             powerMenuGridLayout = settings.powerMenuGridLayout !== undefined ? settings.powerMenuGridLayout : false;
-            screenPreferences = settings.screenPreferences !== undefined ? settings.screenPreferences : ({});
-            animationSpeed = settings.animationSpeed !== undefined ? settings.animationSpeed : 2;
             wallpaperFillMode = settings.wallpaperFillMode !== undefined ? settings.wallpaperFillMode : "Fill";
             wallpaperBackgroundColorMode = settings.wallpaperBackgroundColorMode !== undefined ? settings.wallpaperBackgroundColorMode : "black";
             wallpaperBackgroundCustomColor = settings.wallpaperBackgroundCustomColor !== undefined ? settings.wallpaperBackgroundCustomColor : "#000000";
@@ -202,14 +174,6 @@ Singleton {
 
     function getEffectiveFontFamily() {
         return (greeterFontFamily && greeterFontFamily !== "") ? greeterFontFamily : fontFamily;
-    }
-
-    function getFilteredScreens(componentId) {
-        const prefs = screenPreferences && screenPreferences[componentId] || ["all"];
-        if (prefs.includes("all")) {
-            return Quickshell.screens;
-        }
-        return Quickshell.screens.filter(screen => prefs.includes(screen.name));
     }
 
     FileView {

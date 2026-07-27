@@ -65,26 +65,17 @@ Singleton {
                 "primaryText": getMatugenColor("on_primary", "#ffffff"),
                 "primaryContainer": getMatugenColor("primary_container", "#1976d2"),
                 "secondary": getMatugenColor("secondary", "#8ab4f8"),
-                "secondaryContainer": getMatugenColor("secondary_container", getMatugenColor("surface_container_high", "#292b2f")),
-                "tertiary": getMatugenColor("tertiary", "#efb8c8"),
-                "tertiaryContainer": getMatugenColor("tertiary_container", getMatugenColor("surface_container_high", "#292b2f")),
                 "surface": getMatugenColor("surface", "#1a1c1e"),
                 "surfaceText": getMatugenColor("on_background", "#e3e8ef"),
                 "surfaceVariant": getMatugenColor("surface_variant", "#44464f"),
                 "surfaceVariantText": getMatugenColor("on_surface_variant", "#c4c7c5"),
                 "surfaceTint": getMatugenColor("surface_tint", "#8ab4f8"),
                 "background": getMatugenColor("background", "#1a1c1e"),
-                "backgroundText": getMatugenColor("on_background", "#e3e8ef"),
                 "outline": getMatugenColor("outline", "#8e918f"),
-                "surfaceContainerLowest": getMatugenColor("surface_container_lowest", "#0e1013"),
-                "surfaceContainerLow": getMatugenColor("surface_container_low", "#181a1d"),
                 "surfaceContainer": getMatugenColor("surface_container", "#1e2023"),
                 "surfaceContainerHigh": getMatugenColor("surface_container_high", "#292b2f"),
-                "surfaceContainerHighest": getMatugenColor("surface_container_highest", "#343740"),
                 "error": "#F2B8B5",
-                "warning": "#FF9800",
-                "info": "#2196F3",
-                "success": "#4CAF50"
+                "warning": "#FF9800"
             };
         default:
             return StockThemes.getThemeByName(currentTheme, isLightMode);
@@ -178,69 +169,49 @@ Singleton {
     property color primary: currentThemeData.primary
     property color primaryText: currentThemeData.primaryText
     property color secondary: currentThemeData.secondary
-    property color tertiary: currentThemeData.tertiary || currentThemeData.secondary
     property color surface: currentThemeData.surface
     property color surfaceText: currentThemeData.surfaceText
     property color surfaceVariant: currentThemeData.surfaceVariant
     property color surfaceVariantText: currentThemeData.surfaceVariantText
     property color surfaceTint: currentThemeData.surfaceTint
     property color background: currentThemeData.background
-    property color backgroundText: currentThemeData.backgroundText
     property color outline: currentThemeData.outline
-    property color outlineVariant: currentThemeData.outlineVariant || withAlpha(outline, 0.6)
-    property color surfaceContainerLowest: currentThemeData.surfaceContainerLowest || blend(surfaceContainer, surface, 1.2)
-    property color surfaceContainerLow: currentThemeData.surfaceContainerLow || blend(surface, surfaceContainer, 0.667)
     property color surfaceContainer: currentThemeData.surfaceContainer
     property color surfaceContainerHigh: currentThemeData.surfaceContainerHigh
-    property color surfaceContainerHighest: currentThemeData.surfaceContainerHighest || surfaceContainerHigh
     property color primaryContainer: currentThemeData.primaryContainer || blend(surfaceContainerHigh, primary, 0.45)
-    property color secondaryContainer: currentThemeData.secondaryContainer || blend(surfaceContainerHigh, secondary, 0.35)
-    property color tertiaryContainer: currentThemeData.tertiaryContainer || blend(surfaceContainerHigh, tertiary, 0.35)
 
     property color onSurface: surfaceText
-    property color onSurfaceVariant: surfaceVariantText
     property color onPrimary: primaryText
     property color onSurface_12: withAlpha(onSurface, 0.12)
     property color onSurface_38: withAlpha(onSurface, 0.38)
-    property color onSurfaceVariant_30: withAlpha(onSurfaceVariant, 0.30)
 
     property color error: currentThemeData.error || "#F2B8B5"
     property color warning: currentThemeData.warning || "#FF9800"
-    property color info: currentThemeData.info || "#2196F3"
-    property color success: currentThemeData.success || "#4CAF50"
 
     property color primaryHover: withAlpha(primary, 0.12)
     property color primaryHoverLight: withAlpha(primary, 0.08)
     property color primaryPressed: withAlpha(primary, 0.16)
     property color primarySelected: withAlpha(primary, 0.3)
-    property color primaryBackground: withAlpha(primary, 0.04)
 
     property color secondaryHover: withAlpha(secondary, 0.08)
 
     property color surfaceHover: withAlpha(surfaceVariant, 0.08)
     property color surfacePressed: withAlpha(surfaceVariant, 0.12)
-    property color surfaceSelected: withAlpha(surfaceVariant, 0.15)
     property color surfaceLight: withAlpha(surfaceVariant, 0.1)
     property color surfaceVariantAlpha: withAlpha(surfaceVariant, 0.2)
 
     property color surfaceTextHover: withAlpha(surfaceText, 0.08)
-    property color surfaceTextAlpha: withAlpha(surfaceText, 0.3)
-    property color surfaceTextLight: withAlpha(surfaceText, 0.06)
     property color surfaceTextSecondary: withAlpha(surfaceText, 0.6)
     property color surfaceTextMedium: withAlpha(surfaceText, 0.7)
 
     property color outlineButton: withAlpha(outline, 0.5)
-    property color outlineLight: withAlpha(outline, 0.075)
     property color outlineMedium: withAlpha(outline, 0.12)
     property color outlineStrong: withAlpha(outline, 0.18)
     property color outlineHeavy: withAlpha(outline, 0.2)
 
     property color errorHover: withAlpha(error, 0.12)
-    property color errorPressed: withAlpha(error, 0.16)
     property color errorSelected: withAlpha(error, 0.3)
-    property color warningHover: withAlpha(warning, 0.12)
 
-    property color shadowMedium: Qt.rgba(0, 0, 0, 0.08)
     property color shadowStrong: Qt.rgba(0, 0, 0, 0.3)
 
     property color buttonBg: primary
@@ -261,40 +232,12 @@ Singleton {
     readonly property string elevationLightDirection: "top"
     readonly property real _elevDiagRatio: 0.55
 
-    readonly property var elevationLevel1: ({
-            blurPx: 4,
-            offsetX: 0,
-            offsetY: 1,
-            spreadPx: 0,
-            alpha: 0.2
-        })
     readonly property var elevationLevel2: ({
             blurPx: 8,
             offsetX: 0,
             offsetY: 4,
             spreadPx: 0,
             alpha: 0.25
-        })
-    readonly property var elevationLevel3: ({
-            blurPx: 12,
-            offsetX: 0,
-            offsetY: 6,
-            spreadPx: 0,
-            alpha: 0.3
-        })
-    readonly property var elevationLevel4: ({
-            blurPx: 16,
-            offsetX: 0,
-            offsetY: 8,
-            spreadPx: 0,
-            alpha: 0.3
-        })
-    readonly property var elevationLevel5: ({
-            blurPx: 20,
-            offsetX: 0,
-            offsetY: 10,
-            spreadPx: 0,
-            alpha: 0.3
         })
 
     function normalizeElevationDirection(direction) {
@@ -424,8 +367,6 @@ Singleton {
     readonly property int shorterDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.shorter
     readonly property int shortDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.short
     readonly property int mediumDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.medium
-    readonly property int longDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.long
-    readonly property int extraLongDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.extraLong
     readonly property int standardEasing: Easing.OutCubic
     readonly property int emphasizedEasing: Easing.OutQuart
 

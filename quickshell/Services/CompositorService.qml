@@ -13,12 +13,4 @@ Singleton {
 
     readonly property bool isNiri: niriSocket.length > 0 || desktop === "niri"
     readonly property bool isHyprland: !isNiri && (hyprlandSignature.length > 0 || desktop === "hyprland")
-
-    readonly property string compositor: {
-        if (isNiri)
-            return "niri";
-        if (isHyprland)
-            return "hyprland";
-        return "unknown";
-    }
 }

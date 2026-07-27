@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "Controleren..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "Authenticatiefout - probeer het opnieuw"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": "Authenticatie mislukt - poging %1 van %2"
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": "Authenticatie mislukt - uitsluiting kan optreden"
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": "Authenticatie mislukt - probeer het opnieuw"
+  },
+  "Auto-login": {
+    "Auto-login": "Automatisch inloggen"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": "Wachten op vingerafdrukauthenticatie"
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": "Wachten op vingerafdruk- of beveiligingssleutelauthenticatie"
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": "Wachten op beveiligingssleutelauthenticatie"
+  },
+  "Back to user list": {
+    "Back to user list": "Terug naar gebruikerslijst"
+  },
+  "Logging in...": {
+    "Logging in...": "Inloggen..."
+  },
+  "Not listed?": {
+    "Not listed?": "Niet in de lijst?"
+  },
+  "Password...": {
+    "Password...": "Wachtwoord..."
+  },
+  "Select user...": {
+    "Select user...": "Gebruiker selecteren..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "Te veel mislukte pogingen - account is mogelijk geblokkeerd"
+  },
+  "Username...": {
+    "Username...": "Gebruikersnaam..."
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": ""
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": ""
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": ""
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": ""
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": ""
+  },
+  "Auto-login": {
+    "Auto-login": ""
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": ""
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": ""
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": ""
+  },
+  "Back to user list": {
+    "Back to user list": ""
+  },
+  "Logging in...": {
+    "Logging in...": ""
+  },
+  "Not listed?": {
+    "Not listed?": ""
+  },
+  "Password...": {
+    "Password...": ""
+  },
+  "Select user...": {
+    "Select user...": ""
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": ""
+  },
+  "Username...": {
+    "Username...": ""
+  }
+}

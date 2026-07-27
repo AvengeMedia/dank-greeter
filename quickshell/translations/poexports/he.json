@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "מאמת..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "שגיאת אימות - נסה/י שנית"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": "האימות נכשל - ניסיון %1 מתוך %2"
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": "האימות נכשל - עלולה להתרחש נעילה"
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": "האימות נכשל - נסה/י שנית"
+  },
+  "Auto-login": {
+    "Auto-login": "התחברות אוטומטית"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": "ממתין לאימות באמצעות טביעת אצבע"
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": "ממתין לאימות באמצעות טביעת אצבע או מפתח אבטחה"
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": "ממתין לאימות באמצעות מפתח אבטחה"
+  },
+  "Back to user list": {
+    "Back to user list": "חזרה לרשימת המשתמשים"
+  },
+  "Logging in...": {
+    "Logging in...": "מתחבר..."
+  },
+  "Not listed?": {
+    "Not listed?": "לא מופיע ברשימה?"
+  },
+  "Password...": {
+    "Password...": "סיסמה..."
+  },
+  "Select user...": {
+    "Select user...": "בחר/י משתמש..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "יותר מדי ניסיונות כושלים - החשבון עלול להינעל"
+  },
+  "Username...": {
+    "Username...": "שם משתמש..."
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "认证中..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "认证错误 - 请重试"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": "认证失败——第 %1 次尝试，共 %2 次"
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": "认证失败——可能触发锁定"
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": "认证失败——请重试"
+  },
+  "Auto-login": {
+    "Auto-login": "自动登录"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": "等待指纹认证"
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": "等待指纹或安全密钥认证"
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": "等待安全密钥认证"
+  },
+  "Back to user list": {
+    "Back to user list": "返回用户列表"
+  },
+  "Logging in...": {
+    "Logging in...": "正在登录..."
+  },
+  "Not listed?": {
+    "Not listed?": "未列出？"
+  },
+  "Password...": {
+    "Password...": "密码..."
+  },
+  "Select user...": {
+    "Select user...": "选择用户..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "失败次数过多 - 账号将会被锁定"
+  },
+  "Username...": {
+    "Username...": "用户名..."
+  }
+}

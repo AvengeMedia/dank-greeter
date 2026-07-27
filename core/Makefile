@@ -36,7 +36,7 @@ sync-shell:
 	@mkdir -p $(EMBED_DIR)
 	@tar -C $(SHELL_SRC) --exclude=.qmlls.ini -chf - . | tar -C $(EMBED_DIR) -xf -
 	@rm -rf $(EMBED_DIR)/scripts $(EMBED_DIR)/.claude
-	@rm -f $(EMBED_DIR)/translations/extract_translations.py
+	@rm -f $(EMBED_DIR)/translations/extract_translations.py $(EMBED_DIR)/translations/en.json $(EMBED_DIR)/translations/template.json
 
 build: sync-shell
 	@echo "Building $(BINARY_NAME)..."

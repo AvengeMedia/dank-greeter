@@ -9,7 +9,6 @@ import qs.Services
 Singleton {
     id: root
 
-    readonly property var log: Log.scoped("GreeterUserTheme")
     readonly property string greetCfgDir: Quickshell.env("DMS_GREET_CFG_DIR") || "/var/cache/dms-greeter"
 
     property string activeUsername: ""
@@ -42,10 +41,5 @@ Singleton {
         Theme.resetGreeterColorsBaseDir();
         SessionData.resetGreeterSessionBaseDir();
         GreetdSettings.resetConfigBaseDir();
-    }
-
-    readonly property string activeWallpaperOverridePath: {
-        const base = activeUsername && typeof GreeterUsersService !== "undefined" && GreeterUsersService.hasSyncedTheme(activeUsername) ? userCacheDir(activeUsername) : greetCfgDir;
-        return base ? base + "/greeter_wallpaper_override.jpg" : "";
     }
 }

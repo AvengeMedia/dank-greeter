@@ -17,10 +17,8 @@ Singleton {
     }
 
     readonly property int level: _parseLevel(Quickshell.env("DMS_LOG_LEVEL"))
-    readonly property string levelName: _levelName(level)
 
     readonly property string _logFilePath: Quickshell.env("DMS_LOG_FILE") || ""
-    readonly property bool _useColor: !Quickshell.env("NO_COLOR") && Quickshell.env("DMS_LOG_NO_COLOR") !== "1"
 
     function scoped(module) {
         return {
@@ -42,31 +40,6 @@ Singleton {
         };
     }
 
-    function debug() {
-        _emit(Log.Level.Debug, "", arguments);
-    }
-    function info() {
-        _emit(Log.Level.Info, "", arguments);
-    }
-    function warn() {
-        _emit(Log.Level.Warn, "", arguments);
-    }
-    function error() {
-        _emit(Log.Level.Error, "", arguments);
-    }
-    function fatal() {
-        _emit(Log.Level.Fatal, "", arguments);
-    }
-
-    function callStack() {
-        const trace = _captureStack(0).split("\n").map(l => l.trim()).filter(l => l.length > 0);
-        _emit(Log.Level.Info, "Debug", ["--------------------------"]);
-        _emit(Log.Level.Info, "Debug", ["Current call stack"]);
-        for (const line of trace)
-            _emit(Log.Level.Info, "Debug", ["- " + line]);
-        _emit(Log.Level.Info, "Debug", ["--------------------------"]);
-    }
-
     function _parseLevel(name) {
         switch ((name || "").toLowerCase()) {
         case "debug":
@@ -83,51 +56,19 @@ Singleton {
         }
     }
 
-    function _levelName(lvl) {
-        switch (lvl) {
-        case Log.Level.Debug:
-            return "debug";
-        case Log.Level.Info:
-            return "info";
-        case Log.Level.Warn:
-            return "warn";
-        case Log.Level.Error:
-            return "error";
-        case Log.Level.Fatal:
-            return "fatal";
-        }
-        return "info";
-    }
-
-    function _levelTag(lvl, color) {
-        let tag, ansi;
+    function _levelTag(lvl) {
         switch (lvl) {
         case Log.Level.Fatal:
-            tag = " FATAL";
-            ansi = "\x1b[31m";
-            break;
+            return " FATAL";
         case Log.Level.Error:
-            tag = " ERROR";
-            ansi = "\x1b[91m";
-            break;
+            return " ERROR";
         case Log.Level.Warn:
-            tag = "  WARN";
-            ansi = "\x1b[33m";
-            break;
-        case Log.Level.Info:
-            tag = "  INFO";
-            ansi = "\x1b[32m";
-            break;
+            return "  WARN";
         case Log.Level.Debug:
-            tag = " DEBUG";
-            ansi = "\x1b[34m";
-            break;
+            return " DEBUG";
         default:
             return "  INFO";
         }
-        if (!color)
-            return tag;
-        return ansi + tag + "\x1b[0m";
     }
 
     function _stringify(v) {
@@ -211,7 +152,7 @@ Singleton {
         }
 
         if (root._logFilePath && fileTee.running)
-            fileTee.write(_levelTag(lvl, false) + " qml: " + body + "\n");
+            fileTee.write(_levelTag(lvl) + " qml: " + body + "\n");
 
         if (lvl === Log.Level.Fatal)
             Qt.callLater(() => Qt.exit(1));

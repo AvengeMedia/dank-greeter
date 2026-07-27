@@ -10,8 +10,6 @@ Singleton {
     id: root
     readonly property var log: Log.scoped("SessionData")
 
-    readonly property bool isGreeterMode: Quickshell.env("DMS_RUN_GREETER") === "1" || Quickshell.env("DMS_RUN_GREETER") === "true"
-
     property bool isLightMode: false
     property string wallpaperPath: ""
     property bool perMonitorWallpaper: false

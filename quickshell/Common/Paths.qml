@@ -23,16 +23,12 @@ Singleton {
         return strip(root.home) + path.substring(1);
     }
 
-    function shortenHome(path: string): string {
-        return path.replace(strip(root.home), "~");
-    }
-
     function strip(path: url): string {
         return stringify(path).replace("file://", "");
     }
 
-    function toFileUrl(path: string): string {
-        return path.startsWith("file://") ? path : "file://" + path;
+    function resolveIconPath(iconName: string): string {
+        return "";
     }
 
     function mkdir(path: url): void {

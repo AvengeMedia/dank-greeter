@@ -12,42 +12,17 @@ Singleton {
     readonly property var log: Log.scoped("GreetdMemory")
 
     readonly property string greetCfgDir: Quickshell.env("DMS_GREET_CFG_DIR") || "/var/cache/dms-greeter"
-    readonly property string sessionConfigPath: greetCfgDir + "/session.json"
     readonly property string memoryFile: greetCfgDir + "/.local/state/memory.json"
-    readonly property bool rememberLastSession: GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_SESSION", "DMS_SAVE_SESSION"], true)
-    readonly property bool rememberLastUser: GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_USER", "DMS_SAVE_USERNAME"], true)
+    readonly property bool rememberLastSession: GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_SESSION", "DMS_SAVE_SESSION"], true, log)
+    readonly property bool rememberLastUser: GreetdEnv.readBoolOverride(Quickshell.env, ["DMS_GREET_REMEMBER_LAST_USER", "DMS_SAVE_USERNAME"], true, log)
 
     property string lastSessionId: ""
     property string lastSessionDesktopId: ""
-    property string lastSessionExec: ""
     property string lastSuccessfulUser: ""
     property bool memoryReady: false
-    property bool isLightMode: false
-    property bool nightModeEnabled: false
 
     Component.onCompleted: {
-        loadMemory();
-        loadSessionConfig();
-    }
-
-    function loadMemory() {
         parseMemory(memoryFileView.text());
-    }
-
-    function loadSessionConfig() {
-        parseSessionConfig(sessionConfigFileView.text());
-    }
-
-    function parseSessionConfig(content) {
-        try {
-            if (content && content.trim()) {
-                const config = JSON.parse(content);
-                isLightMode = config.isLightMode !== undefined ? config.isLightMode : false;
-                nightModeEnabled = config.nightModeEnabled !== undefined ? config.nightModeEnabled : false;
-            }
-        } catch (e) {
-            log.warn("Failed to parse greeter session config:", e);
-        }
     }
 
     function parseMemory(content) {
@@ -57,7 +32,6 @@ Singleton {
             const memory = JSON.parse(content);
             lastSessionId = rememberLastSession ? (memory.lastSessionId || "") : "";
             lastSessionDesktopId = rememberLastSession ? (memory.lastSessionDesktopId || "") : "";
-            lastSessionExec = rememberLastSession ? (memory.lastSessionExec || "") : "";
             lastSuccessfulUser = rememberLastUser ? (memory.lastSuccessfulUser || "") : "";
             if (!rememberLastSession || !rememberLastUser)
                 saveMemory();
@@ -79,42 +53,18 @@ Singleton {
 
     function setLastSession(id, desktopId) {
         if (!rememberLastSession) {
-            if (lastSessionId !== "" || lastSessionDesktopId !== "" || lastSessionExec !== "") {
+            if (lastSessionId !== "" || lastSessionDesktopId !== "") {
                 lastSessionId = "";
                 lastSessionDesktopId = "";
-                lastSessionExec = "";
                 saveMemory();
             }
             return;
         }
         lastSessionId = id || "";
         lastSessionDesktopId = desktopId || "";
-        lastSessionExec = "";
         if (!lastSessionId)
             lastSessionDesktopId = "";
         saveMemory();
-    }
-
-    function setLastSessionId(id) {
-        setLastSession(id, lastSessionDesktopId);
-    }
-
-    function setLastSessionDesktopId(id) {
-        setLastSession(lastSessionId, id);
-    }
-
-    function setLastSessionExec(exec) {
-        if (!rememberLastSession) {
-            if (lastSessionExec !== "") {
-                lastSessionExec = "";
-                saveMemory();
-            }
-            return;
-        }
-        if (lastSessionExec !== "") {
-            lastSessionExec = "";
-            saveMemory();
-        }
     }
 
     function setLastSuccessfulUser(username) {
@@ -144,19 +94,5 @@ Singleton {
         onLoadFailed: {
             root.memoryReady = true;
         }
-    }
-
-    FileView {
-        id: sessionConfigFileView
-        path: root.sessionConfigPath
-        blockLoading: false
-        blockWrites: true
-        atomicWrites: false
-        watchChanges: false
-        printErrors: false
-        onLoaded: {
-            parseSessionConfig(sessionConfigFileView.text());
-        }
-        onLoadFailed: {}
     }
 }

@@ -36,13 +36,10 @@ Item {
     property int hyprlandLayoutCount: 0
     property bool isPrimaryScreen: !Quickshell.screens?.length || screenName === Quickshell.screens[0]?.name
 
-    signal launchRequested
-
     property bool weatherInitialized: false
     property bool awaitingExternalAuth: false
     property bool pendingPasswordResponse: false
     property bool passwordSubmitRequested: false
-    property bool cancelingExternalAuthForPassword: false
     property int defaultAuthTimeoutMs: 10000
     property int externalAuthTimeoutMs: 30000
     property int memoryFlushDelayMs: 120
@@ -62,8 +59,6 @@ Item {
     property string faillockConfigText: ""
     property bool greeterWallpaperOverrideExists: false
     property string externalAuthAutoStartedForUser: ""
-    property int passwordSessionTransitionRetryCount: 0
-    property int maxPasswordSessionTransitionRetries: 2
     property bool fprintdProbeComplete: false
     property bool fprintdHasDevice: false
     property bool autoLoginOnSuccess: false
@@ -277,13 +272,6 @@ Item {
         authFeedbackMessage = "";
     }
 
-    function resetPasswordSessionTransition(clearSubmitRequest) {
-        cancelingExternalAuthForPassword = false;
-        passwordSessionTransitionRetryCount = 0;
-        if (clearSubmitRequest)
-            passwordSubmitRequested = false;
-    }
-
     Connections {
         target: GreetdSettings
         function onSettingsLoadedChanged() {
@@ -308,7 +296,7 @@ Item {
         function onRememberLastSessionChanged() {
             if (!isPrimaryScreen)
                 return;
-            if (!GreetdSettings.rememberLastSession && (GreetdMemory.lastSessionId || GreetdMemory.lastSessionDesktopId || GreetdMemory.lastSessionExec)) {
+            if (!GreetdSettings.rememberLastSession && (GreetdMemory.lastSessionId || GreetdMemory.lastSessionDesktopId)) {
                 GreetdMemory.setLastSession("", "");
             }
             finalizeSessionSelection();
@@ -479,7 +467,7 @@ Item {
             return;
         const lastUser = GreetdMemory.lastSuccessfulUser;
         if (lastUser && !GreeterState.showPasswordInput && !GreeterState.username) {
-            selectUser(lastUser, true);
+            selectUser(lastUser);
         }
     }
 
@@ -490,7 +478,6 @@ Item {
         root.userListOpen = false;
         GreeterState.username = "";
         GreeterState.usernameInput = "";
-        GreeterState.selectedUserIndex = -1;
         inputField.text = "";
         root.applyPickerPreviewTheme();
         Qt.callLater(() => inputField.forceActiveFocus());
@@ -515,7 +502,6 @@ Item {
         awaitingExternalAuth = false;
         pendingPasswordResponse = false;
         passwordSubmitRequested = false;
-        resetPasswordSessionTransition(true);
         authTimeout.interval = defaultAuthTimeoutMs;
         authTimeout.stop();
         clearAuthFeedback();
@@ -526,23 +512,22 @@ Item {
         const previousUser = GreeterState.username;
         GreeterState.reset();
         inputField.text = "";
-        PortalService.profileImage = "";
         if (previousUser)
             root.pickerThemeUsername = previousUser;
         root.applyPickerPreviewTheme();
         root.userListOpen = true;
     }
 
-    function selectUser(rawValue, skipDropdownUpdate) {
+    function selectUser(rawValue) {
         const user = (rawValue || "").trim();
         if (!user)
             return;
         root.manualUsernameEntry = false;
         root.skipAutoSelectUser = false;
-        submitUsername(user, skipDropdownUpdate === true);
+        submitUsername(user);
     }
 
-    function submitUsername(rawValue, skipDropdownUpdate) {
+    function submitUsername(rawValue) {
         const user = (rawValue || "").trim();
         if (!user)
             return;
@@ -555,21 +540,16 @@ Item {
         GreeterState.username = user;
         GreeterState.usernameInput = user;
         GreeterState.showPasswordInput = true;
-        if (!skipDropdownUpdate && typeof GreeterUsersService !== "undefined") {
-            const idx = GreeterUsersService.usernames.indexOf(user);
-            GreeterState.selectedUserIndex = idx;
-        }
         root.userListOpen = false;
-        PortalService.getGreeterUserProfileImage(user);
         GreeterState.passwordBuffer = "";
         pendingPasswordResponse = false;
-        resetPasswordSessionTransition(true);
+        passwordSubmitRequested = false;
         maybeAutoStartExternalAuth();
     }
 
     function submitBufferedPassword() {
         pendingPasswordResponse = false;
-        resetPasswordSessionTransition(true);
+        passwordSubmitRequested = false;
         awaitingExternalAuth = false;
         authTimeout.interval = defaultAuthTimeoutMs;
         authTimeout.restart();
@@ -578,33 +558,6 @@ Item {
         GreeterState.passwordBuffer = "";
         inputField.text = "";
         return true;
-    }
-
-    function requestPasswordSessionTransition() {
-        const hasPasswordBuffer = GreeterState.passwordBuffer && GreeterState.passwordBuffer.length > 0;
-        if (!passwordSubmitRequested && !hasPasswordBuffer)
-            return;
-        if (cancelingExternalAuthForPassword)
-            return;
-        if (passwordSessionTransitionRetryCount >= maxPasswordSessionTransitionRetries) {
-            pendingPasswordResponse = false;
-            awaitingExternalAuth = false;
-            authTimeout.interval = defaultAuthTimeoutMs;
-            authTimeout.stop();
-            resetPasswordSessionTransition(true);
-            GreeterState.pamState = "error";
-            authFeedbackMessage = currentAuthMessage();
-            placeholderDelay.restart();
-            Greetd.cancelSession();
-            return;
-        }
-        cancelingExternalAuthForPassword = true;
-        passwordSessionTransitionRetryCount = passwordSessionTransitionRetryCount + 1;
-        awaitingExternalAuth = false;
-        pendingPasswordResponse = false;
-        authTimeout.interval = defaultAuthTimeoutMs;
-        authTimeout.stop();
-        Greetd.cancelSession();
     }
 
     function startAuthSession(submitPassword) {
@@ -618,11 +571,6 @@ Item {
             if (pendingPasswordResponse && submitPassword)
                 submitBufferedPassword();
             else if (submitPassword)
-                passwordSubmitRequested = true;
-            return;
-        }
-        if (cancelingExternalAuthForPassword) {
-            if (submitPassword)
                 passwordSubmitRequested = true;
             return;
         }
@@ -645,7 +593,7 @@ Item {
             return;
         if (GreeterState.unlocking || Greetd.state !== GreetdState.Inactive)
             return;
-        if (passwordSubmitRequested || cancelingExternalAuthForPassword)
+        if (passwordSubmitRequested)
             return;
         if (GreeterState.passwordBuffer && GreeterState.passwordBuffer.length > 0)
             return;
@@ -654,11 +602,6 @@ Item {
 
         externalAuthAutoStartedForUser = GreeterState.username;
         startAuthSession(false);
-    }
-
-    function isExternalAuthPrompt(message, responseRequired) {
-        // Non-response PAM messages commonly represent waiting states (fprint/U2F/token touch).
-        return !responseRequired;
     }
 
     Component.onDestruction: {
@@ -772,7 +715,6 @@ Item {
             if (GreeterState.username) {
                 root.pickerThemeUsername = GreeterState.username;
                 GreeterUserTheme.applyForUser(GreeterState.username);
-                PortalService.getGreeterUserProfileImage(GreeterState.username);
             } else if (root.showUserPicker || root.userListOpen) {
                 applyPickerPreviewTheme();
             }
@@ -1047,18 +989,14 @@ Item {
                             anchors.fill: parent
                             imageSource: {
                                 const displayUser = GreeterState.username || root.pickerThemeUsername;
-                                if (displayUser) {
-                                    const cachedPath = GreeterUsersService.profileImagePath(displayUser);
-                                    if (cachedPath)
-                                        return encodeFileUrl(cachedPath);
-                                }
-                                if (PortalService.profileImage === "")
+                                if (!displayUser)
                                     return "";
-                                if (PortalService.profileImage.startsWith("/"))
-                                    return encodeFileUrl(PortalService.profileImage);
-                                return PortalService.profileImage;
+                                const cachedPath = GreeterUsersService.profileImagePath(displayUser);
+                                if (!cachedPath)
+                                    return "";
+                                return encodeFileUrl(cachedPath);
                             }
-                            fallbackIcon: "person"
+                            fallbackIcon: "material:person"
                         }
 
                         Rectangle {
@@ -1143,7 +1081,7 @@ Item {
                             autoLoginVisible: root.autoLoginAvailable
                             autoLoginChecked: root.autoLoginOnSuccess
                             manualEntryVisible: true
-                            onUserSelected: username => root.selectUser(username, false)
+                            onUserSelected: username => root.selectUser(username)
                             onToggleRequested: root.userListOpen = !root.userListOpen
                             onAutoLoginToggled: root.autoLoginOnSuccess = !root.autoLoginOnSuccess
                             onManualEntryRequested: root.enterManualUsernameEntry()
@@ -1935,8 +1873,6 @@ Item {
 
         function onAuthMessage(message, error, responseRequired, echoResponse) {
             if (responseRequired) {
-                cancelingExternalAuthForPassword = false;
-                passwordSessionTransitionRetryCount = 0;
                 awaitingExternalAuth = false;
                 pendingPasswordResponse = true;
                 const hasPasswordBuffer = GreeterState.passwordBuffer && GreeterState.passwordBuffer.length > 0;
@@ -1953,10 +1889,9 @@ Item {
                 return;
             }
             pendingPasswordResponse = false;
-            const externalPrompt = root.isExternalAuthPrompt(message, responseRequired);
             if (!passwordSubmitRequested)
-                awaitingExternalAuth = root.greeterExternalAuthAvailable && externalPrompt;
-            if (awaitingExternalAuth || (passwordSubmitRequested && externalPrompt && root.greeterPamHasExternalAuth))
+                awaitingExternalAuth = root.greeterExternalAuthAvailable;
+            if (awaitingExternalAuth || (passwordSubmitRequested && root.greeterPamHasExternalAuth))
                 authTimeout.interval = externalAuthTimeoutMs;
             else
                 authTimeout.interval = defaultAuthTimeoutMs;
@@ -1966,26 +1901,18 @@ Item {
 
         function onStateChanged() {
             if (Greetd.state === GreetdState.Inactive) {
-                const resumePasswordSubmit = cancelingExternalAuthForPassword && passwordSubmitRequested;
                 awaitingExternalAuth = false;
                 pendingPasswordResponse = false;
-                cancelingExternalAuthForPassword = false;
                 authTimeout.interval = defaultAuthTimeoutMs;
                 authTimeout.stop();
-                if (resumePasswordSubmit) {
-                    Qt.callLater(function () {
-                        root.startAuthSession(true);
-                    });
-                    return;
-                }
-                resetPasswordSessionTransition(true);
+                passwordSubmitRequested = false;
             }
         }
 
         function onReadyToLaunch() {
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
-            resetPasswordSessionTransition(true);
+            passwordSubmitRequested = false;
             authTimeout.interval = defaultAuthTimeoutMs;
             authTimeout.stop();
             passwordFailureCount = 0;
@@ -2004,7 +1931,7 @@ Item {
             launchTimeout.restart();
             if (GreetdSettings.rememberLastSession) {
                 GreetdMemory.setLastSession(sessionPath, sessionDesktopId);
-            } else if (GreetdMemory.lastSessionId || GreetdMemory.lastSessionDesktopId || GreetdMemory.lastSessionExec) {
+            } else if (GreetdMemory.lastSessionId || GreetdMemory.lastSessionDesktopId) {
                 GreetdMemory.setLastSession("", "");
             }
             if (GreetdSettings.rememberLastUser) {
@@ -2024,7 +1951,7 @@ Item {
         function onAuthFailure(message) {
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
-            resetPasswordSessionTransition(true);
+            passwordSubmitRequested = false;
             authTimeout.interval = defaultAuthTimeoutMs;
             authTimeout.stop();
             launchTimeout.stop();
@@ -2045,7 +1972,7 @@ Item {
         function onError(error) {
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
-            resetPasswordSessionTransition(true);
+            passwordSubmitRequested = false;
             authTimeout.interval = defaultAuthTimeoutMs;
             authTimeout.stop();
             launchTimeout.stop();
@@ -2084,7 +2011,7 @@ Item {
                 return;
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
-            resetPasswordSessionTransition(true);
+            passwordSubmitRequested = false;
             authTimeout.interval = defaultAuthTimeoutMs;
             GreeterState.pamState = "error";
             authFeedbackMessage = currentAuthMessage();
@@ -2102,7 +2029,7 @@ Item {
             if (!GreeterState.unlocking)
                 return;
             pendingPasswordResponse = false;
-            resetPasswordSessionTransition(true);
+            passwordSubmitRequested = false;
             GreeterState.unlocking = false;
             GreeterState.pamState = "error";
             authFeedbackMessage = currentAuthMessage();

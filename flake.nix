@@ -77,7 +77,9 @@
               rm -rf core/internal/shellembed/dist/scripts \
                 core/internal/shellembed/dist/.claude
               rm -f core/internal/shellembed/dist/.qmlls.ini \
-                core/internal/shellembed/dist/translations/extract_translations.py
+                core/internal/shellembed/dist/translations/extract_translations.py \
+                core/internal/shellembed/dist/translations/en.json \
+                core/internal/shellembed/dist/translations/template.json
             '';
 
             ldflags = [

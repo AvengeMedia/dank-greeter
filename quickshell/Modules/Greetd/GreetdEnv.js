@@ -1,6 +1,6 @@
 .pragma library
 
-function readBoolOverride(envReader, names, fallbackValue) {
+function readBoolOverride(envReader, names, fallbackValue, log) {
     for (let i = 0; i < names.length; i++) {
         const name = names[i];
         const raw = envReader(name);
@@ -13,7 +13,7 @@ function readBoolOverride(envReader, names, fallbackValue) {
         if (normalized === "0" || normalized === "false" || normalized === "no" || normalized === "off")
             return false;
 
-        console.warn("Invalid boolean override for", name + ":", raw, "- trying next override/fallback");
+        log?.warn("Invalid boolean override for", name + ":", raw, "- trying next override/fallback");
     }
 
     return fallbackValue;

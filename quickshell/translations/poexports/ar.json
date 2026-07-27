@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "جاري المصادقة..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "خطأ في المصادقة - حاول مرة أخرى"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": "فشل التحقق من الهوية - المحاولة %1 من %2"
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": "فشل التحقق - قد يؤدي ذلك إلى قفل حسابك"
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": "فشل التحقق - يرجى المحاولة مرة أخرى"
+  },
+  "Auto-login": {
+    "Auto-login": "تسجيل الدخول التلقائي"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": "بانتظار التحقق ببصمة الإصبع"
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": "بانتظار التحقق ببصمة الإصبع أو مفتاح الأمان"
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": "بانتظار التحقق بمفتاح الأمان"
+  },
+  "Back to user list": {
+    "Back to user list": "العودة إلى قائمة المستخدمين"
+  },
+  "Logging in...": {
+    "Logging in...": "جاري تسجيل الدخول..."
+  },
+  "Not listed?": {
+    "Not listed?": "غير مدرج؟"
+  },
+  "Password...": {
+    "Password...": "كلمة المرور..."
+  },
+  "Select user...": {
+    "Select user...": "اختر مستخدماً..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "عدد كبير جداً من المحاولات الفاشلة - قد يكون الحساب مقفلاً"
+  },
+  "Username...": {
+    "Username...": "اسم المستخدم..."
+  }
+}

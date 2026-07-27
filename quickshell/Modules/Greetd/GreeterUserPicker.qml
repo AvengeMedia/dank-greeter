@@ -135,7 +135,7 @@ Item {
                         DankCircularImage {
                             anchors.fill: parent
                             imageSource: root.profileImageSource(userRow.modelData.username)
-                            fallbackIcon: "person"
+                            fallbackIcon: "material:person"
                         }
                     }
 

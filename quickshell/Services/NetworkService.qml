@@ -20,7 +20,6 @@ Singleton {
         return list.find(net => net.connected) ?? null;
     }
 
-    readonly property string currentWifiSSID: connectedWifiNetwork?.name ?? ""
     readonly property int wifiSignalStrength: Math.round((connectedWifiNetwork?.signalStrength ?? 0) * 100)
 
     readonly property string networkStatus: {

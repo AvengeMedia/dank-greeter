@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "인증 중..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "인증 오류 - 다시 시도"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": ""
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": ""
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": ""
+  },
+  "Auto-login": {
+    "Auto-login": "자동 로그인"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": ""
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": ""
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": ""
+  },
+  "Back to user list": {
+    "Back to user list": "사용자 목록으로 돌아가기"
+  },
+  "Logging in...": {
+    "Logging in...": "로그인 중..."
+  },
+  "Not listed?": {
+    "Not listed?": "목록에 없습니까?"
+  },
+  "Password...": {
+    "Password...": "비밀번호..."
+  },
+  "Select user...": {
+    "Select user...": "사용자 선택..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "실패한 시도 횟수 너무 많음 - 계정이 잠길 수 있음"
+  },
+  "Username...": {
+    "Username...": "사용자 이름..."
+  }
+}

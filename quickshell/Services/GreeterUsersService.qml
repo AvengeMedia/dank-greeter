@@ -7,8 +7,6 @@ import qs.Common
 Singleton {
     id: root
 
-    readonly property var log: Log.scoped("GreeterUsersService")
-
     readonly property string greetCfgDir: Quickshell.env("DMS_GREET_CFG_DIR") || "/var/cache/dms-greeter"
     readonly property string usersCacheDir: greetCfgDir + "/users"
 
@@ -16,16 +14,8 @@ Singleton {
     property var usernames: []
     property var profileImageMap: ({})
     property bool loaded: false
-    property bool refreshing: false
 
-    Component.onCompleted: refresh()
-
-    function refresh() {
-        if (refreshing)
-            return;
-        refreshing = true;
-        _loadUsers();
-    }
+    Component.onCompleted: _loadUsers()
 
     function displayName(username) {
         const u = _findUser(username);
@@ -38,14 +28,6 @@ Singleton {
     function optionLabel(username) {
         const label = displayName(username);
         return label !== username ? label : username;
-    }
-
-    function usernameFromOptionLabel(label) {
-        for (let i = 0; i < users.length; i++) {
-            if (root.optionLabel(users[i].username) === label)
-                return users[i].username;
-        }
-        return label;
     }
 
     function hasSyncedTheme(username) {
@@ -99,7 +81,6 @@ Singleton {
             root.users = list;
             root.usernames = names;
             root.loaded = true;
-            root.refreshing = false;
             _refreshSyncedThemeFlags();
             _loadProfileIcons();
         }, 0);

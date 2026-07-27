@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "Hitelesítés…"
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "Hitelesítési hiba – próbáld újra"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": "Sikertelen hitelesítés - %1. kísérlet a(z) %2 közül"
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": "Sikertelen hitelesítés - kizárás következhet be"
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": "Sikertelen hitelesítés - próbáld újra"
+  },
+  "Auto-login": {
+    "Auto-login": "Automatikus bejelentkezés"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": "Várakozás ujjlenyomat-hitelesítésre"
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": "Várakozás ujjlenyomat- vagy biztonsági kulcsos hitelesítésre"
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": "Várakozás biztonsági kulcsos hitelesítésre"
+  },
+  "Back to user list": {
+    "Back to user list": "Vissza a felhasználólistához"
+  },
+  "Logging in...": {
+    "Logging in...": "Bejelentkezés…"
+  },
+  "Not listed?": {
+    "Not listed?": "Nincs a listán?"
+  },
+  "Password...": {
+    "Password...": "Jelszó…"
+  },
+  "Select user...": {
+    "Select user...": "Felhasználó kiválasztása…"
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "Túl sok sikertelen próbálkozás - a fiók zárolva lehet"
+  },
+  "Username...": {
+    "Username...": "Felhasználónév…"
+  }
+}

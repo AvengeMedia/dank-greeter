@@ -1,0 +1,50 @@
+{
+  "Authenticating...": {
+    "Authenticating...": "正在驗證..."
+  },
+  "Authentication error - try again": {
+    "Authentication error - try again": "驗證錯誤 - 請再試一次"
+  },
+  "Authentication failed - attempt %1 of %2": {
+    "Authentication failed - attempt %1 of %2": ""
+  },
+  "Authentication failed - lockout can occur": {
+    "Authentication failed - lockout can occur": ""
+  },
+  "Authentication failed - try again": {
+    "Authentication failed - try again": ""
+  },
+  "Auto-login": {
+    "Auto-login": "自動登入"
+  },
+  "Awaiting fingerprint authentication": {
+    "Awaiting fingerprint authentication": ""
+  },
+  "Awaiting fingerprint or security key authentication": {
+    "Awaiting fingerprint or security key authentication": ""
+  },
+  "Awaiting security key authentication": {
+    "Awaiting security key authentication": ""
+  },
+  "Back to user list": {
+    "Back to user list": "返回使用者列表"
+  },
+  "Logging in...": {
+    "Logging in...": "正在登入..."
+  },
+  "Not listed?": {
+    "Not listed?": "未列出？"
+  },
+  "Password...": {
+    "Password...": "密碼..."
+  },
+  "Select user...": {
+    "Select user...": "選擇使用者..."
+  },
+  "Too many failed attempts - account may be locked": {
+    "Too many failed attempts - account may be locked": "嘗試失敗次數過多 - 帳戶可能已鎖定"
+  },
+  "Username...": {
+    "Username...": "使用者名稱..."
+  }
+}
