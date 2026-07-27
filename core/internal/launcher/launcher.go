@@ -102,6 +102,7 @@ func setupEnvironment(opts Options) error {
 		"XDG_SESSION_TYPE":                    "wayland",
 		"QT_QPA_PLATFORM":                     "wayland",
 		"QT_WAYLAND_DISABLE_WINDOWDECORATION": "1",
+		"QT_NO_XDG_DESKTOP_PORTAL":            "1",
 		"EGL_PLATFORM":                        "gbm",
 		"DMS_RUN_GREETER":                     "1",
 		"DMS_GREET_CFG_DIR":                   opts.CacheDir,

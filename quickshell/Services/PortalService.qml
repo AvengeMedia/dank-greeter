@@ -11,8 +11,6 @@ Singleton {
 
     property string profileImage: ""
     property string pendingGreeterProfileUser: ""
-    property int systemColorScheme: 0
-    readonly property bool systemPrefersLight: systemColorScheme !== 1
 
     function getGreeterUserProfileImage(username) {
         if (!username) {
@@ -53,22 +51,6 @@ Singleton {
             if (exitCode !== 0 && root.pendingGreeterProfileUser !== "") {
                 root.profileImage = "";
                 root.pendingGreeterProfileUser = "";
-            }
-        }
-    }
-
-    Process {
-        id: colorSchemeReadProcess
-
-        command: ["gdbus", "call", "--session", "--dest", "org.freedesktop.portal.Desktop", "--object-path", "/org/freedesktop/portal/desktop", "--method", "org.freedesktop.portal.Settings.Read", "org.freedesktop.appearance", "color-scheme"]
-        running: true
-
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const match = text.match(/uint32 (\d+)/);
-                if (!match)
-                    return;
-                root.systemColorScheme = parseInt(match[1]);
             }
         }
     }
