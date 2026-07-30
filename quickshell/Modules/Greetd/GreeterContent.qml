@@ -1942,7 +1942,7 @@ Item {
             if (root.autoLoginOnSuccess)
                 greeterAutoLoginPendingProcess.running = true;
             pendingLaunchCommand = sessionCmd;
-            pendingLaunchEnv = ["XDG_SESSION_TYPE=wayland"];
+            pendingLaunchEnv = ["XDG_SESSION_TYPE=wayland", "DMS_GREETER_AUTH_TIME=" + Math.floor(Date.now() / 1000)];
             if (Quickshell.env("DMS_VOID") === "1")
                 pendingLaunchEnv.push("LIBSEAT_BACKEND=logind");
             memoryFlushTimer.restart();
