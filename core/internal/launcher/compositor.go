@@ -105,7 +105,7 @@ func buildHyprlandPlan(configPath, qsCmd string) (launchPlan, error) {
 		if readErr != nil {
 			return launchPlan{}, readErr
 		}
-		lua := fmt.Sprintf("%s\nhl.on(\"hyprland.start\", function()\n    hl.exec_cmd('sh -c \"%s; hyprctl dispatch exit\"')\nend)\n", content, qsCmd)
+		lua := fmt.Sprintf("%s\nhl.on(\"hyprland.start\", function()\n    hl.exec_cmd(\"sh -c \\\"%s; hyprctl dispatch 'hl.dsp.exit()'\\\"\")\nend)\n", content, qsCmd)
 		tempConfig, err = writeTempConfig(lua, ".lua")
 	case configPath == "":
 		lua := fmt.Sprintf(`hl.env("DMS_RUN_GREETER", "1")
@@ -117,7 +117,7 @@ hl.config({
 })
 
 hl.on("hyprland.start", function()
-	hl.exec_cmd('sh -c "%s; hyprctl dispatch exit"')
+	hl.exec_cmd("sh -c \"%s; hyprctl dispatch 'hl.dsp.exit()'\"")
 end)
 `, qsCmd)
 		tempConfig, err = writeTempConfig(lua, ".lua")
