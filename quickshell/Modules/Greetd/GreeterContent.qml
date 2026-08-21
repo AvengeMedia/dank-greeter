@@ -1126,6 +1126,18 @@ Item {
                             opacity: 0
                             focus: !root.showUserPicker || GreeterState.showPasswordInput
                             echoMode: GreeterState.showPasswordInput ? (parent.showPassword ? TextInput.Normal : TextInput.Password) : TextInput.Normal
+
+                            // Contract the on-screen Keyboard drives its target through.
+                            function insertText(value) {
+                                if (value)
+                                    insert(cursorPosition, value);
+                            }
+
+                            function backspace() {
+                                if (cursorPosition > 0)
+                                    remove(cursorPosition - 1, cursorPosition);
+                            }
+
                             onTextChanged: {
                                 if (syncingFromState)
                                     return;
