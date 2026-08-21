@@ -398,6 +398,11 @@ func checkGreeterStatus() error {
 		allGood = false
 	}
 
+	fmt.Println("\nPer-user slots (multi-account):")
+	if !printUserSlotStatus(cacheDir, currentUser.Username) {
+		allGood = false
+	}
+
 	fmt.Println("\nGreeter PAM Authentication (DMS-managed block):")
 	if greeter.IsNixOS() {
 		fmt.Println("  ℹ NixOS detected: PAM is managed by NixOS modules.")
@@ -728,4 +733,38 @@ func appArmorProfileMode(profileName string) string {
 		}
 	}
 	return ""
+}
+
+func printUserSlotStatus(cacheDir, currentUsername string) bool {
+	slots, err := greeter.ListUserSlots(cacheDir)
+	if err != nil {
+		fmt.Printf("  ℹ Could not list %s/users (%v)\n", cacheDir, err)
+		return true
+	}
+
+	hasCurrent := false
+	for _, username := range slots {
+		if username == currentUsername {
+			hasCurrent = true
+		}
+		switch greeter.InspectUserSlot(cacheDir, username) {
+		case greeter.UserSlotLive:
+			fmt.Printf("  ✓ users/%s/ - live (linked to DMS state)\n", username)
+		case greeter.UserSlotSnapshot:
+			fmt.Printf("  ⚠ users/%s/ - snapshot (wallpaper and theme changes need a re-sync)\n", username)
+			fmt.Printf("    Run 'dms-greeter sync --profile' as %s to link it live\n", username)
+		case greeter.UserSlotBroken:
+			fmt.Printf("  ✗ users/%s/ - broken link (source DMS state missing)\n", username)
+			fmt.Printf("    Run 'dms-greeter sync --profile' as %s after starting DMS\n", username)
+		default:
+			fmt.Printf("  ✗ users/%s/ - incomplete (session.json missing)\n", username)
+		}
+	}
+
+	if hasCurrent {
+		state := greeter.InspectUserSlot(cacheDir, currentUsername)
+		return state == greeter.UserSlotLive || state == greeter.UserSlotSnapshot
+	}
+	fmt.Printf("  ℹ users/%s/ - not synced (run: dms-greeter sync --profile)\n", currentUsername)
+	return true
 }

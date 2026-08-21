@@ -15,20 +15,35 @@ Singleton {
     readonly property string _greeterCacheDir: Quickshell.env("DMS_GREET_CFG_DIR") || "/var/cache/dms-greeter"
 
     property string configBaseDir: root._greeterCacheDir
+    property string configHomeDir: ""
     readonly property string configPath: root.configBaseDir ? (root.configBaseDir + "/settings.json") : ""
     readonly property string greeterWallpaperOverridePath: root.configBaseDir ? (root.configBaseDir + "/greeter_wallpaper_override.jpg") : ""
 
-    function setConfigBaseDir(dir) {
+    function setConfigBaseDir(dir, homeDir) {
         const next = dir || root._greeterCacheDir;
-        if (configBaseDir === next)
+        const nextHome = homeDir || "";
+        if (configBaseDir === next && configHomeDir === nextHome)
             return;
         configBaseDir = next;
+        configHomeDir = nextHome;
         settingsLoaded = false;
         settingsFile.reload();
     }
 
     function resetConfigBaseDir() {
-        setConfigBaseDir(root._greeterCacheDir);
+        setConfigBaseDir(root._greeterCacheDir, "");
+    }
+
+    function resolveUserPath(path) {
+        if (!path || !configHomeDir)
+            return Paths.expandTilde(path || "");
+        if (path === "~")
+            return configHomeDir;
+        if (path.startsWith("~/"))
+            return configHomeDir + path.substring(1);
+        if (path.startsWith("/"))
+            return path;
+        return configHomeDir + "/" + path;
     }
 
     property string currentThemeName: "purple"
@@ -141,7 +156,7 @@ Singleton {
 
             if (typeof Theme !== "undefined") {
                 if (currentThemeName === "custom" && customThemeFile) {
-                    Theme.loadCustomThemeFromFile(customThemeFile);
+                    Theme.loadCustomThemeFromFile(resolveUserPath(customThemeFile));
                 }
                 Theme.applyGreeterTheme(currentThemeName);
             }

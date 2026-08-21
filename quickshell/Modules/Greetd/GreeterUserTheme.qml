@@ -30,7 +30,7 @@ Singleton {
         if (typeof GreeterUsersService !== "undefined" && GreeterUsersService.hasSyncedTheme(name)) {
             Theme.setGreeterColorsBaseDir(dir);
             SessionData.setGreeterSessionBaseDir(dir);
-            GreetdSettings.setConfigBaseDir(dir);
+            GreetdSettings.setConfigBaseDir(dir, GreeterUsersService.homeDir(name));
             return;
         }
         applyDefault();

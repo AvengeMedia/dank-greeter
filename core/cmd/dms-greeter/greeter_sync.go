@@ -281,7 +281,7 @@ func syncGreeter(nonInteractive bool, forceAuth bool, local bool, profileOnly bo
 	}
 
 	fmt.Println("\n=== Sync Complete ===")
-	fmt.Println("\nYour theme, settings, and wallpaper configuration have been synced with the greeter.")
+	fmt.Println("\nYour theme, settings, and wallpaper configuration are linked to the greeter and stay in sync.")
 	fmt.Println("Shared authentication settings were also checked and reconciled where needed.")
 	if forceAuth {
 		fmt.Println("Authentication has been configured for fingerprint and U2F (where modules exist).")
@@ -305,7 +305,7 @@ func syncGreeterProfileOnly(nonInteractive bool) error {
 	}
 	if !nonInteractive {
 		fmt.Println("\n=== Profile Sync Complete ===")
-		fmt.Println("\nYour theme, wallpaper, and profile photo have been synced for the login screen.")
+		fmt.Println("\nYour login-screen slot now follows your live DMS theme, wallpaper, and profile photo.")
 		fmt.Println("Log out to preview your greeter look when selecting your account.")
 	}
 	return nil

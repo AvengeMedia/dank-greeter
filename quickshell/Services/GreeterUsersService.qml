@@ -44,6 +44,11 @@ Singleton {
         return usersCacheDir + "/" + username;
     }
 
+    function homeDir(username) {
+        const u = _findUser(username);
+        return u ? (u.home || "") : "";
+    }
+
     function syncedSettingsPath(username) {
         const dir = userCacheDir(username);
         return dir ? dir + "/settings.json" : "";

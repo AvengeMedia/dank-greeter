@@ -162,11 +162,15 @@ type userSlotSyncOpts struct {
 	sudoPassword string
 	profileOnly  bool
 	username     string
+	directWrite  func(dest string) bool
 }
 
 func (o userSlotSyncOpts) useDirectWrite(dest string) bool {
 	if !o.profileOnly {
 		return false
+	}
+	if o.directWrite != nil {
+		return o.directWrite(dest)
 	}
 	return canWriteUserGreeterCacheSlot(dest, o.username)
 }
@@ -240,17 +244,136 @@ func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterT
 		return err
 	}
 
-	settingsPath := filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json")
-	settingsBytes, err := os.ReadFile(settingsPath)
+	sources := newUserSlotSources(homeDir, state)
+	sessionMap, err := readJSONObject(sources.session)
 	if err != nil {
-		return fmt.Errorf("failed to read settings for user cache slot: %w", err)
+		return fmt.Errorf("failed to read session for user cache slot: %w", err)
 	}
 
-	settingsMap := map[string]any{}
-	if strings.TrimSpace(string(settingsBytes)) != "" {
-		if err := json.Unmarshal(settingsBytes, &settingsMap); err != nil {
-			return fmt.Errorf("failed to parse settings for user cache slot: %w", err)
+	if err := grantGreeterReadAccess(homeDir, sessionWallpaperPaths(sessionMap), logFunc); err != nil {
+		logFunc(fmt.Sprintf("⚠ Live greeter sync unavailable for %s (%v); writing a snapshot instead", username, err))
+		if err := writeUserSlotSnapshot(homeDir, userDir, sources, sessionMap, opts); err != nil {
+			return err
 		}
+		if err := syncUserSlotWallpaperOverride(cacheDir, userDir, opts); err != nil {
+			return err
+		}
+		logFunc(fmt.Sprintf("✓ Synced per-user greeter cache snapshot for %s", username))
+		return nil
+	}
+
+	if err := linkUserSlot(userDir, sources, opts); err != nil {
+		return err
+	}
+	if err := syncUserSlotWallpaperOverride(cacheDir, userDir, opts); err != nil {
+		return err
+	}
+	logFunc(fmt.Sprintf("✓ Linked per-user greeter cache for %s to live DMS state", username))
+	return nil
+}
+
+type userSlotSources struct {
+	settings string
+	session  string
+	colors   string
+}
+
+func newUserSlotSources(homeDir string, state greeterThemeSyncState) userSlotSources {
+	return userSlotSources{
+		settings: filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json"),
+		session:  filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json"),
+		colors:   state.effectiveColorsSource(homeDir),
+	}
+}
+
+func readJSONObject(path string) (map[string]any, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	result := map[string]any{}
+	if strings.TrimSpace(string(data)) == "" {
+		return result, nil
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
+var userSlotSnapshotPrefixes = []string{"wallpaper", "profile.", "custom-theme.json"}
+
+func isUserSlotSnapshotArtifact(name string) bool {
+	for _, prefix := range userSlotSnapshotPrefixes {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+func linkUserSlot(userDir string, sources userSlotSources, opts userSlotSyncOpts) error {
+	links := []struct {
+		name   string
+		source string
+	}{
+		{"settings.json", sources.settings},
+		{"session.json", sources.session},
+		{"colors.json", sources.colors},
+	}
+	for _, link := range links {
+		if err := linkSlotEntry(link.source, filepath.Join(userDir, link.name), opts); err != nil {
+			return fmt.Errorf("failed to link %s for user cache slot: %w", link.name, err)
+		}
+	}
+	return removeUserSlotSnapshotArtifacts(userDir, opts)
+}
+
+func linkSlotEntry(source, dest string, opts userSlotSyncOpts) error {
+	if err := removeSlotEntry(dest, opts); err != nil {
+		return err
+	}
+	if opts.useDirectWrite(dest) {
+		return os.Symlink(source, dest)
+	}
+	return privesc.Run(context.Background(), opts.sudoPassword, "ln", "-sfn", source, dest)
+}
+
+func removeSlotEntry(path string, opts userSlotSyncOpts) error {
+	if !opts.useDirectWrite(path) {
+		return privesc.Run(context.Background(), opts.sudoPassword, "rm", "-f", path)
+	}
+	err := os.Remove(path)
+	if err == nil || os.IsNotExist(err) {
+		return nil
+	}
+	return err
+}
+
+func removeUserSlotSnapshotArtifacts(userDir string, opts userSlotSyncOpts) error {
+	if !opts.useDirectWrite(userDir) {
+		return privesc.Run(context.Background(), opts.sudoPassword, "find", userDir, "-mindepth", "1", "-maxdepth", "1", "-type", "f",
+			"(", "-name", "wallpaper*", "-o", "-name", "profile.*", "-o", "-name", "custom-theme.json", ")", "-delete")
+	}
+	entries, err := os.ReadDir(userDir)
+	if err != nil {
+		return fmt.Errorf("failed to list user cache slot %s: %w", userDir, err)
+	}
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() || !isUserSlotSnapshotArtifact(entry.Name()) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(userDir, entry.Name())); err != nil {
+			return fmt.Errorf("failed to remove stale slot file %s: %w", entry.Name(), err)
+		}
+	}
+	return nil
+}
+
+func writeUserSlotSnapshot(homeDir, userDir string, sources userSlotSources, sessionMap map[string]any, opts userSlotSyncOpts) error {
+	settingsMap, err := readJSONObject(sources.settings)
+	if err != nil {
+		return fmt.Errorf("failed to read settings for user cache slot: %w", err)
 	}
 
 	if customTheme, ok := settingsMap["customThemeFile"].(string); ok && strings.TrimSpace(customTheme) != "" {
@@ -267,7 +390,7 @@ func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterT
 		}
 	}
 
-	settingsBytes, err = json.Marshal(settingsMap)
+	settingsBytes, err := json.Marshal(settingsMap)
 	if err != nil {
 		return fmt.Errorf("failed to marshal settings for user cache slot: %w", err)
 	}
@@ -275,24 +398,11 @@ func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterT
 		return err
 	}
 
-	sessionPath := filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json")
-	sessionBytes, err := os.ReadFile(sessionPath)
-	if err != nil {
-		return fmt.Errorf("failed to read session for user cache slot: %w", err)
-	}
-
-	sessionMap := map[string]any{}
-	if strings.TrimSpace(string(sessionBytes)) != "" {
-		if err := json.Unmarshal(sessionBytes, &sessionMap); err != nil {
-			return fmt.Errorf("failed to parse session for user cache slot: %w", err)
-		}
-	}
-
 	if err := localizeSessionWallpapers(sessionMap, userDir, opts); err != nil {
 		return err
 	}
 
-	sessionBytes, err = json.Marshal(sessionMap)
+	sessionBytes, err := json.Marshal(sessionMap)
 	if err != nil {
 		return fmt.Errorf("failed to marshal session for user cache slot: %w", err)
 	}
@@ -300,28 +410,23 @@ func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterT
 		return err
 	}
 
-	colorsSource := state.effectiveColorsSource(homeDir)
-	if err := copyFileWithPrivesc(colorsSource, filepath.Join(userDir, "colors.json"), opts); err != nil {
+	if err := copyFileWithPrivesc(sources.colors, filepath.Join(userDir, "colors.json"), opts); err != nil {
 		return fmt.Errorf("failed to copy colors for user cache slot: %w", err)
 	}
 
-	if err := syncUserProfileImage(homeDir, userDir, opts); err != nil {
-		return err
-	}
+	return syncUserProfileImage(homeDir, userDir, opts)
+}
 
+func syncUserSlotWallpaperOverride(cacheDir, userDir string, opts userSlotSyncOpts) error {
 	rootOverride := filepath.Join(cacheDir, "greeter_wallpaper_override.jpg")
 	userOverride := filepath.Join(userDir, "greeter_wallpaper_override.jpg")
-	if st, statErr := os.Stat(rootOverride); statErr == nil && !st.IsDir() {
-		if err := copyFileWithPrivesc(rootOverride, userOverride, opts); err != nil {
-			return fmt.Errorf("failed to copy greeter wallpaper override for user cache slot: %w", err)
-		}
-	} else if opts.useDirectWrite(userOverride) {
-		_ = os.Remove(userOverride)
-	} else {
-		_ = privesc.Run(context.Background(), opts.sudoPassword, "rm", "-f", userOverride)
+	st, statErr := os.Stat(rootOverride)
+	if statErr != nil || st.IsDir() {
+		return removeSlotEntry(userOverride, opts)
 	}
-
-	logFunc(fmt.Sprintf("✓ Synced per-user greeter cache for %s", username))
+	if err := copyFileWithPrivesc(rootOverride, userOverride, opts); err != nil {
+		return fmt.Errorf("failed to copy greeter wallpaper override for user cache slot: %w", err)
+	}
 	return nil
 }
 
@@ -430,6 +535,9 @@ func copyFileWithPrivesc(src, dest string, opts userSlotSyncOpts) error {
 		if err != nil {
 			return fmt.Errorf("failed to read %s: %w", src, err)
 		}
+		if err := removeSlotEntry(dest, opts); err != nil {
+			return fmt.Errorf("failed to replace %s: %w", dest, err)
+		}
 		if err := os.WriteFile(dest, data, 0o644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", dest, err)
 		}
@@ -461,6 +569,9 @@ func writeFileWithPrivesc(path string, data []byte, opts userSlotSyncOpts) error
 	if opts.useDirectWrite(path) {
 		if err := os.MkdirAll(filepath.Dir(path), 0o770); err != nil {
 			return fmt.Errorf("failed to create parent dir for %s: %w", path, err)
+		}
+		if err := removeSlotEntry(path, opts); err != nil {
+			return fmt.Errorf("failed to replace %s: %w", path, err)
 		}
 		if err := os.WriteFile(path, data, 0o644); err != nil {
 			return fmt.Errorf("failed to write %s: %w", path, err)
