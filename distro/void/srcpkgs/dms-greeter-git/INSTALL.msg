@@ -4,10 +4,12 @@ tree; existing /etc/greetd/config.toml entries keep working:
 
     command = "/usr/bin/dms-greeter --command COMPOSITOR"
 
-Void needs the pieces logind would handle on systemd: enable seatd, add the
-_greeter user to the seat/video/input groups, and add pam_rundir to the greetd
-PAM stack. With DankMaterialShell installed, `dms greeter enable` sets all of
-this up. Sync your shell theme into the greeter with:
+Void uses elogind for seat management, not seatd. Run `dms-greeter enable`
+to set it all up: it enables the dbus and elogind services, makes the greetd
+run script wait for them, points greetd at dms-greeter, and adds pam_rundir
+to the greetd PAM stack. Without this greetd either never starts (dbus or
+elogind not enabled) or shows the stock agreety tty prompt. Sync your shell
+theme into the greeter with:
 
     dms-greeter sync
 
