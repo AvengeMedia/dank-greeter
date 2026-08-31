@@ -64,6 +64,7 @@ Singleton {
     property bool useFahrenheit: false
     property bool useAutoLocation: false
     property bool weatherEnabled: true
+    property bool greeterShowWeather: true
     property string fontFamily: "Inter Variable"
     property string monoFontFamily: "Fira Code"
     property int fontWeight: Font.Normal
@@ -124,6 +125,7 @@ Singleton {
             useFahrenheit = settings.useFahrenheit !== undefined ? settings.useFahrenheit : false;
             useAutoLocation = settings.useAutoLocation !== undefined ? settings.useAutoLocation : false;
             weatherEnabled = settings.weatherEnabled !== undefined ? settings.weatherEnabled : true;
+            greeterShowWeather = settings.greeterShowWeather !== undefined ? settings.greeterShowWeather : true;
             fontFamily = settings.fontFamily !== undefined ? settings.fontFamily : Theme.defaultFontFamily;
             monoFontFamily = settings.monoFontFamily !== undefined ? settings.monoFontFamily : Theme.defaultMonoFontFamily;
             fontWeight = settings.fontWeight !== undefined ? settings.fontWeight : Font.Normal;

@@ -119,7 +119,7 @@ Singleton {
     function addRef() {
         refCount++;
 
-        if (refCount === 1 && !weather.available && GreetdSettings.weatherEnabled) {
+        if (refCount === 1 && !weather.available && GreetdSettings.greeterShowWeather) {
             fetchWeather();
         }
     }
@@ -161,7 +161,7 @@ Singleton {
     }
 
     function fetchWeather(lat, lon) {
-        if (root.refCount === 0 || !GreetdSettings.weatherEnabled) {
+        if (root.refCount === 0 || !GreetdSettings.greeterShowWeather) {
             return;
         }
 
