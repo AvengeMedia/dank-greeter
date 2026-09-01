@@ -149,9 +149,14 @@ jobs:
           ## What's Changed
 
           $CHANGELOG
+          EOF
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            cat >> CHANGELOG.md << EOF
 
           **Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${{ github.ref_name }}
           EOF
+          fi
 
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
           cat CHANGELOG.md >> $GITHUB_OUTPUT
