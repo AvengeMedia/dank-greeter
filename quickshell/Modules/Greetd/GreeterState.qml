@@ -13,6 +13,7 @@ Singleton {
     property string selectedSession: ""
     property string selectedSessionPath: ""
     property string selectedSessionDesktopId: ""
+    property string selectedSessionDesktopNames: ""
     property string pamState: ""
     property bool unlocking: false
 
@@ -20,6 +21,7 @@ Singleton {
     property var sessionExecs: []
     property var sessionPaths: []
     property var sessionDesktopIds: []
+    property var sessionDesktopNames: []
     property int currentSessionIndex: 0
     property bool sessionManuallySelected: false
 

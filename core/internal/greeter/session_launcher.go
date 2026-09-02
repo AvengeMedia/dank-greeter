@@ -70,28 +70,40 @@ func sessionDesktopDirs() []string {
 	return dirs
 }
 
-func ResolveSessionExec(sessionID string) (string, error) {
-	return resolveSessionExecInDirs(sessionID, sessionDesktopDirs())
+func ResolveSessionEntry(sessionID string) (sessionDesktopEntry, error) {
+	return resolveSessionEntryInDirs(sessionID, sessionDesktopDirs())
 }
 
-func resolveSessionExecInDirs(sessionID string, dirs []string) (string, error) {
+func resolveSessionEntryInDirs(sessionID string, dirs []string) (sessionDesktopEntry, error) {
 	id := sessionDesktopIDFromPath(sessionID)
 	if id == "" {
-		return "", fmt.Errorf("session id is empty")
+		return sessionDesktopEntry{}, fmt.Errorf("session id is empty")
 	}
 
 	for _, dir := range dirs {
-		path := filepath.Join(dir, id)
-		execLine, err := execFromDesktopFile(path)
+		entry, err := readSessionDesktopEntry(filepath.Join(dir, id))
 		if err == nil {
-			return execLine, nil
+			return entry, nil
 		}
 		if !os.IsNotExist(err) {
-			return "", err
+			return sessionDesktopEntry{}, err
 		}
 	}
 
-	return "", fmt.Errorf("session desktop file %q was not found", id)
+	return sessionDesktopEntry{}, fmt.Errorf("session desktop file %q was not found", id)
+}
+
+func sessionEnv(sessionID string, entry sessionDesktopEntry) []string {
+	env := []string{"XDG_SESSION_TYPE=wayland"}
+	desktopSession := strings.TrimSuffix(sessionDesktopIDFromPath(sessionID), ".desktop")
+	if desktopSession != "" {
+		env = append(env, "XDG_SESSION_DESKTOP="+desktopSession, "DESKTOP_SESSION="+desktopSession)
+	}
+	currentDesktop := strings.Trim(strings.ReplaceAll(entry.DesktopNames, ";", ":"), ":")
+	if currentDesktop != "" {
+		env = append(env, "XDG_CURRENT_DESKTOP="+currentDesktop)
+	}
+	return env
 }
 
 // parseExecString splits a Desktop Entry Exec= value into argv without
@@ -166,12 +178,12 @@ func parseExecString(execLine string) []string {
 }
 
 func LaunchSessionByID(sessionID string) error {
-	execLine, err := ResolveSessionExec(sessionID)
+	entry, err := ResolveSessionEntry(sessionID)
 	if err != nil {
 		return err
 	}
 
-	argv := parseExecString(strings.TrimSpace(execLine))
+	argv := parseExecString(entry.Exec)
 	if len(argv) == 0 {
 		return fmt.Errorf("session %q has an empty Exec command", sessionID)
 	}
@@ -181,7 +193,7 @@ func LaunchSessionByID(sessionID string) error {
 		return fmt.Errorf("session %q command %q not found: %w", sessionID, argv[0], err)
 	}
 
-	env := append(os.Environ(), "XDG_SESSION_TYPE=wayland")
+	env := append(os.Environ(), sessionEnv(sessionID, entry)...)
 	return syscall.Exec(resolved, argv, env)
 }
 

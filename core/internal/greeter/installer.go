@@ -415,11 +415,17 @@ func readGreeterAutoLoginMemory(memoryPath string) (greeterAutoLoginMemory, erro
 	return mem, nil
 }
 
-func execFromDesktopFile(path string) (string, error) {
+type sessionDesktopEntry struct {
+	Exec         string
+	DesktopNames string
+}
+
+func readSessionDesktopEntry(path string) (sessionDesktopEntry, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return "", err
+		return sessionDesktopEntry{}, err
 	}
+	var entry sessionDesktopEntry
 	inDesktopEntry := false
 	for line := range strings.SplitSeq(string(data), "\n") {
 		trimmed := strings.TrimSpace(line)
@@ -433,12 +439,24 @@ func execFromDesktopFile(path string) (string, error) {
 			continue
 		}
 		key, value, found := strings.Cut(trimmed, "=")
-		if !found || strings.TrimSpace(key) != "Exec" {
+		if !found {
 			continue
 		}
-		return strings.TrimSpace(value), nil
+		switch strings.TrimSpace(key) {
+		case "Exec":
+			if entry.Exec == "" {
+				entry.Exec = strings.TrimSpace(value)
+			}
+		case "DesktopNames":
+			if entry.DesktopNames == "" {
+				entry.DesktopNames = strings.TrimSpace(value)
+			}
+		}
 	}
-	return "", fmt.Errorf("no Exec= line found in %s", path)
+	if entry.Exec == "" {
+		return sessionDesktopEntry{}, fmt.Errorf("no Exec= line found in %s", path)
+	}
+	return entry, nil
 }
 
 func resolveGreeterAutoLoginState(cacheDir, homeDir string) (enabled bool, loginUser string, sessionID string, err error) {

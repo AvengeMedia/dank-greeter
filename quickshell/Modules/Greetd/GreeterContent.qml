@@ -1726,6 +1726,7 @@ Item {
                     GreeterState.selectedSession = GreeterState.sessionExecs[idx];
                     GreeterState.selectedSessionPath = GreeterState.sessionPaths[idx];
                     GreeterState.selectedSessionDesktopId = GreeterState.sessionDesktopIds[idx];
+                    GreeterState.selectedSessionDesktopNames = GreeterState.sessionDesktopNames[idx] || "";
                 }
             }
         }
@@ -1752,6 +1753,7 @@ Item {
                     GreeterState.selectedSession = GreeterState.sessionExecs[i] || "";
                     GreeterState.selectedSessionPath = GreeterState.sessionPaths[i];
                     GreeterState.selectedSessionDesktopId = GreeterState.sessionDesktopIds[i] || "";
+                    GreeterState.selectedSessionDesktopNames = GreeterState.sessionDesktopNames[i] || "";
                     return;
                 }
             }
@@ -1761,6 +1763,7 @@ Item {
         GreeterState.selectedSession = GreeterState.sessionExecs[0] || "";
         GreeterState.selectedSessionPath = GreeterState.sessionPaths[0] || "";
         GreeterState.selectedSessionDesktopId = GreeterState.sessionDesktopIds[0] || "";
+        GreeterState.selectedSessionDesktopNames = GreeterState.sessionDesktopNames[0] || "";
     }
 
     property var sessionDirs: {
@@ -1790,18 +1793,20 @@ Item {
     property var _pendingFiles: ({})
     property int _pendingCount: 0
 
-    function _addSession(path, name, exec) {
+    function _addSession(path, name, exec, desktopNames) {
         if (!name || !exec || GreeterState.sessionList.includes(name))
             return;
         GreeterState.sessionList = GreeterState.sessionList.concat([name]);
         GreeterState.sessionExecs = GreeterState.sessionExecs.concat([exec]);
         GreeterState.sessionPaths = GreeterState.sessionPaths.concat([path]);
         GreeterState.sessionDesktopIds = GreeterState.sessionDesktopIds.concat([desktopIdFromPath(path)]);
+        GreeterState.sessionDesktopNames = GreeterState.sessionDesktopNames.concat([desktopNames]);
     }
 
     function _parseDesktopFile(content, path) {
         let name = "";
         let exec = "";
+        let desktopNames = "";
         const lines = content.split("\n");
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
@@ -1809,10 +1814,21 @@ Item {
                 name = line.substring(5).trim();
             else if (!exec && line.startsWith("Exec="))
                 exec = line.substring(5).trim();
-            if (name && exec)
-                break;
+            else if (!desktopNames && line.startsWith("DesktopNames="))
+                desktopNames = line.substring(13).trim();
         }
-        _addSession(path, name, exec);
+        _addSession(path, name, exec, desktopNames);
+    }
+
+    function sessionLaunchEnv(sessionDesktopId, desktopNames) {
+        const env = ["XDG_SESSION_TYPE=wayland"];
+        const desktopSession = (sessionDesktopId || "").replace(/\.desktop$/, "");
+        if (desktopSession)
+            env.push("XDG_SESSION_DESKTOP=" + desktopSession, "DESKTOP_SESSION=" + desktopSession);
+        const currentDesktop = (desktopNames || "").replace(/;/g, ":").replace(/^:+|:+$/g, "");
+        if (currentDesktop)
+            env.push("XDG_CURRENT_DESKTOP=" + currentDesktop);
+        return env;
     }
 
     function _loadDesktopFile(filePath) {
@@ -1932,6 +1948,7 @@ Item {
             const sessionCmd = GreeterState.selectedSession || GreeterState.sessionExecs[GreeterState.currentSessionIndex];
             const sessionPath = GreeterState.selectedSessionPath || GreeterState.sessionPaths[GreeterState.currentSessionIndex];
             const sessionDesktopId = GreeterState.selectedSessionDesktopId || GreeterState.sessionDesktopIds[GreeterState.currentSessionIndex] || desktopIdFromPath(sessionPath);
+            const sessionDesktopNames = GreeterState.selectedSessionDesktopNames || GreeterState.sessionDesktopNames[GreeterState.currentSessionIndex] || "";
             if (!sessionCmd) {
                 GreeterState.pamState = "error";
                 authFeedbackMessage = currentAuthMessage();
@@ -1954,7 +1971,7 @@ Item {
             if (root.autoLoginOnSuccess)
                 greeterAutoLoginPendingProcess.running = true;
             pendingLaunchCommand = sessionCmd;
-            pendingLaunchEnv = ["XDG_SESSION_TYPE=wayland", "DMS_GREETER_AUTH_TIME=" + Math.floor(Date.now() / 1000)];
+            pendingLaunchEnv = sessionLaunchEnv(sessionDesktopId, sessionDesktopNames).concat(["DMS_GREETER_AUTH_TIME=" + Math.floor(Date.now() / 1000)]);
             if (Quickshell.env("DMS_VOID") === "1")
                 pendingLaunchEnv.push("LIBSEAT_BACKEND=logind");
             memoryFlushTimer.restart();

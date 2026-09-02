@@ -35,23 +35,64 @@ func TestParseExecString(t *testing.T) {
 	}
 }
 
-func TestExecFromDesktopFileOnlyReadsDesktopEntryGroup(t *testing.T) {
+func TestReadSessionDesktopEntryOnlyReadsDesktopEntryGroup(t *testing.T) {
 	t.Parallel()
 
 	path := filepath.Join(t.TempDir(), "example.desktop")
 	writeTestFile(t, path, `[Desktop Action other]
 Exec=/wrong/binary
+DesktopNames=Wrong
 
 [Desktop Entry]
 Name=Example
 Exec = /right/binary --flag
+DesktopNames=GNOME;GNOME-Classic
 `)
 
-	got, err := execFromDesktopFile(path)
+	got, err := readSessionDesktopEntry(path)
 	if err != nil {
-		t.Fatalf("execFromDesktopFile returned error: %v", err)
+		t.Fatalf("readSessionDesktopEntry returned error: %v", err)
 	}
-	if got != "/right/binary --flag" {
-		t.Fatalf("execFromDesktopFile = %q, want %q", got, "/right/binary --flag")
+	want := sessionDesktopEntry{Exec: "/right/binary --flag", DesktopNames: "GNOME;GNOME-Classic"}
+	if got != want {
+		t.Fatalf("readSessionDesktopEntry = %+v, want %+v", got, want)
+	}
+}
+
+func TestSessionEnv(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		sessionID string
+		entry     sessionDesktopEntry
+		want      []string
+	}{
+		{
+			"gnome",
+			"gnome.desktop",
+			sessionDesktopEntry{Exec: "gnome-session", DesktopNames: "GNOME"},
+			[]string{"XDG_SESSION_TYPE=wayland", "XDG_SESSION_DESKTOP=gnome", "DESKTOP_SESSION=gnome", "XDG_CURRENT_DESKTOP=GNOME"},
+		},
+		{
+			"multiple desktop names use colon separator",
+			"/usr/share/wayland-sessions/plasma.desktop",
+			sessionDesktopEntry{Exec: "startplasma-wayland", DesktopNames: "KDE;plasma;"},
+			[]string{"XDG_SESSION_TYPE=wayland", "XDG_SESSION_DESKTOP=plasma", "DESKTOP_SESSION=plasma", "XDG_CURRENT_DESKTOP=KDE:plasma"},
+		},
+		{
+			"no desktop names",
+			"niri",
+			sessionDesktopEntry{Exec: "niri-session"},
+			[]string{"XDG_SESSION_TYPE=wayland", "XDG_SESSION_DESKTOP=niri", "DESKTOP_SESSION=niri"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sessionEnv(tt.sessionID, tt.entry); !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("sessionEnv = %#v, want %#v", got, tt.want)
+			}
+		})
 	}
 }

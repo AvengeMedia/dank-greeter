@@ -449,7 +449,7 @@ func TestResolveGreeterAutoLoginStateIgnoresMemoryFlag(t *testing.T) {
 	}
 }
 
-func TestResolveSessionExecInDirs(t *testing.T) {
+func TestResolveSessionEntryInDirs(t *testing.T) {
 	t.Parallel()
 
 	oldDir := filepath.Join(t.TempDir(), "wayland-sessions")
@@ -463,12 +463,12 @@ Name=Example Session
 Exec=/run/current-system/sw/bin/start-example-session
 `)
 
-	got, err := resolveSessionExecInDirs("example.desktop", []string{newDir, oldDir})
+	got, err := resolveSessionEntryInDirs("example.desktop", []string{newDir, oldDir})
 	if err != nil {
-		t.Fatalf("resolveSessionExecInDirs returned error: %v", err)
+		t.Fatalf("resolveSessionEntryInDirs returned error: %v", err)
 	}
-	if got != "/run/current-system/sw/bin/start-example-session" {
-		t.Fatalf("resolveSessionExecInDirs = %q", got)
+	if got.Exec != "/run/current-system/sw/bin/start-example-session" {
+		t.Fatalf("resolveSessionEntryInDirs Exec = %q", got.Exec)
 	}
 }
 
