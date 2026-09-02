@@ -98,3 +98,41 @@ func TestBuildAndInstallLocalGreeterRequiresQMLSubmodule(t *testing.T) {
 		t.Fatalf("expected submodule guidance, got %v", err)
 	}
 }
+
+func TestPickTerminalPrefersTerminalEnvOverFallbackOrder(t *testing.T) {
+	installed := map[string]bool{"konsole": true, "kitty": true, "foot": true}
+	exists := func(name string) bool { return installed[name] }
+
+	if got := pickTerminal("kitty", exists); got != "kitty" {
+		t.Fatalf("pickTerminal with $TERMINAL=kitty = %q, want kitty", got)
+	}
+	if got := pickTerminal("", exists); got != "foot" {
+		t.Fatalf("pickTerminal without $TERMINAL = %q, want foot", got)
+	}
+	if got := pickTerminal("ptyxis", exists); got != "foot" {
+		t.Fatalf("pickTerminal with missing $TERMINAL = %q, want foot fallback", got)
+	}
+	if got := pickTerminal("foot", func(string) bool { return false }); got != "" {
+		t.Fatalf("pickTerminal with nothing installed = %q, want empty", got)
+	}
+}
+
+func TestTerminalArgsShapeCommandPerEmulator(t *testing.T) {
+	shellCmd := `dms-greeter sync; echo "done"`
+	cases := map[string][]string{
+		"gnome-terminal": {"--", "bash", "-c", shellCmd},
+		"wezterm":        {"start", "--", "bash", "-c", shellCmd},
+		"kitty":          {"bash", "-c", shellCmd},
+		"/usr/bin/kitty": {"bash", "-c", shellCmd},
+		"xterm":          {"-e", `bash -c "dms-greeter sync; echo \"done\""`},
+		"xfce4-terminal": {"-e", `bash -c "dms-greeter sync; echo \"done\""`},
+		"konsole":        {"-e", "bash", "-c", shellCmd},
+		"foot":           {"bash", "-c", shellCmd},
+		"ptyxis":         {"-e", "bash", "-c", shellCmd},
+	}
+	for terminal, want := range cases {
+		if got := terminalArgs(terminal, shellCmd); !reflect.DeepEqual(got, want) {
+			t.Errorf("terminalArgs(%q) = %q, want %q", terminal, got, want)
+		}
+	}
+}

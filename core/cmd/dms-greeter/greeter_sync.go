@@ -16,30 +16,47 @@ import (
 	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
 )
 
-func runCommandInTerminal(shellCmd string) error {
-	terminals := []struct {
-		name string
-		args []string
-	}{
-		{"gnome-terminal", []string{"--", "bash", "-c", shellCmd}},
-		{"konsole", []string{"-e", "bash", "-c", shellCmd}},
-		{"xfce4-terminal", []string{"-e", "bash -c \"" + strings.ReplaceAll(shellCmd, `"`, `\"`) + "\""}},
-		{"ghostty", []string{"-e", "bash", "-c", shellCmd}},
-		{"wezterm", []string{"start", "--", "bash", "-c", shellCmd}},
-		{"alacritty", []string{"-e", "bash", "-c", shellCmd}},
-		{"kitty", []string{"bash", "-c", shellCmd}},
-		{"xterm", []string{"-e", "bash -c \"" + strings.ReplaceAll(shellCmd, `"`, `\"`) + "\""}},
+var fallbackTerminals = []string{"ghostty", "foot", "kitty", "alacritty", "wezterm", "konsole", "gnome-terminal", "xfce4-terminal", "xterm"}
+
+func pickTerminal(preferred string, commandExists func(string) bool) string {
+	if preferred != "" && commandExists(preferred) {
+		return preferred
 	}
-	for _, t := range terminals {
-		if _, err := exec.LookPath(t.name); err != nil {
-			continue
+	for _, name := range fallbackTerminals {
+		if commandExists(name) {
+			return name
 		}
-		cmd := exec.Command(t.name, t.args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		return cmd.Run()
 	}
-	return fmt.Errorf("no terminal emulator found (tried: gnome-terminal, konsole, xfce4-terminal, ghostty, wezterm, alacritty, kitty, xterm)")
+	return ""
+}
+
+func terminalArgs(terminal string, shellCmd string) []string {
+	switch filepath.Base(terminal) {
+	case "gnome-terminal":
+		return []string{"--", "bash", "-c", shellCmd}
+	case "wezterm":
+		return []string{"start", "--", "bash", "-c", shellCmd}
+	case "kitty", "foot":
+		return []string{"bash", "-c", shellCmd}
+	case "xfce4-terminal", "xterm":
+		return []string{"-e", "bash -c \"" + strings.ReplaceAll(shellCmd, `"`, `\"`) + "\""}
+	default:
+		return []string{"-e", "bash", "-c", shellCmd}
+	}
+}
+
+func runCommandInTerminal(shellCmd string) error {
+	terminal := pickTerminal(os.Getenv("TERMINAL"), func(name string) bool {
+		_, err := exec.LookPath(name)
+		return err == nil
+	})
+	if terminal == "" {
+		return fmt.Errorf("no terminal emulator found (set $TERMINAL or install one of: %s)", strings.Join(fallbackTerminals, ", "))
+	}
+	cmd := exec.Command(terminal, terminalArgs(terminal, shellCmd)...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
 }
 
 func syncInTerminal(nonInteractive bool, forceAuth bool, local bool, profileOnly bool, autologinOnly bool) error {
