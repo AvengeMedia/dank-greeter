@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -34,9 +35,18 @@ layout {
 
 var hyprlandLuaPattern = regexp.MustCompile(`(^|[^[:alnum:]_])hl\.`)
 
+const aqueousBaseConfig = `[keybinds]
+spawn_terminal = []
+toggle_start_menu = []
+screenshot = []
+lock_screen = []
+toggle_overview = []
+`
+
 type launchPlan struct {
 	logTag string
 	argv   []string
+	env    []string
 }
 
 func buildPlan(compositor, configPath, qsCmd string) (launchPlan, error) {
@@ -55,8 +65,10 @@ func buildPlan(compositor, configPath, qsCmd string) (launchPlan, error) {
 		return buildLabwcPlan(configPath, qsCmd)
 	case "mango", "mangowc":
 		return buildMangoPlan(configPath, qsCmd)
+	case "aqueous":
+		return buildAqueousPlan(configPath, qsCmd)
 	default:
-		return launchPlan{}, fmt.Errorf("unsupported compositor: %s\nSupported compositors: niri, hyprland, sway, scroll, miracle, mango, labwc", compositor)
+		return launchPlan{}, fmt.Errorf("unsupported compositor: %s\nSupported compositors: niri, hyprland, sway, scroll, miracle, mango, labwc, aqueous", compositor)
 	}
 }
 
@@ -179,6 +191,38 @@ func buildMangoPlan(configPath, qsCmd string) (launchPlan, error) {
 		return launchPlan{logTag: "mango", argv: []string{"mango", "-c", configPath, "-s", session}}, nil
 	}
 	return launchPlan{logTag: "mango", argv: []string{"mango", "-s", session}}, nil
+}
+
+func buildAqueousPlan(configPath, qsCmd string) (launchPlan, error) {
+	if err := requireCommand("aqueous"); err != nil {
+		return launchPlan{}, err
+	}
+
+	var err error
+	if configPath == "" {
+		configPath, err = writeTempConfig(aqueousBaseConfig, ".toml")
+	} else {
+		configPath, err = filepath.Abs(configPath)
+		if err != nil {
+			return launchPlan{}, err
+		}
+		_, err = os.ReadFile(configPath)
+	}
+	if err != nil {
+		return launchPlan{}, err
+	}
+
+	return launchPlan{
+		logTag: "aqueous",
+		argv:   []string{"aqueous", "-no-xwayland", "-c", fmt.Sprintf(`compositor_pid=$PPID; %s; kill -TERM "$compositor_pid"`, qsCmd)},
+		env: []string{
+			"AQUEOUS_CONFIG=" + configPath,
+			"AQUEOUS_LAYOUT=" + configPath,
+			"AQUEOUS_INPUT=" + configPath,
+			"AQUEOUS_RULES=" + configPath,
+			"AQUEOUS_OUTPUTS=" + configPath,
+		},
+	}, nil
 }
 
 func isHyprlandLuaConfig(configPath string) bool {

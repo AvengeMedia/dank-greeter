@@ -55,6 +55,7 @@ profile dms-greeter /{usr,usr/local}/bin/dms-greeter{,-local} flags=(complain) {
   /usr/bin/scroll      Ux,
   /usr/bin/miracle-wm  Ux,
   /usr/bin/mango       Ux,
+  /usr/bin/aqueous     Ux,
 
   # Quickshell — run unconfined (has its own compositor profile on some distros)
   /usr/bin/qs          Ux,

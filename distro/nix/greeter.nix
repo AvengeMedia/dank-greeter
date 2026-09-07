@@ -17,7 +17,12 @@ let
     let
       configured = lib.attrByPath [ "programs" cfg.compositor.name "package" ] null config;
     in
-    if configured != null then configured else builtins.getAttr cfg.compositor.name pkgs;
+    if cfg.compositor.package != null then
+      cfg.compositor.package
+    else if configured != null then
+      configured
+    else
+      builtins.getAttr cfg.compositor.name pkgs;
 
   cacheDir = "/var/lib/dms-greeter";
   greeterCommand = pkgs.writeShellScriptBin "dms-greeter-session" ''
@@ -98,8 +103,14 @@ in
         "mango"
         "scroll"
         "miracle"
+        "aqueous"
       ];
       description = "Compositor to run the greeter in";
+    };
+    compositor.package = lib.mkOption {
+      type = types.nullOr types.package;
+      default = null;
+      description = "Compositor package override; otherwise use programs.<name>.package or pkgs.<name>.";
     };
     compositor.customConfig = lib.mkOption {
       type = types.lines;

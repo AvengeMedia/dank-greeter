@@ -18,13 +18,14 @@ func execCompositor(plan launchPlan, cacheDir string, debug bool) error {
 		return err
 	}
 
+	cmd := exec.Command(binary, plan.argv[1:]...)
+	cmd.Env = append(os.Environ(), plan.env...)
 	if debug {
-		return syscall.Exec(binary, plan.argv, os.Environ())
+		return syscall.Exec(binary, plan.argv, cmd.Environ())
 	}
 
 	clearVT()
 
-	cmd := exec.Command(binary, plan.argv[1:]...)
 	sink, cleanup, err := logSink(plan.logTag, cacheDir)
 	if err != nil {
 		return err

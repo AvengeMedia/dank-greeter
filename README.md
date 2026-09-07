@@ -18,7 +18,7 @@ Built with [Quickshell](https://quickshell.org/) and [Go](https://go.dev/)
 
 </div>
 
-DMS Greeter is a login screen for [greetd](https://github.com/kennylevinsen/greetd) that looks and behaves like the [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) lock screen. It ships as a single `dms-greeter` binary with the Quickshell UI embedded, runs under niri, Hyprland, Sway, Scroll, Miracle WM, labwc, or MangoWC, and syncs your DMS theme, wallpaper, and settings so the login screen matches your desktop.
+DMS Greeter is a login screen for [greetd](https://github.com/kennylevinsen/greetd) that looks and behaves like the [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) lock screen. It ships as a single `dms-greeter` binary with the Quickshell UI embedded, runs under niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC, or Aqueous, and syncs your DMS theme, wallpaper, and settings so the login screen matches your desktop.
 
 ## Repository Structure
 
@@ -142,10 +142,14 @@ imports = [
 
 programs.dms-greeter = {
   enable = true;
-  compositor.name = "niri"; # or hyprland, sway, labwc, mango, scroll, miracle
+  compositor.name = "niri"; # or hyprland, sway, labwc, mango, scroll, miracle, aqueous
   configHome = "/home/user"; # copies that user's DMS settings (and wallpaper) into the greeter data directory before greetd starts
 };
 ```
+
+For Aqueous supplied by a separate flake or overlay, set
+`programs.dms-greeter.compositor.package` to that package. Otherwise the module
+uses `programs.aqueous.package` when available, falling back to `pkgs.aqueous`.
 
 ### Requirements
 
@@ -168,7 +172,7 @@ picker.
 
 **Multiple Compositors**
 One binary launches the greeter under niri, Hyprland, Sway, Scroll,
-Miracle WM, labwc, or MangoWC, generating the compositor config on the fly.
+Miracle WM, labwc, MangoWC, or Aqueous, generating the compositor config on the fly.
 
 **Session Memory**
 Remembers the last selected session and user. Disable via the
@@ -202,6 +206,8 @@ dms-greeter --command niri
 dms-greeter --command hyprland
 dms-greeter --command sway
 dms-greeter --command mangowc
+dms-greeter --command aqueous
+dms-greeter --command aqueous -C /etc/greetd/aqueous.toml
 dms-greeter --command niri -C /path/to/custom-niri.kdl
 dms-greeter --command niri --remember-last-user false --remember-last-session false
 ```
@@ -213,6 +219,7 @@ dms-greeter --command niri --remember-last-user false --remember-last-session fa
 Only niri has a generated greeter config path managed by `dms-greeter sync`:
 
 - niri: `dms-greeter sync` writes the generated greeter config to `/etc/greetd/niri/config.kdl`. Add local manual tweaks in `/etc/greetd/niri_overrides.kdl`.
+- Aqueous: the launcher starts `aqueous` directly with XWayland disabled and stops it when Quickshell exits. `-C` selects a greeter TOML file used for WM, layout, input, rules, and outputs. Keep desktop autostarts and application shortcuts out of this file; the default disables application, screenshot, lock, and overview shortcuts.
 - Other compositors use a launcher-generated config by default. For a custom compositor config, add `-C /path/to/config` to the `dms-greeter` command in `/etc/greetd/config.toml`.
 
 ### Personalization

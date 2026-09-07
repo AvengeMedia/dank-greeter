@@ -9,6 +9,20 @@ import (
 	"testing"
 )
 
+func TestDetectAqueous(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("PATH", dir)
+	if got := DetectCompositors(); len(got) != 0 {
+		t.Fatalf("detected compositors without binaries: %v", got)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "aqueous"), []byte("#!/bin/sh\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := DetectCompositors(); !reflect.DeepEqual(got, []string{"aqueous"}) {
+		t.Fatalf("detected compositors = %v, want [aqueous]", got)
+	}
+}
+
 func TestEnsureGreeterCacheSELinuxContext(t *testing.T) {
 	t.Parallel()
 
