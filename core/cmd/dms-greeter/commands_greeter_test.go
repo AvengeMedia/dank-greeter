@@ -10,6 +10,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func TestCompositorFromCommand(t *testing.T) {
+	for _, compositor := range []string{"niri", "Hyprland", "sway", "aqueous"} {
+		command := "env LIBSEAT_BACKEND=logind /usr/bin/dms-greeter --command " + compositor + " -C /etc/greetd/config"
+		if got := compositorFromCommand(command); got != strings.ToLower(compositor) {
+			t.Errorf("compositorFromCommand(%q) = %q", command, got)
+		}
+	}
+	if got := compositorFromCommand(""); got != "" {
+		t.Errorf("empty command returned %q", got)
+	}
+}
+
 func TestSyncGreeterConfigsAndAuthDelegatesSharedAuth(t *testing.T) {
 	origGreeterConfigSyncFn := greeterConfigSyncFn
 	origSharedAuthSyncFn := sharedAuthSyncFn

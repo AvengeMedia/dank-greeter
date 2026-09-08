@@ -20,7 +20,11 @@ func isGreeterEnabled() bool {
 }
 
 func detectConfiguredCompositor() string {
-	command := strings.ToLower(readDefaultSessionCommand("/etc/greetd/config.toml"))
+	return compositorFromCommand(readDefaultSessionCommand("/etc/greetd/config.toml"))
+}
+
+func compositorFromCommand(command string) string {
+	command = strings.ToLower(command)
 	switch {
 	case strings.Contains(command, "--command niri"):
 		return "niri"
@@ -28,6 +32,8 @@ func detectConfiguredCompositor() string {
 		return "hyprland"
 	case strings.Contains(command, "--command sway"):
 		return "sway"
+	case strings.Contains(command, "--command aqueous"):
+		return "aqueous"
 	}
 	return ""
 }
@@ -242,6 +248,8 @@ func checkGreeterStatus() error {
 				fmt.Println("  Compositor: Hyprland")
 			case "sway":
 				fmt.Println("  Compositor: sway")
+			case "aqueous":
+				fmt.Println("  Compositor: Aqueous")
 			default:
 				fmt.Println("  Compositor: unknown")
 			}
@@ -697,6 +705,7 @@ func isGreeterRelatedAppArmorDenial(line string) bool {
 		"mango",
 		"miracle",
 		"labwc",
+		"aqueous",
 		"pipewire",
 		"wireplumber",
 		"stream fd",

@@ -120,7 +120,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVarP(shellApp.CustomConfigVar(), "shell-dir", "c", "", "Path to a UI config dir (containing shell.qml) to use instead of the embedded UI (env: DMS_GREETER_SHELL_DIR)")
 
 	flags := rootCmd.Flags()
-	flags.StringVar(&launchFlags.compositor, "command", "", "Compositor to use (niri, hyprland, sway, scroll, miracle, mango, or labwc)")
+	flags.StringVar(&launchFlags.compositor, "command", "", "Compositor to use (niri, hyprland, sway, scroll, miracle, mango, labwc, or aqueous)")
 	flags.StringVarP(&launchFlags.compositorConfig, "config", "C", "", "Custom compositor config file")
 	flags.StringVarP(&launchFlags.legacyShellPath, "path", "p", "", "Quickshell config name or absolute path (deprecated; the embedded UI is the default)")
 	flags.StringVar(&launchFlags.cacheDir, "cache-dir", launcher.DefaultCacheDir, "Cache directory for greeter data")

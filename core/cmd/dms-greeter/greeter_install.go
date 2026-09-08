@@ -57,7 +57,7 @@ func installGreeter(nonInteractive bool) error {
 	fmt.Println("\nDetecting installed compositors...")
 	compositors := greeter.DetectCompositors()
 	if len(compositors) == 0 {
-		return fmt.Errorf("no supported compositors found (niri or Hyprland required)")
+		return fmt.Errorf("no supported compositors found (niri, Hyprland, mango, or aqueous required)")
 	}
 
 	var selectedCompositor string
@@ -200,7 +200,7 @@ func enableGreeter(nonInteractive bool) error {
 	}
 
 	if len(compositors) == 0 {
-		return fmt.Errorf("no supported compositors found (niri, Hyprland, or sway required)")
+		return fmt.Errorf("no supported compositors found (niri, Hyprland, sway, mango, or aqueous required)")
 	}
 
 	var selectedCompositor string
