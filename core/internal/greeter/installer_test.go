@@ -9,17 +9,37 @@ import (
 	"testing"
 )
 
-func TestDetectAqueous(t *testing.T) {
-	dir := t.TempDir()
-	t.Setenv("PATH", dir)
-	if got := DetectCompositors(); len(got) != 0 {
-		t.Fatalf("detected compositors without binaries: %v", got)
+func TestDetectCompositors(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		installed map[string]bool
+		want      []string
+	}{
+		{
+			name: "no compositors installed",
+		},
+		{
+			name:      "only aqueous installed",
+			installed: map[string]bool{"aqueous": true},
+			want:      []string{"aqueous"},
+		},
+		{
+			name:      "all compositors installed",
+			installed: map[string]bool{"niri": true, "Hyprland": true, "mango": true, "aqueous": true},
+			want:      []string{"niri", "Hyprland", "mango", "aqueous"},
+		},
 	}
-	if err := os.WriteFile(filepath.Join(dir, "aqueous"), []byte("#!/bin/sh\n"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if got := DetectCompositors(); !reflect.DeepEqual(got, []string{"aqueous"}) {
-		t.Fatalf("detected compositors = %v, want [aqueous]", got)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := detectCompositors(func(cmd string) bool { return tt.installed[cmd] })
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Fatalf("detectCompositors() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 

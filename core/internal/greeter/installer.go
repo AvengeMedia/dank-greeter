@@ -780,22 +780,20 @@ func HasLegacyQuickshellTree() bool {
 	return err == nil && info.IsDir()
 }
 
+var detectableCompositors = []string{"niri", "Hyprland", "mango", "aqueous"}
+
 func DetectCompositors() []string {
+	return detectCompositors(utils.CommandExists)
+}
+
+func detectCompositors(commandExists func(string) bool) []string {
 	var compositors []string
-
-	if utils.CommandExists("niri") {
-		compositors = append(compositors, "niri")
+	for _, compositor := range detectableCompositors {
+		if !commandExists(compositor) {
+			continue
+		}
+		compositors = append(compositors, compositor)
 	}
-	if utils.CommandExists("Hyprland") {
-		compositors = append(compositors, "Hyprland")
-	}
-	if utils.CommandExists("mango") {
-		compositors = append(compositors, "mango")
-	}
-	if utils.CommandExists("aqueous") {
-		compositors = append(compositors, "aqueous")
-	}
-
 	return compositors
 }
 
