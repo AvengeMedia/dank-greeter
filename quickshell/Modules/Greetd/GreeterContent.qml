@@ -1651,6 +1651,7 @@ Item {
             anchors.margins: Theme.spacingXL
             width: Math.max(200, currentSessionMetrics.width + 80)
             height: 60
+            visible: GreeterState.sessionList.length > 1
 
             StyledTextMetrics {
                 id: currentSessionMetrics
