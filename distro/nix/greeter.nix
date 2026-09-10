@@ -180,14 +180,21 @@ in
       inter
       material-symbols
     ];
-    systemd.tmpfiles.settings."10-dms-greeter" = {
-      ${cacheDir}.d = {
-        inherit user;
+    systemd.tmpfiles.settings."10-dms-greeter".${cacheDir} =
+      let
         group =
           if config.users.users.${user}.group != "" then config.users.users.${user}.group else "greeter";
-        mode = "0750";
+      in
+      {
+        d = {
+          inherit user group;
+          mode = "0750";
+        };
+        # state left by the old nixpkgs module is owned by dms-greeter
+        Z = {
+          inherit user group;
+        };
       };
-    };
     systemd.services.greetd.preStart = ''
       cd ${cacheDir}
       ${lib.concatStringsSep "\n" (

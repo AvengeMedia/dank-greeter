@@ -67,5 +67,13 @@ pkgs.testers.runNixOSTest {
     t.assertIn("--command", script)
     t.assertIn("niri", script)
     t.assertIn("/bin/dms-greeter", script)
+
+    machine.succeed("install -d -m 0700 -o nobody -g nogroup /var/lib/dms-greeter/.cache/dms-greeter-shell")
+    machine.succeed("systemd-tmpfiles --create")
+    t.assertEqual(
+        machine.succeed("stat -c '%U:%G' /var/lib/dms-greeter/.cache/dms-greeter-shell").strip(),
+        "greeter:greeter",
+    )
+    machine.succeed("runuser -u greeter -- mkdir /var/lib/dms-greeter/.cache/dms-greeter-shell/.extract-test")
   '';
 }
