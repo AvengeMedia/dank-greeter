@@ -127,8 +127,12 @@ if [ -x /usr/sbin/semanage ] && [ -x /usr/sbin/restorecon ]; then
     restorecon %{_sysconfdir}/pam.d/greetd >/dev/null 2>&1 || true
 fi
 
-# Ensure proper ownership of greeter directories
-chown -R greeter:greeter %{_localstatedir}/cache/dms-greeter 2>/dev/null || true
+# follow the greetd user from config.toml like dms-greeter sync does
+GREETER_USER=$(sed -n '/^\[default_session\]/,/^\[/s/^user *= *"\([^"]*\)".*/\1/p' /etc/greetd/config.toml 2>/dev/null | head -n1)
+if [ -z "$GREETER_USER" ] || ! getent passwd "$GREETER_USER" >/dev/null 2>&1; then
+    GREETER_USER=greeter
+fi
+chown -R "$GREETER_USER:greeter" %{_localstatedir}/cache/dms-greeter 2>/dev/null || true
 chown -R greeter:greeter %{_sharedstatedir}/greeter 2>/dev/null || true
 
 # Verify PAM configuration - only fix if insufficient

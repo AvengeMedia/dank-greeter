@@ -6,6 +6,7 @@ package shellembed
 
 import (
 	"io/fs"
+	"os"
 	"path"
 
 	"github.com/AvengeMedia/dankgo/shellapp/shellfs"
@@ -24,11 +25,30 @@ func Available() bool {
 }
 
 func Extract(baseDir string) (string, error) {
+	if err := ensureGroupShared(baseDir); err != nil {
+		return "", err
+	}
 	sub, err := fs.Sub(distFS, distRoot)
 	if err != nil {
 		return "", err
 	}
 	return shellfs.Extract(sub, baseDir)
+}
+
+// Packaging may chown the cache to a different greeter account than greetd
+// runs, so group members must be able to extract, like the rest of the cache.
+func ensureGroupShared(dir string) error {
+	if err := os.MkdirAll(dir, 0o770); err != nil {
+		return err
+	}
+	info, err := os.Stat(dir)
+	if err != nil {
+		return err
+	}
+	if info.Mode().Perm()&0o070 == 0o070 && info.Mode()&os.ModeSetgid != 0 {
+		return nil
+	}
+	return os.Chmod(dir, 0o770|os.ModeSetgid)
 }
 
 func Prune(baseDir, keep string) {

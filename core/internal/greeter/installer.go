@@ -898,6 +898,7 @@ func EnsureGreeterCacheDir(logFunc func(string), sudoPassword string) error {
 		filepath.Join(cacheDir, ".local", "state"),
 		filepath.Join(cacheDir, ".local", "share"),
 		filepath.Join(cacheDir, ".cache"),
+		filepath.Join(cacheDir, ".cache", "dms-greeter-shell"),
 	}
 	for _, dir := range runtimeDirs {
 		if err := privesc.Run(context.Background(), sudoPassword, "mkdir", "-p", dir); err != nil {

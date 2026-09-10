@@ -13,8 +13,14 @@ case "$1" in
                 --shell /bin/bash --gecos "System Greeter" greeter
         fi
 
+        # follow the greetd user from config.toml like dms-greeter sync does
+        GREETER_USER=$(sed -n '/^\[default_session\]/,/^\[/s/^user *= *"\([^"]*\)".*/\1/p' /etc/greetd/config.toml 2>/dev/null | head -n1)
+        if [ -z "$GREETER_USER" ] || ! getent passwd "$GREETER_USER" >/dev/null 2>&1; then
+            GREETER_USER=greeter
+        fi
+
         if [ -d /var/cache/dms-greeter ]; then
-            chown -R greeter:greeter /var/cache/dms-greeter 2>/dev/null || true
+            chown -R "$GREETER_USER:greeter" /var/cache/dms-greeter 2>/dev/null || true
         fi
 
         if [ -d /var/lib/greeter ]; then

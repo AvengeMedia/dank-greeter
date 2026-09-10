@@ -149,13 +149,16 @@ if [ -x /usr/sbin/semanage ] && [ -x /usr/sbin/restorecon ]; then
 fi
 
 # Resolve greeter runtime account/group for distro differences
-GREETER_USER="greeter"
-for candidate in greeter greetd _greeter; do
-    if getent passwd "$candidate" >/dev/null 2>&1; then
-        GREETER_USER="$candidate"
-        break
-    fi
-done
+GREETER_USER=$(sed -n '/^\[default_session\]/,/^\[/s/^user *= *"\([^"]*\)".*/\1/p' /etc/greetd/config.toml 2>/dev/null | head -n1)
+if [ -z "$GREETER_USER" ] || ! getent passwd "$GREETER_USER" >/dev/null 2>&1; then
+    GREETER_USER="greeter"
+    for candidate in greeter greetd _greeter; do
+        if getent passwd "$candidate" >/dev/null 2>&1; then
+            GREETER_USER="$candidate"
+            break
+        fi
+    done
+fi
 
 GREETER_GROUP="$GREETER_USER"
 if ! getent group "$GREETER_GROUP" >/dev/null 2>&1; then
