@@ -688,7 +688,7 @@ func collectGreeterAppArmorDenials(text string, seen map[string]bool, samples *[
 
 func isGreeterRelatedAppArmorDenial(line string) bool {
 	lower := strings.ToLower(line)
-	if !strings.Contains(lower, "apparmor") || !strings.Contains(lower, "denied") {
+	if !strings.Contains(lower, `apparmor="denied"`) {
 		return false
 	}
 

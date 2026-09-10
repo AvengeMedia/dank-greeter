@@ -4,17 +4,22 @@
 # Manual edits will be overwritten on next sync.
 #
 # Mode: complain  (denials are logged, nothing is blocked)
+# attach_disconnected: the journald stream socket can resolve as a disconnected
+# path, which the kernel rejects even in complain mode
 # To switch to enforce after validating with `aa-logprof`:
 #   sudo aa-enforce /etc/apparmor.d/usr.bin.dms-greeter
 #
 #include <tunables/global>
 
-profile dms-greeter /{usr,usr/local}/bin/dms-greeter{,-local} flags=(complain) {
+profile dms-greeter /{usr,usr/local}/bin/dms-greeter{,-local} flags=(complain, attach_disconnected) {
   #include <abstractions/base>
 
-  # The greeter binary itself
+  # The greeter binary itself, plus the cgroup files the Go runtime reads at startup
   /{usr,usr/local}/bin/dms-greeter{,-local} rm,
   @{PROC}/self/exe r,
+  @{PROC}/@{pid}/cgroup r,
+  @{PROC}/@{pid}/mountinfo r,
+  /sys/fs/cgroup/** r,
 
   # Cache directory — created by dms-greeter sync/enable with greeter:greeter
   # ownership; includes the embedded UI extracted to .cache/dms-greeter-shell
