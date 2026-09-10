@@ -128,7 +128,7 @@ func init() {
 	flags.StringVar(&launchFlags.rememberLastUser, "remember-last-user", "", "Persist last successful username to greeter memory (true/false, default: from settings.json)")
 	flags.BoolVar(&launchFlags.noSaveSession, "no-save-session", false, "Alias for --remember-last-session false")
 	flags.BoolVar(&launchFlags.noSaveUsername, "no-save-username", false, "Alias for --remember-last-user false")
-	flags.BoolVar(&launchFlags.debug, "debug", false, "Enable verbose startup logging to stderr")
+	flags.BoolVar(&launchFlags.debug, "debug", false, "Leave compositor output on the greeter's own stdout/stderr instead of journald")
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(shellApp.Commands()...)

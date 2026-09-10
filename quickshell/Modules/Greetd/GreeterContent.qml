@@ -57,7 +57,6 @@ Item {
     property string commonAuthPcPamText: ""
     property string loginPamText: ""
     property string faillockConfigText: ""
-    property bool greeterWallpaperOverrideExists: false
     property string externalAuthAutoStartedForUser: ""
     property bool fprintdProbeComplete: false
     property bool fprintdHasDevice: false
@@ -100,7 +99,7 @@ Item {
             return;
         if (!GreetdSettings.settingsLoaded)
             return;
-        if (!GreetdSettings.greeterShowWeather)
+        if (!GreetdSettings.lockScreenShowWeather)
             return;
         weatherInitialized = true;
         WeatherService.addRef();
@@ -735,33 +734,6 @@ Item {
             userListOpen = false;
     }
 
-    FileView {
-        id: greeterWallpaperOverrideFile
-        path: GreetdSettings.greeterWallpaperOverridePath
-        printErrors: false
-        watchChanges: true
-        onLoaded: root.greeterWallpaperOverrideExists = true
-        onLoadFailed: root.greeterWallpaperOverrideExists = false
-    }
-
-    Connections {
-        target: GreetdSettings
-        function onGreeterWallpaperOverridePathChanged() {
-            if (!GreetdSettings.greeterWallpaperOverridePath) {
-                root.greeterWallpaperOverrideExists = false;
-                return;
-            }
-            greeterWallpaperOverrideFile.reload();
-        }
-        function onGreeterWallpaperPathChanged() {
-            if (!GreetdSettings.greeterWallpaperPath) {
-                root.greeterWallpaperOverrideExists = false;
-                return;
-            }
-            greeterWallpaperOverrideFile.reload();
-        }
-    }
-
     Rectangle {
         anchors.fill: parent
         color: GreetdSettings.effectiveWallpaperBackgroundColor
@@ -771,8 +743,6 @@ Item {
         anchors.fill: parent
         screenName: root.screenName
         visible: {
-            if (GreetdSettings.greeterWallpaperPath !== "" && root.greeterWallpaperOverrideExists)
-                return false;
             var _ = SessionData.perMonitorWallpaper;
             var __ = SessionData.monitorWallpapers;
             var currentWallpaper = SessionData.getMonitorWallpaper(screenName);
@@ -785,8 +755,6 @@ Item {
 
         anchors.fill: parent
         source: {
-            if (GreetdSettings.greeterWallpaperPath !== "" && root.greeterWallpaperOverrideExists)
-                return encodeFileUrl(GreetdSettings.greeterWallpaperOverridePath);
             var _ = SessionData.perMonitorWallpaper;
             var __ = SessionData.monitorWallpapers;
             var currentWallpaper = SessionData.getMonitorWallpaper(screenName);
@@ -1471,13 +1439,13 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 visible: {
                     const keyboardVisible = (CompositorService.isNiri && NiriService.keyboardLayoutNames.length > 1) || (CompositorService.isHyprland && hyprlandLayoutCount > 1);
-                    return keyboardVisible && GreetdSettings.greeterShowWeather && WeatherService.weather.available;
+                    return keyboardVisible && GreetdSettings.lockScreenShowWeather && WeatherService.weather.available;
                 }
             }
 
             Row {
                 spacing: Theme.spacingXS
-                visible: GreetdSettings.greeterShowWeather && WeatherService.weather.available
+                visible: GreetdSettings.lockScreenShowWeather && WeatherService.weather.available
                 anchors.verticalCenter: parent.verticalCenter
 
                 DankIcon {
@@ -1501,7 +1469,7 @@ Item {
                 height: 24
                 color: Qt.rgba(255, 255, 255, 0.2)
                 anchors.verticalCenter: parent.verticalCenter
-                visible: GreetdSettings.greeterShowWeather && WeatherService.weather.available && (NetworkService.networkStatus !== "disconnected" || BluetoothService.enabled || (AudioService.sink && AudioService.sink.audio) || BatteryService.batteryAvailable)
+                visible: GreetdSettings.lockScreenShowWeather && WeatherService.weather.available && (NetworkService.networkStatus !== "disconnected" || BluetoothService.enabled || (AudioService.sink && AudioService.sink.audio) || BatteryService.batteryAvailable)
             }
 
             Row {

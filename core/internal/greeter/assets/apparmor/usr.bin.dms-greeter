@@ -61,9 +61,6 @@ profile dms-greeter /{usr,usr/local}/bin/dms-greeter{,-local} flags=(complain) {
   /usr/bin/qs          Ux,
   /usr/bin/quickshell  Ux,
 
-  # Compositor output is piped to journald via systemd-cat
-  /usr/bin/systemd-cat ix,
-
   # VT clearing before compositor start
   /dev/tty     rw,
 

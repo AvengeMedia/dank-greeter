@@ -17,7 +17,6 @@ Singleton {
     property string configBaseDir: root._greeterCacheDir
     property string configHomeDir: ""
     readonly property string configPath: root.configBaseDir ? (root.configBaseDir + "/settings.json") : ""
-    readonly property string greeterWallpaperOverridePath: root.configBaseDir ? (root.configBaseDir + "/greeter_wallpaper_override.jpg") : ""
 
     function setConfigBaseDir(dir, homeDir) {
         const next = dir || root._greeterCacheDir;
@@ -58,13 +57,10 @@ Singleton {
     readonly property bool use24HourClock: clockFormat === "24h" ? true : (clockFormat === "12h" ? false : localeUses24Hour)
     property bool showSeconds: false
     property bool padHours12Hour: false
-    property string greeterLockDateFormat: ""
-    property string greeterFontFamily: ""
-    property string greeterWallpaperFillMode: ""
     property bool useFahrenheit: false
     property bool useAutoLocation: false
     property bool weatherEnabled: true
-    property bool greeterShowWeather: true
+    property bool lockScreenShowWeather: true
     property string fontFamily: "Inter Variable"
     property string monoFontFamily: "Fira Code"
     property int fontWeight: Font.Normal
@@ -77,7 +73,6 @@ Singleton {
     property bool rememberLastUser: true
     property bool greeterEnableFprint: false
     property bool greeterEnableU2f: false
-    property string greeterWallpaperPath: ""
     property bool powerActionConfirm: true
     property real powerActionHoldDuration: 0.5
     property var powerMenuActions: ["reboot", "logout", "poweroff", "lock", "suspend", "restart"]
@@ -119,13 +114,10 @@ Singleton {
             clockFormat = settings.clockFormat !== undefined ? settings.clockFormat : (settings.use24HourClock !== undefined ? (settings.use24HourClock ? "24h" : "12h") : "auto");
             showSeconds = settings.showSeconds !== undefined ? settings.showSeconds : false;
             padHours12Hour = settings.padHours12Hour !== undefined ? settings.padHours12Hour : false;
-            greeterLockDateFormat = settings.greeterLockDateFormat !== undefined ? settings.greeterLockDateFormat : "";
-            greeterFontFamily = settings.greeterFontFamily !== undefined ? settings.greeterFontFamily : "";
-            greeterWallpaperFillMode = settings.greeterWallpaperFillMode !== undefined ? settings.greeterWallpaperFillMode : "";
             useFahrenheit = settings.useFahrenheit !== undefined ? settings.useFahrenheit : false;
             useAutoLocation = settings.useAutoLocation !== undefined ? settings.useAutoLocation : false;
             weatherEnabled = settings.weatherEnabled !== undefined ? settings.weatherEnabled : true;
-            greeterShowWeather = settings.greeterShowWeather !== undefined ? settings.greeterShowWeather : true;
+            lockScreenShowWeather = settings.lockScreenShowWeather !== undefined ? settings.lockScreenShowWeather : true;
             fontFamily = settings.fontFamily !== undefined ? settings.fontFamily : Theme.defaultFontFamily;
             monoFontFamily = settings.monoFontFamily !== undefined ? settings.monoFontFamily : Theme.defaultMonoFontFamily;
             fontWeight = settings.fontWeight !== undefined ? settings.fontWeight : Font.Normal;
@@ -146,7 +138,6 @@ Singleton {
             }
             greeterEnableFprint = settings.greeterEnableFprint !== undefined ? settings.greeterEnableFprint : false;
             greeterEnableU2f = settings.greeterEnableU2f !== undefined ? settings.greeterEnableU2f : false;
-            greeterWallpaperPath = settings.greeterWallpaperPath !== undefined ? settings.greeterWallpaperPath : "";
             powerActionConfirm = settings.powerActionConfirm !== undefined ? settings.powerActionConfirm : true;
             powerActionHoldDuration = settings.powerActionHoldDuration !== undefined ? settings.powerActionHoldDuration : 0.5;
             powerMenuActions = settings.powerMenuActions !== undefined ? settings.powerMenuActions : ["reboot", "logout", "poweroff", "lock", "suspend", "restart"];
@@ -181,16 +172,16 @@ Singleton {
     }
 
     function getEffectiveLockDateFormat() {
-        const fmt = (greeterLockDateFormat !== undefined && greeterLockDateFormat !== "") ? greeterLockDateFormat : lockDateFormat;
+        const fmt = lockDateFormat;
         return fmt && fmt.length > 0 ? fmt : Locale.LongFormat;
     }
 
     function getEffectiveWallpaperFillMode() {
-        return (greeterWallpaperFillMode && greeterWallpaperFillMode !== "") ? greeterWallpaperFillMode : wallpaperFillMode;
+        return wallpaperFillMode;
     }
 
     function getEffectiveFontFamily() {
-        return (greeterFontFamily && greeterFontFamily !== "") ? greeterFontFamily : fontFamily;
+        return fontFamily;
     }
 
     FileView {
