@@ -314,20 +314,6 @@ func checkGreeterStatus() error {
 	}
 
 	fmt.Println("\nConfiguration Symlinks:")
-	colorSyncInfo, colorSyncErr := greeter.ResolveGreeterColorSyncInfo(homeDir)
-	if colorSyncErr != nil {
-		fmt.Printf("  ✗ Failed to resolve expected greeter color source: %v\n", colorSyncErr)
-		allGood = false
-		colorSyncInfo = greeter.GreeterColorSyncInfo{
-			SourcePath: filepath.Join(homeDir, ".cache", "DankMaterialShell", "dms-colors.json"),
-		}
-	}
-
-	colorThemeDesc := "Color theme"
-	if colorSyncInfo.UsesDynamicWallpaperOverride {
-		colorThemeDesc = "Color theme (greeter wallpaper override)"
-	}
-
 	symlinks := []struct {
 		source string
 		target string
@@ -344,9 +330,9 @@ func checkGreeterStatus() error {
 			desc:   "Session state",
 		},
 		{
-			source: colorSyncInfo.SourcePath,
+			source: greeter.GreeterColorsSource(homeDir),
 			target: filepath.Join(cacheDir, "colors.json"),
-			desc:   colorThemeDesc,
+			desc:   "Color theme",
 		},
 	}
 
@@ -386,24 +372,6 @@ func checkGreeterStatus() error {
 		}
 
 		fmt.Printf("  ✓ %s: synced correctly\n", link.desc)
-	}
-
-	if colorSyncInfo.UsesDynamicWallpaperOverride {
-		fmt.Printf("  ℹ Dynamic theme uses greeter override colors from %s\n", colorSyncInfo.SourcePath)
-	}
-
-	fmt.Println("\nGreeter Wallpaper Override:")
-	overridePath := filepath.Join(cacheDir, "greeter_wallpaper_override.jpg")
-	if stat, err := os.Stat(overridePath); err == nil && !stat.IsDir() {
-		fmt.Printf("  ✓ Override file present: %s\n", overridePath)
-	} else if os.IsNotExist(err) {
-		fmt.Println("  ℹ Override file not present (desktop/session wallpaper fallback in effect)")
-	} else if err != nil {
-		fmt.Printf("  ✗ Could not inspect override file: %v\n", err)
-		allGood = false
-	} else {
-		fmt.Printf("  ✗ Override path is not a regular file: %s\n", overridePath)
-		allGood = false
 	}
 
 	fmt.Println("\nPer-user slots (multi-account):")

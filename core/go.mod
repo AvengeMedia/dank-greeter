@@ -4,7 +4,6 @@ go 1.26.4
 
 require (
 	github.com/AvengeMedia/dankgo v0.0.0-20260718184203-ed59ffc6e599
-	github.com/lucasb-eyer/go-colorful v1.2.0
 	github.com/sblinch/kdl-go v0.0.0-20260121213736-8b7053306ca6
 	github.com/spf13/cobra v1.10.2
 )
@@ -20,6 +19,7 @@ require (
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/go-logfmt/logfmt v0.6.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-runewidth v0.0.21 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect

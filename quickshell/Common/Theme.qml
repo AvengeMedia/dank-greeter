@@ -7,14 +7,16 @@ import Quickshell.Io
 import qs.DankCommon.Common as DankCommon
 import qs.Modules.Greetd
 import qs.Services
+import "../DankCommon/Common/Shape.js" as Shape
+import "../DankCommon/Common/settings/SharedSettingsSpec.js" as Spec
 import "StockThemes.js" as StockThemes
 
 Singleton {
     id: root
     readonly property var log: Log.scoped("Theme")
 
-    readonly property string defaultFontFamily: "Inter Variable"
-    readonly property string defaultMonoFontFamily: "Fira Code"
+    readonly property string defaultFontFamily: Spec.SPEC.fontFamily.def
+    readonly property string defaultMonoFontFamily: Spec.SPEC.monoFontFamily.def
     readonly property string shellDir: Paths.strip(Qt.resolvedUrl(".").toString()).replace("/Common/", "")
 
     readonly property string dynamic: "dynamic"
@@ -41,8 +43,8 @@ Singleton {
         currentTheme = themeName;
         if (themeName !== custom)
             return;
-        if (typeof GreetdSettings !== "undefined" && GreetdSettings.customThemeFile)
-            loadCustomThemeFromFile(GreetdSettings.customThemeFile);
+        if (SettingsData.customThemeFile)
+            loadCustomThemeFromFile(GreetdSettings.resolveUserPath(SettingsData.customThemeFile));
     }
 
     function getMatugenColor(path, fallback) {
@@ -65,6 +67,12 @@ Singleton {
                 "primaryText": getMatugenColor("on_primary", "#ffffff"),
                 "primaryContainer": getMatugenColor("primary_container", "#1976d2"),
                 "secondary": getMatugenColor("secondary", "#8ab4f8"),
+                "secondaryContainer": getMatugenColor("secondary_container", ""),
+                "onSecondaryContainer": getMatugenColor("on_secondary_container", ""),
+                "onPrimaryContainer": getMatugenColor("on_primary_container", ""),
+                "tertiary": getMatugenColor("tertiary", ""),
+                "tertiaryContainer": getMatugenColor("tertiary_container", ""),
+                "onTertiaryContainer": getMatugenColor("on_tertiary_container", ""),
                 "surface": getMatugenColor("surface", "#1a1c1e"),
                 "surfaceText": getMatugenColor("on_background", "#e3e8ef"),
                 "surfaceVariant": getMatugenColor("surface_variant", "#44464f"),
@@ -72,9 +80,19 @@ Singleton {
                 "surfaceTint": getMatugenColor("surface_tint", "#8ab4f8"),
                 "background": getMatugenColor("background", "#1a1c1e"),
                 "outline": getMatugenColor("outline", "#8e918f"),
+                "outlineVariant": getMatugenColor("outline_variant", ""),
+                "surfaceContainerLowest": getMatugenColor("surface_container_lowest", ""),
+                "surfaceContainerLow": getMatugenColor("surface_container_low", ""),
                 "surfaceContainer": getMatugenColor("surface_container", "#1e2023"),
                 "surfaceContainerHigh": getMatugenColor("surface_container_high", "#292b2f"),
-                "error": "#F2B8B5",
+                "surfaceContainerHighest": getMatugenColor("surface_container_highest", ""),
+                "surfaceBright": getMatugenColor("surface_bright", ""),
+                "surfaceDim": getMatugenColor("surface_dim", ""),
+                "inverseSurface": getMatugenColor("inverse_surface", ""),
+                "inverseOnSurface": getMatugenColor("inverse_on_surface", ""),
+                "error": getMatugenColor("error", "#F2B8B5"),
+                "errorContainer": getMatugenColor("error_container", ""),
+                "errorContainerText": getMatugenColor("on_error_container", ""),
                 "warning": "#FF9800"
             };
         default:
@@ -96,7 +114,7 @@ Singleton {
         }
 
         const themeId = themeData.id || "";
-        const storedVariants = (typeof GreetdSettings !== "undefined" && GreetdSettings.registryThemeVariants) || ({});
+        const storedVariants = SettingsData.registryThemeVariants || ({});
 
         if (themeData.variants.type === "multi" && themeData.variants.flavors && themeData.variants.accents) {
             const defaults = themeData.variants.defaults || {};
@@ -169,6 +187,7 @@ Singleton {
     property color primary: currentThemeData.primary
     property color primaryText: currentThemeData.primaryText
     property color secondary: currentThemeData.secondary
+    property color tertiary: currentThemeData.tertiary || currentThemeData.secondary
     property color surface: currentThemeData.surface
     property color surfaceText: currentThemeData.surfaceText
     property color surfaceVariant: currentThemeData.surfaceVariant
@@ -176,16 +195,69 @@ Singleton {
     property color surfaceTint: currentThemeData.surfaceTint
     property color background: currentThemeData.background
     property color outline: currentThemeData.outline
+    property color outlineVariant: currentThemeData.outlineVariant || withAlpha(outline, 0.6)
+    property color surfaceContainerLowest: currentThemeData.surfaceContainerLowest || blend(surfaceContainer, surface, 1.2)
+    property color surfaceContainerLow: currentThemeData.surfaceContainerLow || blend(surface, surfaceContainer, 0.667)
     property color surfaceContainer: currentThemeData.surfaceContainer
     property color surfaceContainerHigh: currentThemeData.surfaceContainerHigh
+    property color surfaceContainerHighest: currentThemeData.surfaceContainerHighest || surfaceContainerHigh
+    property color surfaceBright: currentThemeData.surfaceBright || (isLightMode ? surface : surfaceContainerHighest)
+    property color surfaceDim: currentThemeData.surfaceDim || (isLightMode ? surfaceContainer : background)
     property color primaryContainer: currentThemeData.primaryContainer || blend(surfaceContainerHigh, primary, 0.45)
+    property color secondaryContainer: currentThemeData.secondaryContainer || blend(surfaceContainerHigh, secondary, 0.35)
+    property color tertiaryContainer: currentThemeData.tertiaryContainer || blend(surfaceContainerHigh, tertiary, 0.35)
+    property color inverseSurface: currentThemeData.inverseSurface || surfaceText
+    property color inverseOnSurface: currentThemeData.inverseOnSurface || surface
 
-    property color onSurface: surfaceText
-    property color onPrimary: primaryText
+    property color onSurface
+    property color onSurfaceVariant
+    property color onPrimary
+    property color onPrimaryContainer
+    property color onSecondaryContainer
+    property color onErrorContainer
+    property color onTertiaryContainer
     property color onSurface_12: withAlpha(onSurface, 0.12)
     property color onSurface_38: withAlpha(onSurface, 0.38)
+    readonly property list<QtObject> roleBindings: [
+        Binding {
+            target: root
+            property: "onSurface"
+            value: root.surfaceText
+        },
+        Binding {
+            target: root
+            property: "onSurfaceVariant"
+            value: root.surfaceVariantText
+        },
+        Binding {
+            target: root
+            property: "onPrimary"
+            value: root.primaryText
+        },
+        Binding {
+            target: root
+            property: "onPrimaryContainer"
+            value: root.currentThemeData.onPrimaryContainer || root.surfaceText
+        },
+        Binding {
+            target: root
+            property: "onSecondaryContainer"
+            value: root.currentThemeData.onSecondaryContainer || root.surfaceText
+        },
+        Binding {
+            target: root
+            property: "onErrorContainer"
+            value: root.currentThemeData.errorContainerText || root.surfaceText
+        },
+        Binding {
+            target: root
+            property: "onTertiaryContainer"
+            value: root.currentThemeData.onTertiaryContainer || root.surfaceText
+        }
+    ]
 
     property color error: currentThemeData.error || "#F2B8B5"
+    property color errorContainer: currentThemeData.errorContainer || surfaceContainerHigh
     property color warning: currentThemeData.warning || "#FF9800"
 
     property color primaryHover: withAlpha(primary, 0.12)
@@ -322,60 +394,12 @@ Singleton {
         };
     }
 
-    readonly property var animationDurations: [
-        {
-            "shorter": 0,
-            "short": 0,
-            "medium": 0,
-            "long": 0,
-            "extraLong": 0
-        },
-        {
-            "shorter": 50,
-            "short": 75,
-            "medium": 150,
-            "long": 250,
-            "extraLong": 500
-        },
-        {
-            "shorter": 100,
-            "short": 150,
-            "medium": 300,
-            "long": 500,
-            "extraLong": 1000
-        },
-        {
-            "shorter": 150,
-            "short": 225,
-            "medium": 450,
-            "long": 750,
-            "extraLong": 1500
-        },
-        {
-            "shorter": 200,
-            "short": 300,
-            "medium": 600,
-            "long": 1000,
-            "extraLong": 2000
-        }
-    ]
-
-    readonly property int currentAnimationSpeed: SettingsData.animationSpeed
-    readonly property bool _customAnimationSpeed: SettingsData.animationSpeed === SettingsData.AnimationSpeed.Custom
-    readonly property var currentDurations: animationDurations[currentAnimationSpeed] || animationDurations[SettingsData.AnimationSpeed.Short]
-
-    readonly property int shorterDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.shorter
-    readonly property int shortDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.short
-    readonly property int mediumDuration: _customAnimationSpeed ? SettingsData.customAnimationDuration : currentDurations.medium
+    readonly property int currentAnimationBaseDuration: SettingsData.animationDuration
+    readonly property int shorterDuration: Math.round(currentAnimationBaseDuration * 0.2)
+    readonly property int shortDuration: Math.round(currentAnimationBaseDuration * 0.3)
+    readonly property int mediumDuration: Math.round(currentAnimationBaseDuration * 0.6)
     readonly property int standardEasing: Easing.OutCubic
     readonly property int emphasizedEasing: Easing.OutQuart
-
-    readonly property int currentAnimationBaseDuration: {
-        if (_customAnimationSpeed)
-            return SettingsData.customAnimationDuration;
-        const presetMap = [0, 250, 500, 750];
-        return presetMap[SettingsData.animationSpeed] !== undefined ? presetMap[SettingsData.animationSpeed] : 500;
-    }
 
     readonly property var expressiveCurves: ({
             "emphasized": [0.05, 0, 2 / 15, 0.06, 1 / 6, 0.4, 5 / 24, 0.82, 0.25, 1, 1, 1],
@@ -399,11 +423,21 @@ Singleton {
             "expressiveEffects": currentAnimationBaseDuration * 0.4
         })
 
-    property string fontFamily: typeof GreetdSettings !== "undefined" ? resolvedFontFamily(GreetdSettings.getEffectiveFontFamily()) : DankCommon.Fonts.sans
-    property string monoFontFamily: typeof GreetdSettings !== "undefined" ? resolvedMonoFontFamily(GreetdSettings.monoFontFamily) : DankCommon.Fonts.mono
-    property int fontWeight: typeof GreetdSettings !== "undefined" ? GreetdSettings.fontWeight : Font.Normal
-    property real fontScale: typeof GreetdSettings !== "undefined" ? GreetdSettings.fontScale : 1.0
-    property real cornerRadius: typeof GreetdSettings !== "undefined" ? GreetdSettings.cornerRadius : 12
+    property string fontFamily: resolvedFontFamily(SettingsData.lockScreenFontFamily !== "" ? SettingsData.lockScreenFontFamily : SettingsData.fontFamily)
+    property string monoFontFamily: resolvedMonoFontFamily(SettingsData.monoFontFamily)
+    property int fontWeight: SettingsData.fontWeight
+    property real fontScale: SettingsData.fontScale
+    readonly property real radiusStrength: SettingsData.radiusStrength
+    readonly property real shapeScale: Shape.scaleForStrength(radiusStrength)
+    readonly property real cornerRadius: cornerRadiusM
+    readonly property real cornerRadiusXS: Shape.radius("xs", shapeScale)
+    readonly property real cornerRadiusS: Shape.radius("s", shapeScale)
+    readonly property real cornerRadiusM: Shape.radius("m", shapeScale)
+    readonly property real cornerRadiusL: Shape.radius("l", shapeScale)
+
+    function fullRadius(width, height) {
+        return Shape.fullRadius(width, height, shapeScale);
+    }
 
     function resolvedFontFamily(family) {
         if (family === defaultFontFamily)
@@ -427,9 +461,32 @@ Singleton {
     property real fontSizeMedium: Math.round(fontScale * 14)
     property real fontSizeLarge: Math.round(fontScale * 16)
     property real fontSizeXLarge: Math.round(fontScale * 20)
+    property real fontSizeDisplayLarge: Math.round(fontScale * 57)
     property real iconSize: 24
     property real iconSizeSmall: 16
+    property real iconSizeMedium: 20
     property real iconSizeLarge: 32
+    readonly property real avatarSize: 36
+    readonly property real buttonHeightXS: 32
+    readonly property real buttonHeightM: 56
+    readonly property real listItemHeight: 56
+    readonly property real menuItemHeight: 40
+    readonly property real fieldDefaultWidth: 200
+    readonly property real outlineWidth: 1
+    readonly property real outlineWidthFocused: 2
+    readonly property real dividerWidth: 1
+    readonly property real focusRingWidth: 2
+    readonly property color focusRingColor: primary
+    readonly property real stateLayerHover: 0.08
+    readonly property real stateLayerPressed: 0.12
+    readonly property real pendingOpacity: 0.6
+    readonly property color lockScreenContentColor: "#ffffff"
+    readonly property real lockScreenScrimAlpha: 0.4
+    readonly property real lockScreenBlur: 0.8
+    readonly property int lockScreenBlurMax: 32
+    readonly property color screenOffColor: "#000000"
+    readonly property real scrimAlpha: 0.55
+    readonly property color scrimColor: "#000000"
 
     function withAlpha(c, a) {
         if (!c || c.r === undefined)

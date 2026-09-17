@@ -21,6 +21,29 @@ Item {
         return "file://" + path.split('/').map(s => encodeURIComponent(s)).join('/');
     }
 
+    component ClockDigitText: StyledText {
+        font.pixelSize: LockMetrics.clockSize
+        font.weight: Theme.fontWeight
+        color: Theme.lockScreenContentColor
+        horizontalAlignment: Text.AlignHCenter
+    }
+
+    onPamStateChanged: {
+        if (pamState !== "")
+            errorShake.restart();
+    }
+
+    function cycleKeyboardLayout() {
+        if (CompositorService.isNiri) {
+            NiriService.cycleKeyboardLayout();
+            return;
+        }
+        if (!CompositorService.isHyprland)
+            return;
+        Quickshell.execDetached(["hyprctl", "switchxkblayout", hyprlandKeyboard, "next"]);
+        updateHyprlandLayout();
+    }
+
     function desktopIdFromPath(path) {
         if (!path)
             return "";
@@ -34,6 +57,21 @@ Item {
     property string hyprlandCurrentLayout: ""
     property string hyprlandKeyboard: ""
     property int hyprlandLayoutCount: 0
+    readonly property int keyboardLayoutCount: {
+        if (CompositorService.isNiri)
+            return NiriService.keyboardLayoutNames.length;
+        if (CompositorService.isHyprland)
+            return hyprlandLayoutCount;
+        return 0;
+    }
+    readonly property string keyboardLayoutLabel: {
+        if (CompositorService.isNiri)
+            return LayoutCodes.layoutCode(NiriService.getCurrentKeyboardLayoutName());
+        if (CompositorService.isHyprland)
+            return hyprlandCurrentLayout;
+        return "";
+    }
+    readonly property string pamState: GreeterState.pamState
     property bool isPrimaryScreen: !Quickshell.screens?.length || screenName === Quickshell.screens[0]?.name
 
     property bool weatherInitialized: false
@@ -66,7 +104,7 @@ Item {
     readonly property bool greeterPamHasFprint: greeterPamStackHasFprint && (!fprintdProbeComplete || fprintdHasDevice)
     readonly property bool greeterPamHasU2f: greeterPamStackHasModule("pam_u2f")
     readonly property bool greeterPamHasHowdy: greeterPamStackHasModule("pam_howdy")
-    readonly property bool greeterExternalAuthAvailable: (greeterPamHasFprint && GreetdSettings.greeterEnableFprint) || (greeterPamHasU2f && GreetdSettings.greeterEnableU2f) || greeterPamHasHowdy
+    readonly property bool greeterExternalAuthAvailable: (greeterPamHasFprint && SettingsData.greeterEnableFprint) || (greeterPamHasU2f && SettingsData.greeterEnableU2f) || greeterPamHasHowdy
     readonly property bool greeterPamHasExternalAuth: greeterPamHasFprint || greeterPamHasU2f || greeterPamHasHowdy
     readonly property bool externalAuthInProgress: awaitingExternalAuth || (Greetd.state !== GreetdState.Inactive && passwordSubmitRequested && greeterPamHasExternalAuth && !pendingPasswordResponse)
     readonly property string externalAuthStatusMessage: {
@@ -99,7 +137,7 @@ Item {
             return;
         if (!GreetdSettings.settingsLoaded)
             return;
-        if (!GreetdSettings.lockScreenShowWeather)
+        if (!SettingsData.lockScreenShowWeather)
             return;
         weatherInitialized = true;
         WeatherService.addRef();
@@ -736,31 +774,34 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: GreetdSettings.effectiveWallpaperBackgroundColor
+        color: SettingsData.effectiveWallpaperBackgroundColor
+    }
+
+    readonly property bool hasCustomWallpaper: SettingsData.lockScreenWallpaperPath !== ""
+    readonly property string wallpaperSource: {
+        if (hasCustomWallpaper)
+            return encodeFileUrl(GreetdSettings.resolveUserPath(SettingsData.lockScreenWallpaperPath));
+        var w = SessionData.getMonitorWallpaper(screenName);
+        return (w && !w.startsWith("#")) ? encodeFileUrl(w) : "";
+    }
+    readonly property string wallpaperFillModeName: {
+        if (SettingsData.lockScreenWallpaperFillMode !== "")
+            return SettingsData.lockScreenWallpaperFillMode;
+        return hasCustomWallpaper ? "Fill" : SessionData.getMonitorWallpaperFillMode(screenName);
     }
 
     DankBackdrop {
         anchors.fill: parent
         screenName: root.screenName
-        visible: {
-            var _ = SessionData.perMonitorWallpaper;
-            var __ = SessionData.monitorWallpapers;
-            var currentWallpaper = SessionData.getMonitorWallpaper(screenName);
-            return !currentWallpaper || currentWallpaper === "" || (currentWallpaper && currentWallpaper.startsWith("#"));
-        }
+        visible: root.wallpaperSource === "" || wallpaperBackground.status === Image.Error
     }
 
     Image {
         id: wallpaperBackground
 
         anchors.fill: parent
-        source: {
-            var _ = SessionData.perMonitorWallpaper;
-            var __ = SessionData.monitorWallpapers;
-            var currentWallpaper = SessionData.getMonitorWallpaper(screenName);
-            return (currentWallpaper && !currentWallpaper.startsWith("#")) ? encodeFileUrl(currentWallpaper) : "";
-        }
-        fillMode: Theme.getFillMode(GreetdSettings.getEffectiveWallpaperFillMode())
+        source: root.wallpaperSource
+        fillMode: Theme.getFillMode(root.wallpaperFillModeName)
         smooth: true
         asynchronous: false
         cache: true
@@ -770,23 +811,24 @@ Item {
         layer.effect: MultiEffect {
             autoPaddingEnabled: false
             blurEnabled: true
-            blur: 0.8
-            blurMax: 32
+            blur: Theme.lockScreenBlur
+            blurMax: Theme.lockScreenBlurMax
             blurMultiplier: 1
         }
 
         Behavior on opacity {
             NumberAnimation {
-                duration: Theme.mediumDuration
-                easing.type: Theme.standardEasing
+                duration: LockMetrics.effectsDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
             }
         }
     }
 
     Rectangle {
         anchors.fill: parent
-        color: "black"
-        opacity: 0.4
+        color: Theme.screenOffColor
+        opacity: Theme.lockScreenScrimAlpha
     }
 
     SystemClock {
@@ -811,7 +853,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.spacingM
-            width: 380
+            width: Math.min(LockMetrics.passwordRowWidth, parent.width - Theme.spacingXL * 2)
 
             Item {
                 id: clockContainer
@@ -827,7 +869,7 @@ Item {
                     spacing: 0
 
                     property string fullTimeStr: {
-                        const format = GreetdSettings.getEffectiveTimeFormat();
+                        const format = SettingsData.getEffectiveTimeFormat();
                         return systemClock.date.toLocaleTimeString(I18n.locale(), format);
                     }
                     property var timeParts: fullTimeStr.split(':')
@@ -841,91 +883,55 @@ Item {
                     }
                     property bool hasSeconds: timeParts.length > 2
 
-                    StyledText {
-                        width: 75
+                    ClockDigitText {
+                        width: clockText.hours.length > 1 ? LockMetrics.clockDigitWidth : 0
                         text: clockText.hours.length > 1 ? clockText.hours[0] : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
                     }
 
-                    StyledText {
-                        width: 75
+                    ClockDigitText {
+                        width: LockMetrics.clockDigitWidth
                         text: clockText.hours.length > 1 ? clockText.hours[1] : clockText.hours.length > 0 ? clockText.hours[0] : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
                     }
 
-                    StyledText {
+                    ClockDigitText {
                         text: ":"
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
                     }
 
-                    StyledText {
-                        width: 75
+                    ClockDigitText {
+                        width: LockMetrics.clockDigitWidth
                         text: clockText.minutes.length > 0 ? clockText.minutes[0] : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
                     }
 
-                    StyledText {
-                        width: 75
+                    ClockDigitText {
+                        width: LockMetrics.clockDigitWidth
                         text: clockText.minutes.length > 1 ? clockText.minutes[1] : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
                     }
 
-                    StyledText {
+                    ClockDigitText {
                         text: clockText.hasSeconds ? ":" : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
                         visible: clockText.hasSeconds
                     }
 
-                    StyledText {
-                        width: 75
+                    ClockDigitText {
+                        width: LockMetrics.clockDigitWidth
                         text: clockText.hasSeconds && clockText.seconds.length > 0 ? clockText.seconds[0] : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
                         visible: clockText.hasSeconds
                     }
 
-                    StyledText {
-                        width: 75
+                    ClockDigitText {
+                        width: LockMetrics.clockDigitWidth
                         text: clockText.hasSeconds && clockText.seconds.length > 1 ? clockText.seconds[1] : ""
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
-                        horizontalAlignment: Text.AlignHCenter
                         visible: clockText.hasSeconds
                     }
 
-                    StyledText {
-                        width: 20
+                    ClockDigitText {
+                        width: Theme.iconSizeSmall
                         text: " "
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
                         visible: clockText.ampm !== ""
                     }
 
-                    StyledText {
+                    ClockDigitText {
                         text: clockText.ampm
-                        font.pixelSize: 120
-                        font.weight: Font.Light
-                        color: "white"
                         visible: clockText.ampm !== ""
                     }
                 }
@@ -935,10 +941,9 @@ Item {
                 id: dateText
 
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: systemClock.date.toLocaleDateString(I18n.locale(), GreetdSettings.getEffectiveLockDateFormat())
+                text: systemClock.date.toLocaleDateString(I18n.locale(), SettingsData.lockDateFormat !== "" ? SettingsData.lockDateFormat : Locale.LongFormat)
                 font.pixelSize: Theme.fontSizeXLarge
-                color: "white"
-                opacity: 0.9
+                color: Theme.lockScreenContentColor
             }
 
             ColumnLayout {
@@ -948,13 +953,16 @@ Item {
                 spacing: Theme.spacingM
 
                 RowLayout {
-                    spacing: Theme.spacingL
+                    LayoutMirroring.enabled: I18n.isRtl
+                    LayoutMirroring.childrenInherit: true
+                    spacing: Theme.spacingM
                     Layout.fillWidth: true
 
                     Item {
-                        Layout.preferredWidth: 60
-                        Layout.preferredHeight: 60
-                        visible: GreetdSettings.lockScreenShowProfileImage || root.pickerAvailable
+                        Layout.preferredWidth: LockMetrics.avatarSize
+                        Layout.preferredHeight: LockMetrics.avatarSize
+                        Layout.alignment: Qt.AlignTop
+                        visible: SettingsData.lockScreenShowProfileImage || root.pickerAvailable
 
                         DankCircularImage {
                             anchors.fill: parent
@@ -972,39 +980,40 @@ Item {
 
                         Rectangle {
                             anchors.fill: parent
-                            radius: width / 2
+                            radius: Theme.fullRadius(width, height)
                             color: "transparent"
-                            border.color: Theme.primary
-                            border.width: (avatarPickerArea.containsMouse || root.userListOpen) && !GreeterState.showPasswordInput ? 2 : 0
+                            border.color: Theme.focusRingColor
+                            border.width: (avatarPickerArea.containsMouse || root.userListOpen) && !GreeterState.showPasswordInput ? Theme.focusRingWidth : 0
                             visible: root.pickerAvailable
                             Behavior on border.width {
                                 NumberAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.standardEasing
+                                    duration: LockMetrics.effectsDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 }
                             }
                         }
 
-                        // Switch-user affordance: hover scrim over the selected user's avatar.
                         Rectangle {
                             anchors.fill: parent
-                            radius: width / 2
-                            color: Qt.rgba(0, 0, 0, 0.55)
+                            radius: Theme.fullRadius(width, height)
+                            color: Theme.withAlpha(Theme.scrimColor, Theme.scrimAlpha)
                             opacity: (root.pickerAvailable && GreeterState.showPasswordInput && avatarPickerArea.containsMouse) ? 1 : 0
                             visible: opacity > 0
 
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.standardEasing
+                                    duration: LockMetrics.effectsDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 }
                             }
 
                             DankIcon {
                                 anchors.centerIn: parent
                                 name: "switch_account"
-                                size: 24
-                                color: "white"
+                                size: Theme.iconSize
+                                color: Theme.lockScreenContentColor
                             }
                         }
 
@@ -1027,16 +1036,23 @@ Item {
                     }
 
                     Rectangle {
+                        id: passwordBox
+
                         property bool showPassword: false
+                        property real errorOffset: 0
+
+                        transform: Translate {
+                            x: Math.max(-LockMetrics.shakeDistance, Math.min(LockMetrics.shakeDistance, passwordBox.errorOffset))
+                        }
 
                         Layout.fillWidth: true
-                        Layout.preferredHeight: root.showUserPicker && root.userListOpen ? Math.max(60, userPicker.implicitHeight + Theme.spacingM * 2) : 60
+                        Layout.preferredHeight: root.showUserPicker && root.userListOpen ? Math.max(LockMetrics.fieldHeight, userPicker.implicitHeight + Theme.spacingM * 2) : LockMetrics.fieldHeight
 
                         clip: true
-                        radius: Theme.cornerRadius
-                        color: Theme.withAlpha(Theme.surfaceContainer, 0.9)
-                        border.color: inputField.activeFocus ? Theme.primary : Qt.rgba(1, 1, 1, 0.3)
-                        border.width: inputField.activeFocus ? 2 : 1
+                        radius: Theme.fullRadius(width, LockMetrics.fieldHeight)
+                        color: Theme.surfaceContainerHigh
+                        border.width: inputField.activeFocus ? Math.max(Theme.outlineWidth, Theme.focusRingWidth) : Theme.outlineWidth
+                        border.color: inputField.activeFocus ? Theme.focusRingColor : Theme.outlineVariant
 
                         GreeterUserPicker {
                             id: userPicker
@@ -1065,7 +1081,7 @@ Item {
                             anchors.leftMargin: Theme.spacingM
                             anchors.verticalCenter: parent.verticalCenter
                             name: GreeterState.showPasswordInput ? "lock" : "person"
-                            size: 20
+                            size: Theme.iconSizeSmall
                             color: inputField.activeFocus ? Theme.primary : Theme.surfaceVariantText
                             visible: !root.showUserPicker
                         }
@@ -1089,7 +1105,7 @@ Item {
                                     margin += virtualKeyboardButton.width;
                                 }
                                 if (enterButton.visible) {
-                                    margin += enterButton.width + 2;
+                                    margin += enterButton.width + Theme.spacingXXS;
                                 }
                                 return margin;
                             }
@@ -1097,6 +1113,8 @@ Item {
                             opacity: 0
                             focus: !root.showUserPicker || GreeterState.showPasswordInput
                             echoMode: GreeterState.showPasswordInput ? (parent.showPassword ? TextInput.Normal : TextInput.Password) : TextInput.Normal
+                            KeyNavigation.tab: virtualKeyboardButton.visible ? virtualKeyboardButton : sessionDropdown
+                            KeyNavigation.backtab: powerButton.visible ? powerButton : sessionDropdown
 
                             // Contract the on-screen Keyboard drives its target through.
                             function insertText(value) {
@@ -1150,6 +1168,7 @@ Item {
                             id: keyboard_controller
                             target: inputField
                             rootObject: root
+                            expressive: true
                         }
 
                         StyledText {
@@ -1158,7 +1177,7 @@ Item {
                             anchors.left: lockIcon.right
                             anchors.leftMargin: Theme.spacingM
                             anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (externalAuthButton.visible ? externalAuthButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right))))
-                            anchors.rightMargin: 2
+                            anchors.rightMargin: Theme.spacingXXS
                             anchors.verticalCenter: parent.verticalCenter
                             text: {
                                 if (GreeterState.unlocking) {
@@ -1181,15 +1200,17 @@ Item {
 
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: Theme.mediumDuration
-                                    easing.type: Theme.standardEasing
+                                    duration: LockMetrics.effectsDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 }
                             }
 
                             Behavior on color {
                                 ColorAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.standardEasing
+                                    duration: LockMetrics.effectsDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 }
                             }
                         }
@@ -1198,7 +1219,7 @@ Item {
                             anchors.left: lockIcon.right
                             anchors.leftMargin: Theme.spacingM
                             anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (externalAuthButton.visible ? externalAuthButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right))))
-                            anchors.rightMargin: 2
+                            anchors.rightMargin: Theme.spacingXXS
                             anchors.verticalCenter: parent.verticalCenter
                             text: {
                                 if (GreeterState.showPasswordInput) {
@@ -1218,44 +1239,59 @@ Item {
 
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: Theme.mediumDuration
-                                    easing.type: Theme.standardEasing
+                                    duration: LockMetrics.effectsDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 }
                             }
                         }
 
-                        DankActionButton {
+                        LockActionButton {
                             id: revealButton
+
+                            activeFocusOnTab: false
+                            Accessible.name: parent.showPassword ? I18n.tr("Hide password") : I18n.tr("Show password")
 
                             anchors.right: externalAuthButton.visible ? externalAuthButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right))
                             anchors.rightMargin: 0
                             anchors.verticalCenter: parent.verticalCenter
                             iconName: parent.showPassword ? "visibility_off" : "visibility"
-                            buttonSize: 32
+                            buttonSize: Theme.buttonHeightXS
                             visible: GreeterState.showPasswordInput && GreeterState.passwordBuffer.length > 0 && (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking
                             enabled: visible
                             onClicked: parent.showPassword = !parent.showPassword
                         }
-                        DankActionButton {
+                        LockActionButton {
                             id: externalAuthButton
+
+                            activeFocusOnTab: false
+                            tooltipText: root.greeterPamHasFprint ? I18n.tr("Fingerprint") : I18n.tr("Security key")
 
                             anchors.right: virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right)
                             anchors.rightMargin: 0
                             anchors.verticalCenter: parent.verticalCenter
                             iconName: root.greeterPamHasFprint ? "fingerprint" : "key"
-                            buttonSize: 32
+                            buttonSize: Theme.buttonHeightXS
                             visible: GreeterState.showPasswordInput && root.greeterExternalAuthAvailable && GreeterState.passwordBuffer.length === 0 && (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking
                             enabled: visible
                             onClicked: root.startAuthSession(false)
                         }
-                        DankActionButton {
+                        LockActionButton {
                             id: virtualKeyboardButton
+
+                            Accessible.name: I18n.tr("Keyboard")
+                            KeyNavigation.tab: sessionDropdown
+                            KeyNavigation.backtab: inputField
+                            Keys.onEscapePressed: {
+                                keyboard_controller.hide();
+                                inputField.forceActiveFocus();
+                            }
 
                             anchors.right: enterButton.visible ? enterButton.left : parent.right
                             anchors.rightMargin: enterButton.visible ? 0 : Theme.spacingS
                             anchors.verticalCenter: parent.verticalCenter
                             iconName: "keyboard"
-                            buttonSize: 32
+                            buttonSize: Theme.buttonHeightXS
                             visible: (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking && (!root.showUserPicker || GreeterState.showPasswordInput)
                             enabled: visible
                             onClicked: {
@@ -1267,14 +1303,17 @@ Item {
                             }
                         }
 
-                        DankActionButton {
+                        LockActionButton {
                             id: enterButton
 
+                            activeFocusOnTab: false
+                            Accessible.name: I18n.tr("Login")
+
                             anchors.right: parent.right
-                            anchors.rightMargin: 2
+                            anchors.rightMargin: Theme.spacingXXS
                             anchors.verticalCenter: parent.verticalCenter
                             iconName: "keyboard_return"
-                            buttonSize: 36
+                            buttonSize: Theme.buttonHeightXS
                             visible: (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking && (!root.showUserPicker || GreeterState.showPasswordInput)
                             enabled: true
                             onClicked: {
@@ -1290,23 +1329,26 @@ Item {
 
                             Behavior on opacity {
                                 NumberAnimation {
-                                    duration: Theme.shortDuration
-                                    easing.type: Theme.standardEasing
+                                    duration: LockMetrics.effectsDuration
+                                    easing.type: Easing.BezierSpline
+                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                                 }
                             }
                         }
 
                         Behavior on border.color {
                             ColorAnimation {
-                                duration: Theme.shortDuration
-                                easing.type: Theme.standardEasing
+                                duration: LockMetrics.effectsDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                             }
                         }
 
                         Behavior on Layout.preferredHeight {
                             NumberAnimation {
-                                duration: Theme.mediumDuration
-                                easing.type: Theme.standardEasing
+                                duration: LockMetrics.effectsDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                             }
                         }
                     }
@@ -1314,7 +1356,7 @@ Item {
 
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: root.showAccountSwitchLink ? 28 : 0
+                    Layout.preferredHeight: root.showAccountSwitchLink ? Theme.buttonHeightXS : 0
                     visible: root.showAccountSwitchLink
 
                     StyledText {
@@ -1339,11 +1381,11 @@ Item {
 
                 StyledText {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 38
+                    Layout.preferredHeight: Math.ceil(Theme.fontSizeSmall * 3)
                     Layout.topMargin: -Theme.spacingS
                     Layout.bottomMargin: -Theme.spacingS
                     text: root.authDisplayMessage
-                    color: root.authFeedbackMessage !== "" ? Theme.error : Theme.surfaceVariantText
+                    color: root.authFeedbackMessage !== "" ? Theme.error : Theme.lockScreenContentColor
                     font.pixelSize: Theme.fontSizeSmall
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WordWrap
@@ -1352,296 +1394,41 @@ Item {
 
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: Theme.shortDuration
-                            easing.type: Theme.standardEasing
+                            duration: LockMetrics.effectsDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
                         }
                     }
                 }
             }
         }
 
-        Row {
+        GreeterStatusRow {
             anchors.top: parent.top
             anchors.right: parent.right
             anchors.margins: Theme.spacingXL
-            spacing: Theme.spacingL
-
-            Item {
-                width: keyboardLayoutRow.width
-                height: keyboardLayoutRow.height
-                anchors.verticalCenter: parent.verticalCenter
-                visible: {
-                    if (CompositorService.isNiri) {
-                        return NiriService.keyboardLayoutNames.length > 1;
-                    } else if (CompositorService.isHyprland) {
-                        return hyprlandLayoutCount > 1;
-                    }
-                    return false;
-                }
-
-                Row {
-                    id: keyboardLayoutRow
-                    spacing: Theme.spacingXS
-
-                    Item {
-                        width: Theme.iconSize
-                        height: Theme.iconSize
-
-                        DankIcon {
-                            name: "keyboard"
-                            size: Theme.iconSize
-                            color: "white"
-                            anchors.centerIn: parent
-                        }
-                    }
-
-                    Item {
-                        width: childrenRect.width
-                        height: Theme.iconSize
-
-                        StyledText {
-                            text: {
-                                if (CompositorService.isNiri) {
-                                    return LayoutCodes.layoutCode(NiriService.getCurrentKeyboardLayoutName());
-                                } else if (CompositorService.isHyprland) {
-                                    return hyprlandCurrentLayout;
-                                }
-                                return "";
-                            }
-                            font.pixelSize: Theme.fontSizeMedium
-                            font.weight: Font.Light
-                            color: "white"
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                }
-
-                MouseArea {
-                    id: keyboardLayoutArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                        if (CompositorService.isNiri) {
-                            NiriService.cycleKeyboardLayout();
-                        } else if (CompositorService.isHyprland) {
-                            Quickshell.execDetached(["hyprctl", "switchxkblayout", hyprlandKeyboard, "next"]);
-                            updateHyprlandLayout();
-                        }
-                    }
-                }
-            }
-
-            Rectangle {
-                width: 1
-                height: 24
-                color: Qt.rgba(255, 255, 255, 0.2)
-                anchors.verticalCenter: parent.verticalCenter
-                visible: {
-                    const keyboardVisible = (CompositorService.isNiri && NiriService.keyboardLayoutNames.length > 1) || (CompositorService.isHyprland && hyprlandLayoutCount > 1);
-                    return keyboardVisible && GreetdSettings.lockScreenShowWeather && WeatherService.weather.available;
-                }
-            }
-
-            Row {
-                spacing: Theme.spacingXS
-                visible: GreetdSettings.lockScreenShowWeather && WeatherService.weather.available
-                anchors.verticalCenter: parent.verticalCenter
-
-                DankIcon {
-                    name: WeatherService.getWeatherIcon(WeatherService.weather.wCode)
-                    size: Theme.iconSize
-                    color: "white"
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                StyledText {
-                    text: (GreetdSettings.useFahrenheit ? WeatherService.weather.tempF : WeatherService.weather.temp) + "°"
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.weight: Font.Light
-                    color: "white"
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-
-            Rectangle {
-                width: 1
-                height: 24
-                color: Qt.rgba(255, 255, 255, 0.2)
-                anchors.verticalCenter: parent.verticalCenter
-                visible: GreetdSettings.lockScreenShowWeather && WeatherService.weather.available && (NetworkService.networkStatus !== "disconnected" || BluetoothService.enabled || (AudioService.sink && AudioService.sink.audio) || BatteryService.batteryAvailable)
-            }
-
-            Row {
-                spacing: Theme.spacingM
-                anchors.verticalCenter: parent.verticalCenter
-                visible: NetworkService.networkStatus !== "disconnected" || (BluetoothService.available && BluetoothService.enabled) || (AudioService.sink && AudioService.sink.audio)
-
-                DankIcon {
-                    name: NetworkService.networkStatus === "ethernet" ? "lan" : NetworkService.wifiSignalIcon
-                    size: Theme.iconSize - 2
-                    color: NetworkService.networkStatus !== "disconnected" ? "white" : Qt.rgba(255, 255, 255, 0.5)
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: NetworkService.networkStatus !== "disconnected"
-                }
-
-                DankIcon {
-                    name: "bluetooth"
-                    size: Theme.iconSize - 2
-                    color: "white"
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: BluetoothService.available && BluetoothService.enabled
-                }
-
-                DankIcon {
-                    name: {
-                        if (!AudioService.sink?.audio) {
-                            return "volume_up";
-                        }
-                        if (AudioService.sink.audio.muted)
-                            return "volume_off";
-                        if (AudioService.sink.audio.volume === 0)
-                            return "volume_mute";
-                        if (AudioService.sink.audio.volume * 100 < 33) {
-                            return "volume_down";
-                        }
-                        return "volume_up";
-                    }
-                    size: Theme.iconSize - 2
-                    color: (AudioService.sink && AudioService.sink.audio && (AudioService.sink.audio.muted || AudioService.sink.audio.volume === 0)) ? Qt.rgba(255, 255, 255, 0.5) : "white"
-                    anchors.verticalCenter: parent.verticalCenter
-                    visible: AudioService.sink && AudioService.sink.audio
-                }
-            }
-
-            Rectangle {
-                width: 1
-                height: 24
-                color: Qt.rgba(255, 255, 255, 0.2)
-                anchors.verticalCenter: parent.verticalCenter
-                visible: BatteryService.batteryAvailable && (NetworkService.networkStatus !== "disconnected" || BluetoothService.enabled || (AudioService.sink && AudioService.sink.audio))
-            }
-
-            Row {
-                spacing: Theme.spacingXS
-                visible: BatteryService.batteryAvailable
-                anchors.verticalCenter: parent.verticalCenter
-
-                DankIcon {
-                    name: {
-                        if (BatteryService.isCharging) {
-                            if (BatteryService.batteryLevel >= 90) {
-                                return "battery_charging_full";
-                            }
-
-                            if (BatteryService.batteryLevel >= 80) {
-                                return "battery_charging_90";
-                            }
-
-                            if (BatteryService.batteryLevel >= 60) {
-                                return "battery_charging_80";
-                            }
-
-                            if (BatteryService.batteryLevel >= 50) {
-                                return "battery_charging_60";
-                            }
-
-                            if (BatteryService.batteryLevel >= 30) {
-                                return "battery_charging_50";
-                            }
-
-                            if (BatteryService.batteryLevel >= 20) {
-                                return "battery_charging_30";
-                            }
-
-                            return "battery_charging_20";
-                        }
-                        if (BatteryService.isPluggedIn) {
-                            if (BatteryService.batteryLevel >= 90) {
-                                return "battery_charging_full";
-                            }
-
-                            if (BatteryService.batteryLevel >= 80) {
-                                return "battery_charging_90";
-                            }
-
-                            if (BatteryService.batteryLevel >= 60) {
-                                return "battery_charging_80";
-                            }
-
-                            if (BatteryService.batteryLevel >= 50) {
-                                return "battery_charging_60";
-                            }
-
-                            if (BatteryService.batteryLevel >= 30) {
-                                return "battery_charging_50";
-                            }
-
-                            if (BatteryService.batteryLevel >= 20) {
-                                return "battery_charging_30";
-                            }
-
-                            return "battery_charging_20";
-                        }
-                        if (BatteryService.batteryLevel >= 95) {
-                            return "battery_full";
-                        }
-
-                        if (BatteryService.batteryLevel >= 85) {
-                            return "battery_6_bar";
-                        }
-
-                        if (BatteryService.batteryLevel >= 70) {
-                            return "battery_5_bar";
-                        }
-
-                        if (BatteryService.batteryLevel >= 55) {
-                            return "battery_4_bar";
-                        }
-
-                        if (BatteryService.batteryLevel >= 40) {
-                            return "battery_3_bar";
-                        }
-
-                        if (BatteryService.batteryLevel >= 25) {
-                            return "battery_2_bar";
-                        }
-
-                        return "battery_1_bar";
-                    }
-                    size: Theme.iconSize
-                    color: {
-                        if (BatteryService.isLowBattery && !BatteryService.isCharging) {
-                            return Theme.error;
-                        }
-
-                        if (BatteryService.isCharging || BatteryService.isPluggedIn) {
-                            return Theme.primary;
-                        }
-
-                        return "white";
-                    }
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                StyledText {
-                    text: BatteryService.batteryLevel + "%"
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.weight: Font.Light
-                    color: "white"
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
+            showWeather: SettingsData.lockScreenShowWeather
+            useFahrenheit: SettingsData.useFahrenheit
+            keyboardLayoutVisible: root.keyboardLayoutCount > 1
+            keyboardLayoutLabel: root.keyboardLayoutLabel
+            onKeyboardLayoutCycleRequested: root.cycleKeyboardLayout()
         }
 
-        DankActionButton {
+        LockActionButton {
+            id: powerButton
+
+            Accessible.name: I18n.tr("Power Options")
+            KeyNavigation.tab: inputField
+            KeyNavigation.backtab: sessionDropdown
             anchors.bottom: parent.bottom
             anchors.left: parent.left
             anchors.margins: Theme.spacingXL
-            visible: GreetdSettings.lockScreenShowPowerActions
+            visible: SettingsData.lockScreenShowPowerActions
             iconName: "power_settings_new"
-            iconColor: Theme.error
-            buttonSize: 40
+            iconColor: Theme.onSecondaryContainer
+            backgroundColor: Theme.secondaryContainer
+            radius: pressed ? Theme.cornerRadiusS : Theme.fullRadius(width, height)
+            buttonSize: Theme.buttonHeightM
             onClicked: powerMenu.show()
         }
 
@@ -1649,8 +1436,8 @@ Item {
             anchors.bottom: parent.bottom
             anchors.right: parent.right
             anchors.margins: Theme.spacingXL
-            width: Math.max(200, currentSessionMetrics.width + 80)
-            height: 60
+            width: Math.max(Theme.fieldDefaultWidth, currentSessionMetrics.width + Theme.buttonHeightM + Theme.spacingXL)
+            height: LockMetrics.fieldHeight
 
             StyledTextMetrics {
                 id: currentSessionMetrics
@@ -1679,13 +1466,16 @@ Item {
             DankDropdown {
                 id: sessionDropdown
                 anchors.fill: parent
+                focusReturnTarget: inputField
+                KeyNavigation.tab: powerButton.visible ? powerButton : inputField
+                KeyNavigation.backtab: virtualKeyboardButton.visible ? virtualKeyboardButton : inputField
                 text: ""
                 description: ""
                 currentValue: root.currentSessionName
                 options: GreeterState.sessionList
                 enableFuzzySearch: GreeterState.sessionList.length > 5
                 popupWidthOffset: 0
-                popupWidth: Math.max(250, parent.longestSessionWidth + 100)
+                popupWidth: Math.max(Theme.fieldDefaultWidth + Theme.buttonHeightM, parent.longestSessionWidth + Theme.buttonHeightM + Theme.spacingXL * 2)
                 openUpwards: true
                 alignPopupRight: true
                 onValueChanged: value => {
@@ -2044,14 +1834,44 @@ Item {
         onTriggered: clearAuthFeedback()
     }
 
+    SequentialAnimation {
+        id: errorShake
+
+        NumberAnimation {
+            target: passwordBox
+            property: "errorOffset"
+            to: LockMetrics.shakeDistance
+            duration: LockMetrics.shakeDuration / 3
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+        }
+        NumberAnimation {
+            target: passwordBox
+            property: "errorOffset"
+            to: -LockMetrics.shakeDistance
+            duration: LockMetrics.shakeDuration / 3
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+        }
+        NumberAnimation {
+            target: passwordBox
+            property: "errorOffset"
+            to: 0
+            duration: LockMetrics.shakeDuration / 3
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
+        }
+    }
+
     LockPowerMenu {
         id: powerMenu
+        expressive: true
         showLogout: false
-        powerActionConfirmOverride: GreetdSettings.powerActionConfirm
-        powerActionHoldDurationOverride: GreetdSettings.powerActionHoldDuration
-        powerMenuActionsOverride: GreetdSettings.powerMenuActions
-        powerMenuDefaultActionOverride: GreetdSettings.powerMenuDefaultAction
-        powerMenuGridLayoutOverride: GreetdSettings.powerMenuGridLayout
+        powerActionConfirmOverride: SettingsData.powerActionConfirm
+        powerActionHoldDurationOverride: SettingsData.powerActionHoldDuration
+        powerMenuActionsOverride: SettingsData.powerMenuActions
+        powerMenuDefaultActionOverride: SettingsData.powerMenuDefaultAction
+        powerMenuGridLayoutOverride: SettingsData.powerMenuGridLayout
         requiredActions: ["poweroff"]
         onClosed: {
             if (isPrimaryScreen && inputField && inputField.forceActiveFocus) {

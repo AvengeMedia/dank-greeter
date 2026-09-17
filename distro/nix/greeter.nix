@@ -241,6 +241,12 @@ in
               mv settings.json settings.orig.json
               ${jq} '.customThemeFile = "${cacheDir}/custom-theme.json"' settings.orig.json > settings.json
           fi
+          lock_wallpaper="$(${jq} -r '.lockScreenWallpaperPath // empty' settings.json)"
+          if [ -f "$lock_wallpaper" ] && [ -r "$lock_wallpaper" ]; then
+              cp "$lock_wallpaper" wallpaper-lock
+              ${jq} '.lockScreenWallpaperPath = "${cacheDir}/wallpaper-lock"' settings.json > settings.tmp
+              mv settings.tmp settings.json
+          fi
       fi
 
       mv dms-colors.json colors.json || :

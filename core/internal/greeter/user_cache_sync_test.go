@@ -165,7 +165,7 @@ func TestIsUserSlotSnapshotArtifact(t *testing.T) {
 			t.Fatalf("expected %q to be a snapshot artifact", name)
 		}
 	}
-	for _, name := range []string{"settings.json", "session.json", "colors.json", "greeter_wallpaper_override.jpg"} {
+	for _, name := range []string{"settings.json", "session.json", "colors.json"} {
 		if isUserSlotSnapshotArtifact(name) {
 			t.Fatalf("expected %q to be kept", name)
 		}
@@ -193,7 +193,6 @@ func TestLinkUserSlotReplacesSnapshot(t *testing.T) {
 	writeTestFile(t, filepath.Join(userDir, "wallpaper-monitor-DP-1.jpg"), "old")
 	writeTestFile(t, filepath.Join(userDir, "profile.png"), "old")
 	writeTestFile(t, filepath.Join(userDir, "custom-theme.json"), "old")
-	writeTestFile(t, filepath.Join(userDir, "greeter_wallpaper_override.jpg"), "keep")
 
 	opts := userSlotSyncOpts{profileOnly: true, username: "alice", directWrite: func(string) bool { return true }}
 	if err := linkUserSlot(userDir, sources, opts); err != nil {
@@ -213,9 +212,6 @@ func TestLinkUserSlotReplacesSnapshot(t *testing.T) {
 		if _, err := os.Lstat(filepath.Join(userDir, name)); !os.IsNotExist(err) {
 			t.Fatalf("expected stale %s to be removed", name)
 		}
-	}
-	if _, err := os.Stat(filepath.Join(userDir, "greeter_wallpaper_override.jpg")); err != nil {
-		t.Fatalf("expected override copy to be kept: %v", err)
 	}
 	if data, _ := os.ReadFile(sources.settings); string(data) != `{"currentThemeName":"blue"}` {
 		t.Fatalf("source settings were modified: %s", data)
@@ -298,5 +294,55 @@ func TestInspectUserSlot(t *testing.T) {
 		if slots[i] != want[i] {
 			t.Fatalf("ListUserSlots()[%d] = %q, want %q", i, slots[i], want[i])
 		}
+	}
+}
+
+func TestSettingsFilePaths(t *testing.T) {
+	t.Parallel()
+
+	got := settingsFilePaths(map[string]any{
+		"lockScreenWallpaperPath": "/home/alice/lock.jpg",
+		"customThemeFile":         "~/.config/theme.json",
+		"fontFamily":              "Inter",
+		"wallpaperPath":           "/ignored.jpg",
+	})
+	want := []string{"/home/alice/lock.jpg", "~/.config/theme.json"}
+	if len(got) != len(want) {
+		t.Fatalf("settingsFilePaths() = %v, want %v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("settingsFilePaths()[%d] = %q, want %q", i, got[i], want[i])
+		}
+	}
+}
+
+func TestSnapshotLocalizesLockScreenWallpaper(t *testing.T) {
+	t.Parallel()
+
+	root := t.TempDir()
+	homeDir := filepath.Join(root, "home")
+	lockPath := filepath.Join(homeDir, "lock.png")
+	writeTestFile(t, lockPath, "lock")
+	sources := newUserSlotSources(homeDir)
+	writeTestFile(t, sources.colors, `{}`)
+
+	userDir := filepath.Join(root, "users", "alice")
+	settings := map[string]any{"lockScreenWallpaperPath": lockPath}
+	opts := userSlotSyncOpts{profileOnly: true, username: "alice", directWrite: func(string) bool { return true }}
+	if err := writeUserSlotSnapshot(homeDir, userDir, sources, settings, map[string]any{}, opts); err != nil {
+		t.Fatalf("writeUserSlotSnapshot returned error: %v", err)
+	}
+
+	data, err := os.ReadFile(filepath.Join(userDir, "settings.json"))
+	if err != nil {
+		t.Fatalf("read slot settings: %v", err)
+	}
+	want := filepath.Join(userDir, "wallpaper-lock.png")
+	if string(data) != `{"lockScreenWallpaperPath":"`+want+`"}` {
+		t.Fatalf("slot settings = %s, want lockScreenWallpaperPath %q", data, want)
+	}
+	if _, err := os.Stat(want); err != nil {
+		t.Fatalf("expected lock wallpaper copy: %v", err)
 	}
 }

@@ -139,12 +139,7 @@ func SyncUserProfileCache(logFunc func(string)) error {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	state, err := resolveGreeterThemeSyncState(homeDir)
-	if err != nil {
-		return fmt.Errorf("failed to resolve greeter color source: %w", err)
-	}
-
-	if err := syncUserGreeterCacheSlot(homeDir, GreeterCacheDir, currentUser.Username, state, logFunc, userSlotSyncOpts{
+	if err := syncUserGreeterCacheSlot(homeDir, GreeterCacheDir, currentUser.Username, logFunc, userSlotSyncOpts{
 		profileOnly: true,
 	}); err != nil {
 		return err
@@ -233,7 +228,7 @@ func setGreeterCacheFileOwnership(path, sudoPassword string) error {
 	return nil
 }
 
-func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterThemeSyncState, logFunc func(string), opts userSlotSyncOpts) error {
+func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, logFunc func(string), opts userSlotSyncOpts) error {
 	if strings.TrimSpace(username) == "" {
 		return nil
 	}
@@ -244,18 +239,20 @@ func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterT
 		return err
 	}
 
-	sources := newUserSlotSources(homeDir, state)
+	sources := newUserSlotSources(homeDir)
+	settingsMap, err := readJSONObject(sources.settings)
+	if err != nil {
+		return fmt.Errorf("failed to read settings for user cache slot: %w", err)
+	}
 	sessionMap, err := readJSONObject(sources.session)
 	if err != nil {
 		return fmt.Errorf("failed to read session for user cache slot: %w", err)
 	}
 
-	if err := grantGreeterReadAccess(homeDir, sessionWallpaperPaths(sessionMap), logFunc); err != nil {
+	accessPaths := append(sessionWallpaperPaths(sessionMap), settingsFilePaths(settingsMap)...)
+	if err := grantGreeterReadAccess(homeDir, accessPaths, logFunc); err != nil {
 		logFunc(fmt.Sprintf("⚠ Live greeter sync unavailable for %s (%v); writing a snapshot instead", username, err))
-		if err := writeUserSlotSnapshot(homeDir, userDir, sources, sessionMap, opts); err != nil {
-			return err
-		}
-		if err := syncUserSlotWallpaperOverride(cacheDir, userDir, opts); err != nil {
+		if err := writeUserSlotSnapshot(homeDir, userDir, sources, settingsMap, sessionMap, opts); err != nil {
 			return err
 		}
 		logFunc(fmt.Sprintf("✓ Synced per-user greeter cache snapshot for %s", username))
@@ -263,9 +260,6 @@ func syncUserGreeterCacheSlot(homeDir, cacheDir, username string, state greeterT
 	}
 
 	if err := linkUserSlot(userDir, sources, opts); err != nil {
-		return err
-	}
-	if err := syncUserSlotWallpaperOverride(cacheDir, userDir, opts); err != nil {
 		return err
 	}
 	logFunc(fmt.Sprintf("✓ Linked per-user greeter cache for %s to live DMS state", username))
@@ -278,11 +272,11 @@ type userSlotSources struct {
 	colors   string
 }
 
-func newUserSlotSources(homeDir string, state greeterThemeSyncState) userSlotSources {
+func newUserSlotSources(homeDir string) userSlotSources {
 	return userSlotSources{
 		settings: filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json"),
 		session:  filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json"),
-		colors:   state.effectiveColorsSource(homeDir),
+		colors:   GreeterColorsSource(homeDir),
 	}
 }
 
@@ -370,12 +364,7 @@ func removeUserSlotSnapshotArtifacts(userDir string, opts userSlotSyncOpts) erro
 	return nil
 }
 
-func writeUserSlotSnapshot(homeDir, userDir string, sources userSlotSources, sessionMap map[string]any, opts userSlotSyncOpts) error {
-	settingsMap, err := readJSONObject(sources.settings)
-	if err != nil {
-		return fmt.Errorf("failed to read settings for user cache slot: %w", err)
-	}
-
+func writeUserSlotSnapshot(homeDir, userDir string, sources userSlotSources, settingsMap, sessionMap map[string]any, opts userSlotSyncOpts) error {
 	if customTheme, ok := settingsMap["customThemeFile"].(string); ok && strings.TrimSpace(customTheme) != "" {
 		resolvedTheme := customTheme
 		if !filepath.IsAbs(resolvedTheme) {
@@ -388,6 +377,10 @@ func writeUserSlotSnapshot(homeDir, userDir string, sources userSlotSources, ses
 			}
 			settingsMap["customThemeFile"] = destTheme
 		}
+	}
+
+	if err := localizeWallpaperStringField(settingsMap, "lockScreenWallpaperPath", userDir, "wallpaper-lock", opts); err != nil {
+		return err
 	}
 
 	settingsBytes, err := json.Marshal(settingsMap)
@@ -415,19 +408,6 @@ func writeUserSlotSnapshot(homeDir, userDir string, sources userSlotSources, ses
 	}
 
 	return syncUserProfileImage(homeDir, userDir, opts)
-}
-
-func syncUserSlotWallpaperOverride(cacheDir, userDir string, opts userSlotSyncOpts) error {
-	rootOverride := filepath.Join(cacheDir, "greeter_wallpaper_override.jpg")
-	userOverride := filepath.Join(userDir, "greeter_wallpaper_override.jpg")
-	st, statErr := os.Stat(rootOverride)
-	if statErr != nil || st.IsDir() {
-		return removeSlotEntry(userOverride, opts)
-	}
-	if err := copyFileWithPrivesc(rootOverride, userOverride, opts); err != nil {
-		return fmt.Errorf("failed to copy greeter wallpaper override for user cache slot: %w", err)
-	}
-	return nil
 }
 
 func localizeSessionWallpapers(session map[string]any, userDir string, opts userSlotSyncOpts) error {

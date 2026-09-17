@@ -17,7 +17,6 @@ Go module at `core/`, one binary `cmd/dms-greeter`. It is a cobra CLI and a gree
 - `internal/greeter/` - installer, session launcher, per-user cache sync and access checks (the `greeter` group and `/var/cache/dms-greeter/users/<user>/`).
 - `internal/pam/` - manages `/etc/pam.d/greetd` for fingerprint (`pam_fprintd`) and U2F (`pam_u2f`). Respects existing custom PAM config.
 - `internal/shellembed/` - `go:embed` of the quickshell tree, only with the `withshell` build tag. `make build` copies `quickshell/` into `internal/shellembed/dist` first (gitignored).
-- `internal/matugen/`, `internal/dank16/` - theme generation from wallpaper, mirrors what DMS does.
 - `internal/privesc/` - picks sudo, doas, or run0 for commands that touch system config.
 - `internal/config/`, `internal/distros/`, `internal/utils/`, `internal/qmlchecks/` - compositor config templates, distro detection, helpers, and go tests that assert invariants in the QML.
 
@@ -27,9 +26,9 @@ Shared Go code comes from the `dankgo` module at the version pinned in `core/go.
 
 The Quickshell UI. `shell.qml` is the entry and only loads `GreeterSurface`.
 
-- `Modules/Greetd/` - the whole visible greeter: `GreeterContent` (login form, session picker, auth flow), `GreeterUserPicker`, `GreeterUserTheme`, `GreetdSettings` (reads the synced settings), `GreetdMemory` (last user and session).
+- `Modules/Greetd/` - the whole visible greeter: `GreeterContent` (login form, session picker, auth flow), `GreeterUserPicker`, `GreeterStatusRow` (top-right weather, network, battery), `GreeterUserTheme`, `GreetdSettings` (reads the synced settings), `GreetdMemory` (last user and session).
 - `Services/` - headless singletons that only read system state: network, battery, bluetooth, audio, weather, compositor, niri, `GreeterUsersService`. They use Quickshell's own services (UPower, Pipewire, Networking, Bluetooth). `Log` is the only logging path; `console.*` is rejected by pre-commit.
-- `Common/` - Theme, SettingsData, SessionData, I18n, Paths, StockThemes. Trimmed copies of the DMS equivalents.
+- `Common/` - Theme, SettingsData, SessionData, I18n, Paths, StockThemes. SettingsData and SessionData are read-only loaders over the schema shared with DMS in `DankCommon/Common/settings/` (SharedSettingsSpec.js, SharedSessionSpec.js), so key names and defaults never drift from DMS. Those files hold only the keys the greeter reads; DMS keeps the rest in its own spec and merges the shared ones in. A key the greeter starts reading has to move into the shared spec. The greeter has no keys of its own beyond the `greeter*` entries in that schema.
 - `Widgets/` - one-line re-exports of `DankCommon` widgets so QML here can `import qs.Widgets` like DMS does.
 - `DankCommon/` - symlink into the `dank-qml-common` submodule. Never edit through the symlink.
 - `translations/` - POEditor-synced catalogs. `make i18n-*` targets drive them.

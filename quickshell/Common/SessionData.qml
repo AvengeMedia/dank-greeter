@@ -5,36 +5,47 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Services
+import "../DankCommon/Common/settings/SharedSessionSpec.js" as Spec
+import "../DankCommon/Common/settings/SpecUtil.js" as SpecUtil
 
 Singleton {
     id: root
     readonly property var log: Log.scoped("SessionData")
 
-    property bool isLightMode: false
-    property string wallpaperPath: ""
-    property bool perMonitorWallpaper: false
-    property var monitorWallpapers: ({})
-    property string weatherLocation: "New York, NY"
-    property string weatherCoordinates: "40.7128,-74.0060"
+    property bool isLightMode: Spec.SPEC.isLightMode.def
+    property string wallpaperPath: Spec.SPEC.wallpaperPath.def
+    property bool perMonitorWallpaper: Spec.SPEC.perMonitorWallpaper.def
+    property var monitorWallpapers: Spec.SPEC.monitorWallpapers.def
+    property var monitorWallpaperFillModes: Spec.SPEC.monitorWallpaperFillModes.def
+    property string weatherLocation: Spec.SPEC.weatherLocation.def
+    property string weatherCoordinates: Spec.SPEC.weatherCoordinates.def
 
-    function parseSettings(content) {
+    function readSession(content) {
+        if (!content || !content.trim())
+            return {};
         try {
-            let s = {};
-            if (content && content.trim())
-                s = JSON.parse(content);
-
-            isLightMode = s.isLightMode !== undefined ? s.isLightMode : false;
-            wallpaperPath = s.wallpaperPath !== undefined ? s.wallpaperPath : "";
-            perMonitorWallpaper = s.perMonitorWallpaper !== undefined ? s.perMonitorWallpaper : false;
-            monitorWallpapers = s.monitorWallpapers !== undefined ? s.monitorWallpapers : ({});
-            weatherLocation = s.weatherLocation !== undefined ? s.weatherLocation : "New York, NY";
-            weatherCoordinates = s.weatherCoordinates !== undefined ? s.weatherCoordinates : "40.7128,-74.0060";
+            return JSON.parse(content);
         } catch (e) {
             log.warn("Failed to parse greeter session.json:", e);
+            return {};
         }
     }
 
-    // DMS may key monitor wallpapers by screen name, model, or "model-N" display name
+    function parseSettings(content) {
+        const session = readSession(content);
+        for (const key in Spec.SPEC) {
+            if (!root.hasOwnProperty(key))
+                continue;
+            const spec = Spec.SPEC[key];
+            if (!(key in session)) {
+                root[key] = SpecUtil.cloneDef(spec.def);
+                continue;
+            }
+            const value = spec.coerce ? spec.coerce(session[key]) : session[key];
+            root[key] = value !== undefined ? value : SpecUtil.cloneDef(spec.def);
+        }
+    }
+
     function _findMonitorValue(map, screenName) {
         if (!map)
             return undefined;
@@ -69,6 +80,14 @@ Singleton {
             return wallpaperPath;
         const value = _findMonitorValue(monitorWallpapers, screenName);
         return value !== undefined ? value : wallpaperPath;
+    }
+
+    function getMonitorWallpaperFillMode(screenName) {
+        const globalFillMode = (typeof SettingsData !== "undefined") ? SettingsData.wallpaperFillMode : "Fill";
+        if (!perMonitorWallpaper)
+            return globalFillMode;
+        const value = _findMonitorValue(monitorWallpaperFillModes, screenName);
+        return value !== undefined ? value : globalFillMode;
     }
 
     readonly property string _greeterCacheDir: Quickshell.env("DMS_GREET_CFG_DIR") || "/var/cache/dms-greeter"

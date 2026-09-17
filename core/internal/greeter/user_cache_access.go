@@ -14,22 +14,24 @@ import (
 
 var sessionWallpaperStringKeys = []string{"wallpaperPath", "wallpaperPathLight", "wallpaperPathDark"}
 var sessionWallpaperMapKeys = []string{"monitorWallpapers", "monitorWallpapersLight", "monitorWallpapersDark"}
+var settingsFileKeys = []string{"lockScreenWallpaperPath", "customThemeFile"}
+
+func appendFilePath(paths []string, raw any) []string {
+	value, ok := raw.(string)
+	if !ok {
+		return paths
+	}
+	value = strings.TrimSpace(value)
+	if value == "" || strings.HasPrefix(value, "#") {
+		return paths
+	}
+	return append(paths, value)
+}
 
 func sessionWallpaperPaths(session map[string]any) []string {
 	paths := []string{}
-	add := func(raw any) {
-		value, ok := raw.(string)
-		if !ok {
-			return
-		}
-		value = strings.TrimSpace(value)
-		if value == "" || strings.HasPrefix(value, "#") {
-			return
-		}
-		paths = append(paths, value)
-	}
 	for _, key := range sessionWallpaperStringKeys {
-		add(session[key])
+		paths = appendFilePath(paths, session[key])
 	}
 	for _, key := range sessionWallpaperMapKeys {
 		values, ok := session[key].(map[string]any)
@@ -37,8 +39,16 @@ func sessionWallpaperPaths(session map[string]any) []string {
 			continue
 		}
 		for _, raw := range values {
-			add(raw)
+			paths = appendFilePath(paths, raw)
 		}
+	}
+	return paths
+}
+
+func settingsFilePaths(settings map[string]any) []string {
+	paths := []string{}
+	for _, key := range settingsFileKeys {
+		paths = appendFilePath(paths, settings[key])
 	}
 	return paths
 }

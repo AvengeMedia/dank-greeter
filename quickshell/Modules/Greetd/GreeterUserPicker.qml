@@ -21,9 +21,50 @@ Item {
     signal autoLoginToggled
     signal manualEntryRequested
 
-    readonly property int rowHeight: 52
-    readonly property int collapsedBarHeight: 36
-    readonly property int actionRowHeight: 44
+    readonly property int rowHeight: Theme.listItemHeight
+    readonly property int collapsedBarHeight: Theme.buttonHeightXS
+    readonly property int actionRowHeight: Theme.menuItemHeight
+
+    component StateRow: Rectangle {
+        id: stateRow
+
+        property bool selected: false
+        readonly property color contentColor: selected ? Theme.onSecondaryContainer : Theme.surfaceText
+        readonly property color iconColor: selected ? Theme.onSecondaryContainer : Theme.surfaceVariantText
+        default property alias content: rowLayout.data
+
+        signal clicked
+
+        width: parent ? parent.width : 0
+        radius: rowArea.pressed ? Theme.cornerRadiusS : Theme.fullRadius(width, height)
+        color: selected ? Theme.secondaryContainer : Theme.withAlpha(Theme.surfaceText, rowArea.pressed ? Theme.stateLayerPressed : (rowArea.containsMouse ? Theme.stateLayerHover : 0))
+
+        Behavior on radius {
+            NumberAnimation {
+                duration: Theme.expressiveDurations.expressiveEffects
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+            }
+        }
+
+        RowLayout {
+            id: rowLayout
+
+            anchors.fill: parent
+            anchors.leftMargin: Theme.spacingS
+            anchors.rightMargin: Theme.spacingM
+            spacing: Theme.spacingM
+        }
+
+        MouseArea {
+            id: rowArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: stateRow.clicked()
+        }
+    }
 
     readonly property int userListFullHeight: {
         const count = GreeterUsersService.users.length;
@@ -79,7 +120,7 @@ Item {
             DankIcon {
                 Layout.alignment: Qt.AlignVCenter
                 name: "expand_more"
-                size: 20
+                size: Theme.iconSizeMedium
                 color: Theme.surfaceVariantText
             }
         }
@@ -109,7 +150,7 @@ Item {
             spacing: Theme.spacingXS
             model: GreeterUsersService.users
 
-            delegate: Rectangle {
+            delegate: StateRow {
                 id: userRow
 
                 required property var modelData
@@ -117,123 +158,67 @@ Item {
 
                 width: userListView.width
                 height: root.rowHeight
-                radius: Theme.cornerRadius
-                color: userRowMouse.containsMouse ? Theme.surfacePressed : Theme.withAlpha(Theme.surfacePressed, 0)
-                border.color: GreeterState.username === userRow.modelData.username ? Theme.primary : Theme.withAlpha(Theme.primary, 0)
-                border.width: GreeterState.username === userRow.modelData.username ? 1 : 0
+                selected: GreeterState.username === modelData.username
+                onClicked: root.userSelected(modelData.username)
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: Theme.spacingS
-                    anchors.rightMargin: Theme.spacingS
-                    spacing: Theme.spacingM
-
-                    Item {
-                        Layout.preferredWidth: 36
-                        Layout.preferredHeight: 36
-
-                        DankCircularImage {
-                            anchors.fill: parent
-                            imageSource: root.profileImageSource(userRow.modelData.username)
-                            fallbackIcon: "material:person"
-                        }
-                    }
-
-                    StyledText {
-                        Layout.fillWidth: true
-                        text: GreeterUsersService.optionLabel(userRow.modelData.username)
-                        color: Theme.surfaceText
-                        font.pixelSize: Theme.fontSizeMedium
-                        elide: Text.ElideRight
-                    }
+                DankCircularImage {
+                    Layout.preferredWidth: Theme.avatarSize
+                    Layout.preferredHeight: Theme.avatarSize
+                    imageSource: root.profileImageSource(userRow.modelData.username)
+                    fallbackIcon: "material:person"
                 }
 
-                MouseArea {
-                    id: userRowMouse
-
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.userSelected(userRow.modelData.username)
+                StyledText {
+                    Layout.fillWidth: true
+                    text: GreeterUsersService.optionLabel(userRow.modelData.username)
+                    color: userRow.contentColor
+                    font.pixelSize: Theme.fontSizeMedium
+                    elide: Text.ElideRight
                 }
             }
         }
 
-        Rectangle {
-            width: parent.width
+        StateRow {
             height: root.actionRowHeight
             visible: root.manualEntryVisible
-            radius: Theme.cornerRadius
-            color: manualEntryRowMouse.containsMouse ? Theme.surfacePressed : Theme.withAlpha(Theme.surfacePressed, 0)
+            onClicked: root.manualEntryRequested()
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Theme.spacingS
-                anchors.rightMargin: Theme.spacingS
-                spacing: Theme.spacingM
-
-                DankIcon {
-                    Layout.alignment: Qt.AlignVCenter
-                    name: "person_add"
-                    size: 20
-                    color: Theme.surfaceVariantText
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: I18n.tr("Not listed?", "greeter link to switch to manual username entry")
-                    color: Theme.surfaceText
-                    font.pixelSize: Theme.fontSizeMedium
-                    elide: Text.ElideRight
-                }
+            DankIcon {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.leftMargin: Theme.spacingS
+                name: "person_add"
+                size: Theme.iconSizeMedium
+                color: Theme.surfaceVariantText
             }
 
-            MouseArea {
-                id: manualEntryRowMouse
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.manualEntryRequested()
+            StyledText {
+                Layout.fillWidth: true
+                text: I18n.tr("Not listed?", "greeter link to switch to manual username entry")
+                color: Theme.surfaceText
+                font.pixelSize: Theme.fontSizeMedium
+                elide: Text.ElideRight
             }
         }
 
-        Rectangle {
-            width: parent.width
+        StateRow {
             height: root.actionRowHeight
             visible: root.autoLoginVisible
-            radius: Theme.cornerRadius
-            color: autoLoginRowMouse.containsMouse ? Theme.surfacePressed : Theme.withAlpha(Theme.surfacePressed, 0)
+            onClicked: root.autoLoginToggled()
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: Theme.spacingS
-                anchors.rightMargin: Theme.spacingS
-                spacing: Theme.spacingM
-
-                DankIcon {
-                    Layout.alignment: Qt.AlignVCenter
-                    name: root.autoLoginChecked ? "check_box" : "check_box_outline_blank"
-                    size: 20
-                    color: root.autoLoginChecked ? Theme.primary : Theme.surfaceVariantText
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    text: I18n.tr("Auto-login")
-                    color: Theme.surfaceText
-                    font.pixelSize: Theme.fontSizeMedium
-                    elide: Text.ElideRight
-                }
+            DankIcon {
+                Layout.alignment: Qt.AlignVCenter
+                Layout.leftMargin: Theme.spacingS
+                name: root.autoLoginChecked ? "check_box" : "check_box_outline_blank"
+                size: Theme.iconSizeMedium
+                color: root.autoLoginChecked ? Theme.primary : Theme.surfaceVariantText
             }
 
-            MouseArea {
-                id: autoLoginRowMouse
-
-                anchors.fill: parent
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: root.autoLoginToggled()
+            StyledText {
+                Layout.fillWidth: true
+                text: I18n.tr("Auto-login")
+                color: Theme.surfaceText
+                font.pixelSize: Theme.fontSizeMedium
+                elide: Text.ElideRight
             }
         }
     }

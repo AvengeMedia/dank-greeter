@@ -5,7 +5,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Common
-import qs.Modules.Greetd
 
 Singleton {
     id: root
@@ -119,7 +118,7 @@ Singleton {
     function addRef() {
         refCount++;
 
-        if (refCount === 1 && !weather.available && GreetdSettings.greeterShowWeather) {
+        if (refCount === 1 && !weather.available && SettingsData.lockScreenShowWeather) {
             fetchWeather();
         }
     }
@@ -129,7 +128,7 @@ Singleton {
     }
 
     function updateLocation() {
-        if (GreetdSettings.useAutoLocation) {
+        if (SettingsData.useAutoLocation) {
             ipLocationFetcher.running = true;
             return;
         }
@@ -161,7 +160,7 @@ Singleton {
     }
 
     function fetchWeather(lat, lon) {
-        if (root.refCount === 0 || !GreetdSettings.greeterShowWeather) {
+        if (root.refCount === 0 || !SettingsData.lockScreenShowWeather) {
             return;
         }
 
