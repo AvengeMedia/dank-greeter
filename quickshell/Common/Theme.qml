@@ -8,6 +8,7 @@ import qs.DankCommon.Common as DankCommon
 import qs.Modules.Greetd
 import qs.Services
 import "../DankCommon/Common/Shape.js" as Shape
+import "../DankCommon/Common/Contrast.js" as Contrast
 import "../DankCommon/Common/settings/SharedSettingsSpec.js" as Spec
 import "StockThemes.js" as StockThemes
 
@@ -206,6 +207,11 @@ Singleton {
     property color primaryContainer: currentThemeData.primaryContainer || blend(surfaceContainerHigh, primary, 0.45)
     property color secondaryContainer: currentThemeData.secondaryContainer || blend(surfaceContainerHigh, secondary, 0.35)
     property color tertiaryContainer: currentThemeData.tertiaryContainer || blend(surfaceContainerHigh, tertiary, 0.35)
+    readonly property bool tonalPrimaryContainer: Contrast.isTonal(primaryContainer, surfaceText)
+    readonly property color selectedContainer: tonalPrimaryContainer ? primaryContainer : Contrast.tintedContainer(surfaceContainerHigh, primary, surfaceText)
+    readonly property color accentOnPrimaryContainer: Contrast.ratio(primary, primaryContainer) >= 3 ? primary : onPrimaryContainer
+    readonly property color contrastDark: "#000000"
+    readonly property color contrastLight: "#ffffff"
     property color inverseSurface: currentThemeData.inverseSurface || surfaceText
     property color inverseOnSurface: currentThemeData.inverseOnSurface || surface
 
@@ -216,6 +222,7 @@ Singleton {
     property color onSecondaryContainer
     property color onErrorContainer
     property color onTertiaryContainer
+    property color onSelectedContainer
     property color onSurface_12: withAlpha(onSurface, 0.12)
     property color onSurface_38: withAlpha(onSurface, 0.38)
     readonly property list<QtObject> roleBindings: [
@@ -237,12 +244,12 @@ Singleton {
         Binding {
             target: root
             property: "onPrimaryContainer"
-            value: root.currentThemeData.onPrimaryContainer || root.surfaceText
+            value: root.currentThemeData.onPrimaryContainer || root.currentThemeData.primaryContainerText || Contrast.readableOn(root.primaryContainer, root.onContainerCandidates)
         },
         Binding {
             target: root
             property: "onSecondaryContainer"
-            value: root.currentThemeData.onSecondaryContainer || root.surfaceText
+            value: root.currentThemeData.onSecondaryContainer || Contrast.readableOn(root.secondaryContainer, root.onContainerCandidates)
         },
         Binding {
             target: root
@@ -252,9 +259,15 @@ Singleton {
         Binding {
             target: root
             property: "onTertiaryContainer"
-            value: root.currentThemeData.onTertiaryContainer || root.surfaceText
+            value: root.currentThemeData.onTertiaryContainer || Contrast.readableOn(root.tertiaryContainer, root.onContainerCandidates)
+        },
+        Binding {
+            target: root
+            property: "onSelectedContainer"
+            value: root.tonalPrimaryContainer ? root.onPrimaryContainer : root.surfaceText
         }
     ]
+    readonly property var onContainerCandidates: [surfaceText, surface, contrastLight, contrastDark]
 
     property color error: currentThemeData.error || "#F2B8B5"
     property color errorContainer: currentThemeData.errorContainer || surfaceContainerHigh
