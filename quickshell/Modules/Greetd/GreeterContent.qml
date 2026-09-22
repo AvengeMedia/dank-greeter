@@ -1050,9 +1050,9 @@ Item {
 
                         clip: true
                         radius: Theme.fullRadius(width, LockMetrics.fieldHeight)
-                        color: Theme.surfaceContainerHigh
-                        border.width: inputField.activeFocus ? Math.max(Theme.outlineWidth, Theme.focusRingWidth) : Theme.outlineWidth
-                        border.color: inputField.activeFocus ? Theme.focusRingColor : Theme.outlineVariant
+                        color: Theme.cardSurface
+                        border.width: inputField.activeFocus ? Math.max(Theme.outlineWidth, Theme.focusRingWidth) : Theme.layerOutlineWidth
+                        border.color: inputField.activeFocus ? Theme.focusRingColor : Theme.outlineMedium
 
                         GreeterUserPicker {
                             id: userPicker
@@ -1471,6 +1471,9 @@ Item {
                 KeyNavigation.backtab: virtualKeyboardButton.visible ? virtualKeyboardButton : inputField
                 text: ""
                 description: ""
+                backgroundColor: Theme.cardSurface
+                hoverBackgroundColor: Theme.blend(Theme.cardSurface, Theme.onSurface, Theme.stateLayerHover)
+                normalBorderColor: Theme.outlineMedium
                 currentValue: root.currentSessionName
                 options: GreeterState.sessionList
                 enableFuzzySearch: GreeterState.sessionList.length > 5

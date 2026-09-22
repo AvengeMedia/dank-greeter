@@ -204,6 +204,10 @@ Singleton {
     property color surfaceContainerHighest: currentThemeData.surfaceContainerHighest || surfaceContainerHigh
     property color surfaceBright: currentThemeData.surfaceBright || (isLightMode ? surface : surfaceContainerHighest)
     property color surfaceDim: currentThemeData.surfaceDim || (isLightMode ? surfaceContainer : background)
+    readonly property color hostSurface: surface
+    readonly property color cardSurface: surfaceContainer
+    readonly property color chipSurface: surfaceContainerHigh
+    readonly property color chipSurfaceNested: surfaceContainerHighest
     property color primaryContainer: currentThemeData.primaryContainer || blend(surfaceContainerHigh, primary, 0.45)
     property color secondaryContainer: currentThemeData.secondaryContainer || blend(surfaceContainerHigh, secondary, 0.35)
     property color tertiaryContainer: currentThemeData.tertiaryContainer || blend(surfaceContainerHigh, tertiary, 0.35)
@@ -290,8 +294,11 @@ Singleton {
     property color surfaceTextMedium: withAlpha(surfaceText, 0.7)
 
     property color outlineButton: withAlpha(outline, 0.5)
-    property color outlineMedium: withAlpha(outline, 0.12)
-    property color outlineStrong: withAlpha(outline, 0.18)
+    readonly property real layerOutlineOpacity: 0
+    readonly property int layerOutlineWidth: layerOutlineOpacity > 0 ? 1 : 0
+    property color outlineLight: withAlpha(outline, Math.min(1, layerOutlineOpacity * 0.625))
+    property color outlineMedium: withAlpha(outline, layerOutlineOpacity)
+    property color outlineStrong: withAlpha(outline, Math.min(1, layerOutlineOpacity * 1.5))
     property color outlineHeavy: withAlpha(outline, 0.2)
 
     property color errorHover: withAlpha(error, 0.12)
