@@ -103,9 +103,10 @@ Item {
     // Falls back to PAM-only detection until the fprintd D-Bus probe completes.
     readonly property bool greeterPamHasFprint: greeterPamStackHasFprint && (!fprintdProbeComplete || fprintdHasDevice)
     readonly property bool greeterPamHasU2f: greeterPamStackHasModule("pam_u2f")
-    readonly property bool greeterPamHasHowdy: greeterPamStackHasModule("pam_howdy")
-    readonly property bool greeterExternalAuthAvailable: (greeterPamHasFprint && SettingsData.greeterEnableFprint) || (greeterPamHasU2f && SettingsData.greeterEnableU2f) || greeterPamHasHowdy
-    readonly property bool greeterPamHasExternalAuth: greeterPamHasFprint || greeterPamHasU2f || greeterPamHasHowdy
+    readonly property bool greeterPamHasFaceAuth: greeterPamStackHasModule("pam_howdy") || greeterPamStackHasModule("pam_sentinel") || greeterPamStackHasModule("pam_face")
+    readonly property bool greeterPamHasHowdy: greeterPamHasFaceAuth
+    readonly property bool greeterExternalAuthAvailable: (greeterPamHasFprint && SettingsData.greeterEnableFprint) || (greeterPamHasU2f && SettingsData.greeterEnableU2f) || greeterPamHasFaceAuth
+    readonly property bool greeterPamHasExternalAuth: greeterPamHasFprint || greeterPamHasU2f || greeterPamHasFaceAuth
     readonly property bool externalAuthInProgress: awaitingExternalAuth || (Greetd.state !== GreetdState.Inactive && passwordSubmitRequested && greeterPamHasExternalAuth && !pendingPasswordResponse)
     readonly property string externalAuthStatusMessage: {
         if (!externalAuthInProgress)
@@ -114,7 +115,7 @@ Item {
             return I18n.tr("Awaiting fingerprint or security key authentication");
         if (greeterPamHasFprint)
             return I18n.tr("Awaiting fingerprint authentication");
-        if (greeterPamHasHowdy)
+        if (greeterPamHasFaceAuth)
             return I18n.tr("Awaiting face authentication");
         return I18n.tr("Awaiting security key authentication");
     }
@@ -1116,6 +1117,14 @@ Item {
                             KeyNavigation.tab: virtualKeyboardButton.visible ? virtualKeyboardButton : sessionDropdown
                             KeyNavigation.backtab: powerButton.visible ? powerButton : sessionDropdown
 
+                            Keys.onPressed: event => {
+                                if (event.key === Qt.Key_Tab && GreeterState.showPasswordInput && (!text || text.length === 0) && !(event.modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && root.greeterExternalAuthAvailable && !root.externalAuthInProgress && !GreeterState.unlocking) {
+                                    root.startAuthSession(false);
+                                    event.accepted = true;
+                                    return;
+                                }
+                            }
+
                             // Contract the on-screen Keyboard drives its target through.
                             function insertText(value) {
                                 if (value)
@@ -1265,12 +1274,12 @@ Item {
                             id: externalAuthButton
 
                             activeFocusOnTab: false
-                            tooltipText: root.greeterPamHasFprint ? I18n.tr("Fingerprint") : I18n.tr("Security key")
+                            tooltipText: root.greeterPamHasFprint ? I18n.tr("Fingerprint") : (root.greeterPamHasFaceAuth ? I18n.tr("Face recognition") : I18n.tr("Security key"))
 
                             anchors.right: virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right)
                             anchors.rightMargin: 0
                             anchors.verticalCenter: parent.verticalCenter
-                            iconName: root.greeterPamHasFprint ? "fingerprint" : "key"
+                            iconName: root.greeterPamHasFprint ? "fingerprint" : (root.greeterPamHasFaceAuth ? "face" : "key")
                             buttonSize: Theme.buttonHeightXS
                             visible: GreeterState.showPasswordInput && root.greeterExternalAuthAvailable && GreeterState.passwordBuffer.length === 0 && (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking
                             enabled: visible
