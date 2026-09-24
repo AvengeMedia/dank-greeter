@@ -1118,7 +1118,7 @@ Item {
                             KeyNavigation.backtab: powerButton.visible ? powerButton : sessionDropdown
 
                             Keys.onPressed: event => {
-                                if (event.key === Qt.Key_Tab && GreeterState.showPasswordInput && (!text || text.length === 0) && !(event.modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && root.greeterExternalAuthAvailable && !root.externalAuthInProgress && !GreeterState.unlocking) {
+                                if (event.key === Qt.Key_Tab && GreeterState.showPasswordInput && (!text || text.length === 0) && !(event.modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && root.greeterExternalAuthAvailable && !root.externalAuthInProgress && !pendingPasswordResponse && Greetd.state === GreetdState.Inactive && !GreeterState.unlocking) {
                                     root.startAuthSession(false);
                                     event.accepted = true;
                                     return;

@@ -34,6 +34,7 @@ func TestGreeterExternalAuthTabTriggerAndFaceSupport(t *testing.T) {
 	for _, required := range []string{
 		"event.key === Qt.Key_Tab",
 		"root.startAuthSession(false)",
+		"pendingPasswordResponse",
 		"greeterPamHasFaceAuth",
 		"pam_sentinel",
 		"Face recognition",
