@@ -1539,58 +1539,112 @@ Item {
         GreeterState.selectedSessionDesktopNames = GreeterState.sessionDesktopNames[0] || "";
     }
 
+    // Session directories in XDG precedence order, highest first. A desktop
+    // file in an earlier directory shadows one with the same file name in a
+    // later directory, which lets e.g. /usr/local/share/wayland-sessions hide
+    // a packaged session via Hidden=true.
     property var sessionDirs: {
         const homeDir = Quickshell.env("HOME") || "";
-        const dirs = ["/usr/share/wayland-sessions", "/usr/share/xsessions", "/usr/local/share/wayland-sessions", "/usr/local/share/xsessions"];
+        const dataDirs = [];
 
-        if (homeDir) {
-            dirs.push(homeDir + "/.local/share/wayland-sessions");
-            dirs.push(homeDir + "/.local/share/xsessions");
-        }
+        if (homeDir)
+            dataDirs.push(homeDir + "/.local/share");
 
         if (xdgDataDirs) {
             xdgDataDirs.split(":").forEach(dir => {
-                if (dir) {
-                    dirs.push(dir + "/wayland-sessions");
-                    dirs.push(dir + "/xsessions");
-                }
+                if (dir)
+                    dataDirs.push(dir);
             });
         }
 
-        // _addSession guards against a session name already existing
-        // so we have to load from the user directories first so they
-        // correctly override a system configuration
-        return dirs.reverse();
+        dataDirs.push("/usr/local/share", "/usr/share");
+
+        const dirs = [];
+        dataDirs.forEach(dir => {
+            [dir + "/wayland-sessions", dir + "/xsessions"].forEach(sub => {
+                if (!dirs.includes(sub))
+                    dirs.push(sub);
+            });
+        });
+        return dirs;
     }
 
     property var _pendingFiles: ({})
     property int _pendingCount: 0
 
-    function _addSession(path, name, exec, desktopNames) {
-        if (!name || !exec || GreeterState.sessionList.includes(name))
+    // Desktop ID -> { priority, path, name, exec, desktopNames, hidden }. Files
+    // load asynchronously, so precedence is decided by directory priority
+    // rather than load order.
+    property var _sessionEntries: ({})
+
+    function _addSession(path, priority, name, exec, desktopNames, hidden) {
+        const desktopId = desktopIdFromPath(path);
+        const existing = _sessionEntries[desktopId];
+        if (existing && existing.priority <= priority)
             return;
-        GreeterState.sessionList = GreeterState.sessionList.concat([name]);
-        GreeterState.sessionExecs = GreeterState.sessionExecs.concat([exec]);
-        GreeterState.sessionPaths = GreeterState.sessionPaths.concat([path]);
-        GreeterState.sessionDesktopIds = GreeterState.sessionDesktopIds.concat([desktopIdFromPath(path)]);
-        GreeterState.sessionDesktopNames = GreeterState.sessionDesktopNames.concat([desktopNames]);
+        _sessionEntries[desktopId] = {
+            "priority": priority,
+            "path": path,
+            "name": name,
+            "exec": exec,
+            "desktopNames": desktopNames,
+            "hidden": hidden
+        };
+        _rebuildSessionList();
     }
 
-    function _parseDesktopFile(content, path) {
+    function _rebuildSessionList() {
+        const names = [];
+        const execs = [];
+        const paths = [];
+        const desktopIds = [];
+        const desktopNamesList = [];
+        for (const desktopId in _sessionEntries) {
+            const entry = _sessionEntries[desktopId];
+            if (entry.hidden || !entry.name || !entry.exec || names.includes(entry.name))
+                continue;
+            names.push(entry.name);
+            execs.push(entry.exec);
+            paths.push(entry.path);
+            desktopIds.push(desktopId);
+            desktopNamesList.push(entry.desktopNames);
+        }
+        GreeterState.sessionList = names;
+        GreeterState.sessionExecs = execs;
+        GreeterState.sessionPaths = paths;
+        GreeterState.sessionDesktopIds = desktopIds;
+        GreeterState.sessionDesktopNames = desktopNamesList;
+
+        const selectedIdx = desktopIds.indexOf(GreeterState.selectedSessionDesktopId);
+        if (selectedIdx >= 0)
+            GreeterState.currentSessionIndex = selectedIdx;
+    }
+
+    function _parseDesktopFile(content, path, priority) {
         let name = "";
         let exec = "";
         let desktopNames = "";
+        let hidden = false;
+        let inDesktopEntry = false;
         const lines = content.split("\n");
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
+            const line = lines[i].trim();
+            if (line.startsWith("[")) {
+                inDesktopEntry = line === "[Desktop Entry]";
+                continue;
+            }
+            if (!inDesktopEntry)
+                continue;
             if (!name && line.startsWith("Name="))
                 name = line.substring(5).trim();
             else if (!exec && line.startsWith("Exec="))
                 exec = line.substring(5).trim();
             else if (!desktopNames && line.startsWith("DesktopNames="))
                 desktopNames = line.substring(13).trim();
+            else if (line === "Hidden=true" || line === "NoDisplay=true")
+                hidden = true;
         }
-        _addSession(path, name, exec, desktopNames);
+        _addSession(path, priority, name, exec, desktopNames, hidden);
     }
 
     function sessionLaunchEnv(sessionDesktopId, desktopNames) {
@@ -1604,14 +1658,15 @@ Item {
         return env;
     }
 
-    function _loadDesktopFile(filePath) {
+    function _loadDesktopFile(filePath, priority) {
         if (_pendingFiles[filePath])
             return;
         _pendingFiles[filePath] = true;
         _pendingCount++;
 
         const loader = desktopFileLoader.createObject(root, {
-            "filePath": filePath
+            "filePath": filePath,
+            "priority": priority
         });
     }
 
@@ -1627,10 +1682,11 @@ Item {
         FileView {
             id: fv
             property string filePath: ""
+            property int priority: 0
             path: filePath
 
             onLoaded: {
-                root._parseDesktopFile(text(), filePath);
+                root._parseDesktopFile(text(), filePath, priority);
                 root._onFileLoaded(filePath);
                 fv.destroy();
             }
@@ -1647,6 +1703,7 @@ Item {
 
         Item {
             required property string modelData
+            required property int index
 
             FolderListModel {
                 folder: encodeFileUrl(modelData)
@@ -1661,7 +1718,7 @@ Item {
                         let fp = get(i, "filePath");
                         if (fp.startsWith("file://"))
                             fp = fp.substring(7);
-                        root._loadDesktopFile(fp);
+                        root._loadDesktopFile(fp, index);
                     }
                 }
             }
