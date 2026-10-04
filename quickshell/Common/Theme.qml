@@ -206,6 +206,9 @@ Singleton {
     property color surfaceDim: currentThemeData.surfaceDim || (isLightMode ? surfaceContainer : background)
     readonly property color hostSurface: surface
     readonly property color cardSurface: surfaceContainer
+    readonly property color readableSurface: withAlpha(hostSurface, popupTransparency)
+    readonly property real avatarRingWidth: 0
+    readonly property color avatarRingColor: surfaceVariant
     readonly property color chipSurface: surfaceContainerHigh
     readonly property color chipSurfaceNested: surfaceContainerHighest
     property color primaryContainer: currentThemeData.primaryContainer || blend(surfaceContainerHigh, primary, 0.45)
@@ -215,6 +218,7 @@ Singleton {
     readonly property color selectedContainer: tonalPrimaryContainer ? primaryContainer : Contrast.tintedContainer(surfaceContainerHigh, primary, surfaceText)
     readonly property color accentOnPrimaryContainer: Contrast.ratio(primary, primaryContainer) >= 3 ? primary : onPrimaryContainer
     readonly property color contrastDark: "#000000"
+    readonly property color inversePrimary: currentThemeData.inversePrimary || primary
     readonly property color contrastLight: "#ffffff"
     property color inverseSurface: currentThemeData.inverseSurface || surfaceText
     property color inverseOnSurface: currentThemeData.inverseOnSurface || surface
@@ -454,6 +458,7 @@ Singleton {
     readonly property real cornerRadiusS: Shape.radius("s", shapeScale)
     readonly property real cornerRadiusM: Shape.radius("m", shapeScale)
     readonly property real cornerRadiusL: Shape.radius("l", shapeScale)
+    readonly property real cornerRadiusXL: Shape.radius("xl", shapeScale)
 
     function fullRadius(width, height) {
         return Shape.fullRadius(width, height, shapeScale);
@@ -490,6 +495,8 @@ Singleton {
     readonly property real buttonHeightXS: 32
     readonly property real buttonHeightM: 56
     readonly property real listItemHeight: 56
+    readonly property real listItemTwoLineHeight: 72
+    readonly property real groupedListGap: spacingXXS
     readonly property real menuItemHeight: 40
     readonly property real fieldDefaultWidth: 200
     readonly property real outlineWidth: 1
@@ -499,11 +506,27 @@ Singleton {
     readonly property color focusRingColor: primary
     readonly property real stateLayerHover: 0.08
     readonly property real stateLayerPressed: 0.12
+    readonly property real stateLayerDrag: 0.16
     readonly property real pendingOpacity: 0.6
+
+    function wallpaperPalette() {
+        return {
+            primary,
+            secondary,
+            tertiary,
+            primaryContainer,
+            secondaryContainer,
+            tertiaryContainer,
+            inversePrimary,
+            contrastDark,
+            surface
+        };
+    }
     readonly property color lockScreenContentColor: "#ffffff"
     readonly property real lockScreenScrimAlpha: 0.4
     readonly property real lockScreenBlur: 0.8
     readonly property int lockScreenBlurMax: 32
+    readonly property int wallpaperBlurMax: 75
     readonly property color screenOffColor: "#000000"
     readonly property real scrimAlpha: 0.55
     readonly property color scrimColor: "#000000"

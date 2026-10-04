@@ -5,6 +5,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Services
+import "../DankCommon/Common/MaterialWallpaper.js" as MaterialWallpaper
 import "../DankCommon/Common/settings/SharedSessionSpec.js" as Spec
 import "../DankCommon/Common/settings/SpecUtil.js" as SpecUtil
 
@@ -15,10 +16,14 @@ Singleton {
     property bool isLightMode: Spec.SPEC.isLightMode.def
     property string wallpaperPath: Spec.SPEC.wallpaperPath.def
     property bool perMonitorWallpaper: Spec.SPEC.perMonitorWallpaper.def
+    property bool perModeWallpaper: Spec.SPEC.perModeWallpaper.def
+    property var materialWallpapers: Spec.SPEC.materialWallpapers.def
     property var monitorWallpapers: Spec.SPEC.monitorWallpapers.def
     property var monitorWallpaperFillModes: Spec.SPEC.monitorWallpaperFillModes.def
     property string weatherLocation: Spec.SPEC.weatherLocation.def
     property string weatherCoordinates: Spec.SPEC.weatherCoordinates.def
+    property var desktopWidgetInstancePositions: Spec.SPEC.desktopWidgetInstancePositions.def
+    property var lockScreenAutoPositions: Spec.SPEC.lockScreenAutoPositions.def
 
     function readSession(content) {
         if (!content || !content.trim())
@@ -73,6 +78,36 @@ Singleton {
                 return map[key];
         }
         return undefined;
+    }
+
+    function _screenByName(screenName) {
+        return Array.from(Quickshell.screens).find(screen => screen.name === screenName) ?? null;
+    }
+
+    function materialWallpaperTarget(screenName) {
+        const screen = perMonitorWallpaper ? _screenByName(screenName) : null;
+        return {
+            screen: perMonitorWallpaper ? screenName : "",
+            key: screen ? SettingsData.getScreenDisplayName(screen) : "",
+            separate: perModeWallpaper,
+            light: isLightMode,
+            perMonitor: perMonitorWallpaper
+        };
+    }
+
+    function materialWallpaperEntry(target) {
+        const slot = target.separate ? (target.light ? "light" : "dark") : "shared";
+        const inherits = !target.perMonitor || _findMonitorValue(monitorWallpapers, target.screen) === undefined;
+        const slots = inherits ? materialWallpapers[""] : _findMonitorValue(materialWallpapers, target.screen);
+        const key = inherits ? "" : target.key;
+        return MaterialWallpaper.entry({
+            "": materialWallpapers[""],
+            [key]: slots
+        }, key, slot);
+    }
+
+    function getMonitorMaterialWallpaper(screenName) {
+        return MaterialWallpaper.composition(materialWallpaperEntry(materialWallpaperTarget(screenName)));
     }
 
     function getMonitorWallpaper(screenName) {

@@ -18,7 +18,7 @@ Built with [Quickshell](https://quickshell.org/) and [Go](https://go.dev/)
 
 </div>
 
-DMS Greeter is a login screen for [greetd](https://github.com/kennylevinsen/greetd) that looks and behaves like the [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) lock screen. It ships as a single `dms-greeter` binary with the Quickshell UI embedded, runs under niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC, or Aqueous, and syncs your DMS theme, wallpaper, and settings so the login screen matches your desktop.
+DMS Greeter is a login screen for [greetd](https://github.com/kennylevinsen/greetd) that looks and behaves like the [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) lock screen. It ships as a single `dms-greeter` binary with the Quickshell UI embedded, runs under niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC, or Aqueous, and syncs your DMS theme, wallpaper, and settings so the login screen matches your desktop. The lock screen widgets you arrange in DMS (clock, date, password field, status row, power button, with their styles and positions) render the same way here; desktop plugins and notifications stay on the lock screen.
 
 ## Repository Structure
 

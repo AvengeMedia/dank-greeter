@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Effects
-import QtQuick.Layouts
 import Qt.labs.folderlistmodel
 import Quickshell
 import Quickshell.Hyprland
@@ -21,16 +20,32 @@ Item {
         return "file://" + path.split('/').map(s => encodeURIComponent(s)).join('/');
     }
 
-    component ClockDigitText: StyledText {
-        font.pixelSize: LockMetrics.clockSize
-        font.weight: Theme.fontWeight
-        color: Theme.lockScreenContentColor
-        horizontalAlignment: Text.AlignHCenter
+    property Item authWidget: null
+    readonly property Item sessionDropdownItem: sessionDropdown
+    readonly property bool powerMenuVisible: powerMenu.isVisible
+
+    function clearInput() {
+        authWidget?.clearInput();
     }
 
-    onPamStateChanged: {
-        if (pamState !== "")
-            errorShake.restart();
+    function focusInput() {
+        authWidget?.focusInput();
+    }
+
+    function showPowerMenu() {
+        powerMenu.show();
+    }
+
+    function contentColor(mode, custom) {
+        switch (mode) {
+        case "primary":
+            return Theme.primary;
+        case "secondary":
+            return Theme.secondary;
+        case "custom":
+            return custom;
+        }
+        return Theme.lockScreenContentColor;
     }
 
     function cycleKeyboardLayout() {
@@ -138,7 +153,8 @@ Item {
             return;
         if (!GreetdSettings.settingsLoaded)
             return;
-        if (!SettingsData.lockScreenShowWeather)
+        const status = SettingsData.lockScreenWidgetInstances.find(instance => instance.widgetType === "lockStatus");
+        if (!status || status.enabled === false || status.config?.showWeather === false)
             return;
         weatherInitialized = true;
         WeatherService.addRef();
@@ -519,9 +535,9 @@ Item {
         root.userListOpen = false;
         GreeterState.username = "";
         GreeterState.usernameInput = "";
-        inputField.text = "";
+        root.clearInput();
         root.applyPickerPreviewTheme();
-        Qt.callLater(() => inputField.forceActiveFocus());
+        Qt.callLater(root.focusInput);
     }
 
     function returnToUserListFromManualEntry() {
@@ -531,7 +547,7 @@ Item {
         root.userListOpen = true;
         GreeterState.username = "";
         GreeterState.usernameInput = "";
-        inputField.text = "";
+        root.clearInput();
         root.applyPickerPreviewTheme();
     }
 
@@ -552,7 +568,7 @@ Item {
             Greetd.cancelSession();
         const previousUser = GreeterState.username;
         GreeterState.reset();
-        inputField.text = "";
+        root.clearInput();
         if (previousUser)
             root.pickerThemeUsername = previousUser;
         root.applyPickerPreviewTheme();
@@ -597,7 +613,7 @@ Item {
         // Some PAM stacks expect an explicit empty response to advance U2F/fprint or fail normally.
         Greetd.respond(GreeterState.passwordBuffer || "");
         GreeterState.passwordBuffer = "";
-        inputField.text = "";
+        root.clearInput();
         return true;
     }
 
@@ -794,6 +810,8 @@ Item {
     DankBackdrop {
         anchors.fill: parent
         screenName: root.screenName
+        blur: Theme.lockScreenBlur
+        blurMax: Theme.lockScreenBlurMax
         visible: root.wallpaperSource === "" || wallpaperBackground.status === Image.Error
     }
 
@@ -832,614 +850,23 @@ Item {
         opacity: Theme.lockScreenScrimAlpha
     }
 
-    SystemClock {
-        id: systemClock
-        precision: SystemClock.Seconds
+    MouseArea {
+        anchors.fill: parent
+        enabled: root.userListOpen
+        visible: root.userListOpen
+        onClicked: root.userListOpen = false
+    }
+
+    GreeterWidgetLayer {
+        anchors.fill: parent
+        focus: true
+        screenName: root.screenName
+        lockHost: root
     }
 
     Rectangle {
         anchors.fill: parent
         color: "transparent"
-
-        MouseArea {
-            anchors.fill: parent
-            enabled: root.userListOpen
-            visible: root.userListOpen
-            onClicked: root.userListOpen = false
-        }
-
-        Column {
-            id: greeterMainColumn
-
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacingM
-            width: Math.min(LockMetrics.passwordRowWidth, parent.width - Theme.spacingXL * 2)
-
-            Item {
-                id: clockContainer
-
-                width: parent.width
-                height: clockText.implicitHeight
-
-                Row {
-                    id: clockText
-
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.top: parent.top
-                    spacing: 0
-
-                    property string fullTimeStr: {
-                        const format = SettingsData.getEffectiveTimeFormat();
-                        return systemClock.date.toLocaleTimeString(I18n.locale(), format);
-                    }
-                    property var timeParts: fullTimeStr.split(':')
-                    property string hours: timeParts[0] || ""
-                    property string minutes: timeParts[1] || ""
-                    property string secondsWithAmPm: timeParts.length > 2 ? timeParts[2] : ""
-                    property string seconds: secondsWithAmPm.replace(/\s*(AM|PM|am|pm)$/i, '')
-                    property string ampm: {
-                        const match = fullTimeStr.match(/\s*(AM|PM|am|pm)$/i);
-                        return match ? match[0].trim() : "";
-                    }
-                    property bool hasSeconds: timeParts.length > 2
-
-                    ClockDigitText {
-                        width: clockText.hours.length > 1 ? LockMetrics.clockDigitWidth : 0
-                        text: clockText.hours.length > 1 ? clockText.hours[0] : ""
-                    }
-
-                    ClockDigitText {
-                        width: LockMetrics.clockDigitWidth
-                        text: clockText.hours.length > 1 ? clockText.hours[1] : clockText.hours.length > 0 ? clockText.hours[0] : ""
-                    }
-
-                    ClockDigitText {
-                        text: ":"
-                    }
-
-                    ClockDigitText {
-                        width: LockMetrics.clockDigitWidth
-                        text: clockText.minutes.length > 0 ? clockText.minutes[0] : ""
-                    }
-
-                    ClockDigitText {
-                        width: LockMetrics.clockDigitWidth
-                        text: clockText.minutes.length > 1 ? clockText.minutes[1] : ""
-                    }
-
-                    ClockDigitText {
-                        text: clockText.hasSeconds ? ":" : ""
-                        visible: clockText.hasSeconds
-                    }
-
-                    ClockDigitText {
-                        width: LockMetrics.clockDigitWidth
-                        text: clockText.hasSeconds && clockText.seconds.length > 0 ? clockText.seconds[0] : ""
-                        visible: clockText.hasSeconds
-                    }
-
-                    ClockDigitText {
-                        width: LockMetrics.clockDigitWidth
-                        text: clockText.hasSeconds && clockText.seconds.length > 1 ? clockText.seconds[1] : ""
-                        visible: clockText.hasSeconds
-                    }
-
-                    ClockDigitText {
-                        width: Theme.iconSizeSmall
-                        text: " "
-                        visible: clockText.ampm !== ""
-                    }
-
-                    ClockDigitText {
-                        text: clockText.ampm
-                        visible: clockText.ampm !== ""
-                    }
-                }
-            }
-
-            StyledText {
-                id: dateText
-
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: systemClock.date.toLocaleDateString(I18n.locale(), SettingsData.lockDateFormat !== "" ? SettingsData.lockDateFormat : Locale.LongFormat)
-                font.pixelSize: Theme.fontSizeXLarge
-                color: Theme.lockScreenContentColor
-            }
-
-            ColumnLayout {
-                id: authColumn
-
-                width: parent.width
-                spacing: Theme.spacingM
-
-                RowLayout {
-                    LayoutMirroring.enabled: I18n.isRtl
-                    LayoutMirroring.childrenInherit: true
-                    spacing: Theme.spacingM
-                    Layout.fillWidth: true
-
-                    Item {
-                        Layout.preferredWidth: LockMetrics.avatarSize
-                        Layout.preferredHeight: LockMetrics.avatarSize
-                        Layout.alignment: Qt.AlignTop
-                        visible: SettingsData.lockScreenShowProfileImage || root.pickerAvailable
-
-                        DankCircularImage {
-                            anchors.fill: parent
-                            imageSource: {
-                                const displayUser = GreeterState.username || root.pickerThemeUsername;
-                                if (!displayUser)
-                                    return "";
-                                const cachedPath = GreeterUsersService.profileImagePath(displayUser);
-                                if (!cachedPath)
-                                    return "";
-                                return encodeFileUrl(cachedPath);
-                            }
-                            fallbackIcon: "material:person"
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Theme.fullRadius(width, height)
-                            color: "transparent"
-                            border.color: Theme.focusRingColor
-                            border.width: (avatarPickerArea.containsMouse || root.userListOpen) && !GreeterState.showPasswordInput ? Theme.focusRingWidth : 0
-                            visible: root.pickerAvailable
-                            Behavior on border.width {
-                                NumberAnimation {
-                                    duration: LockMetrics.effectsDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Theme.fullRadius(width, height)
-                            color: Theme.withAlpha(Theme.scrimColor, Theme.scrimAlpha)
-                            opacity: (root.pickerAvailable && GreeterState.showPasswordInput && avatarPickerArea.containsMouse) ? 1 : 0
-                            visible: opacity > 0
-
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: LockMetrics.effectsDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                                }
-                            }
-
-                            DankIcon {
-                                anchors.centerIn: parent
-                                name: "switch_account"
-                                size: Theme.iconSize
-                                color: Theme.lockScreenContentColor
-                            }
-                        }
-
-                        MouseArea {
-                            id: avatarPickerArea
-
-                            anchors.fill: parent
-                            visible: root.pickerAvailable
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (GreeterState.showPasswordInput)
-                                    root.returnToUserPicker();
-                                else if (root.manualUsernameEntry)
-                                    root.returnToUserListFromManualEntry();
-                                else
-                                    root.userListOpen = !root.userListOpen;
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        id: passwordBox
-
-                        property bool showPassword: false
-                        property real errorOffset: 0
-
-                        transform: Translate {
-                            x: Math.max(-LockMetrics.shakeDistance, Math.min(LockMetrics.shakeDistance, passwordBox.errorOffset))
-                        }
-
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: root.showUserPicker && root.userListOpen ? Math.max(LockMetrics.fieldHeight, userPicker.implicitHeight + Theme.spacingM * 2) : LockMetrics.fieldHeight
-
-                        clip: true
-                        radius: Theme.fullRadius(width, LockMetrics.fieldHeight)
-                        color: Theme.cardSurface
-                        border.width: inputField.activeFocus ? Math.max(Theme.outlineWidth, Theme.focusRingWidth) : Theme.layerOutlineWidth
-                        border.color: inputField.activeFocus ? Theme.focusRingColor : Theme.outlineMedium
-
-                        GreeterUserPicker {
-                            id: userPicker
-
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: root.userListOpen ? undefined : parent.verticalCenter
-                            anchors.top: root.userListOpen ? parent.top : undefined
-                            anchors.margins: Theme.spacingM
-                            maxExpandedHeight: root.userPickerMaxHeight
-                            visible: root.showUserPicker && !GreeterState.showPasswordInput
-                            expanded: root.userListOpen
-                            autoLoginVisible: root.autoLoginAvailable
-                            autoLoginChecked: root.autoLoginOnSuccess
-                            manualEntryVisible: true
-                            onUserSelected: username => root.selectUser(username)
-                            onToggleRequested: root.userListOpen = !root.userListOpen
-                            onAutoLoginToggled: root.autoLoginOnSuccess = !root.autoLoginOnSuccess
-                            onManualEntryRequested: root.enterManualUsernameEntry()
-                        }
-
-                        DankIcon {
-                            id: lockIcon
-
-                            anchors.left: parent.left
-                            anchors.leftMargin: Theme.spacingM
-                            anchors.verticalCenter: parent.verticalCenter
-                            name: GreeterState.showPasswordInput ? "lock" : "person"
-                            size: Theme.iconSizeSmall
-                            color: inputField.activeFocus ? Theme.primary : Theme.surfaceVariantText
-                            visible: !root.showUserPicker
-                        }
-
-                        TextInput {
-                            id: inputField
-
-                            property bool syncingFromState: false
-
-                            anchors.fill: parent
-                            anchors.leftMargin: lockIcon.width + Theme.spacingM * 2
-                            anchors.rightMargin: {
-                                let margin = Theme.spacingM;
-                                if (GreeterState.showPasswordInput && revealButton.visible) {
-                                    margin += revealButton.width;
-                                }
-                                if (externalAuthButton.visible) {
-                                    margin += externalAuthButton.width;
-                                }
-                                if (virtualKeyboardButton.visible) {
-                                    margin += virtualKeyboardButton.width;
-                                }
-                                if (enterButton.visible) {
-                                    margin += enterButton.width + Theme.spacingXXS;
-                                }
-                                return margin;
-                            }
-                            enabled: !root.showUserPicker || GreeterState.showPasswordInput
-                            opacity: 0
-                            focus: !root.showUserPicker || GreeterState.showPasswordInput
-                            echoMode: GreeterState.showPasswordInput ? (parent.showPassword ? TextInput.Normal : TextInput.Password) : TextInput.Normal
-                            KeyNavigation.tab: virtualKeyboardButton.visible ? virtualKeyboardButton : sessionDropdown
-                            KeyNavigation.backtab: powerButton.visible ? powerButton : sessionDropdown
-
-                            Keys.onPressed: event => {
-                                if (event.key === Qt.Key_Tab && GreeterState.showPasswordInput && (!text || text.length === 0) && !(event.modifiers & (Qt.ShiftModifier | Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && root.greeterExternalAuthAvailable && !root.externalAuthInProgress && !pendingPasswordResponse && Greetd.state === GreetdState.Inactive && !GreeterState.unlocking) {
-                                    root.startAuthSession(false);
-                                    event.accepted = true;
-                                    return;
-                                }
-                            }
-
-                            // Contract the on-screen Keyboard drives its target through.
-                            function insertText(value) {
-                                if (value)
-                                    insert(cursorPosition, value);
-                            }
-
-                            function backspace() {
-                                if (cursorPosition > 0)
-                                    remove(cursorPosition - 1, cursorPosition);
-                            }
-
-                            onTextChanged: {
-                                if (syncingFromState)
-                                    return;
-                                if (GreeterState.showPasswordInput) {
-                                    GreeterState.passwordBuffer = text;
-                                    if (!text || text.length === 0)
-                                        root.passwordSubmitRequested = false;
-                                } else {
-                                    GreeterState.usernameInput = text;
-                                }
-                            }
-                            onAccepted: {
-                                if (GreeterState.showPasswordInput) {
-                                    root.startAuthSession(true);
-                                } else {
-                                    if (text.trim()) {
-                                        root.submitUsername(text);
-                                        syncingFromState = true;
-                                        text = "";
-                                        syncingFromState = false;
-                                    }
-                                }
-                            }
-
-                            Component.onCompleted: {
-                                syncingFromState = true;
-                                text = GreeterState.showPasswordInput ? GreeterState.passwordBuffer : GreeterState.usernameInput;
-                                syncingFromState = false;
-                                if (isPrimaryScreen && !powerMenu.isVisible)
-                                    forceActiveFocus();
-                            }
-                            onVisibleChanged: {
-                                if (visible && isPrimaryScreen && !powerMenu.isVisible)
-                                    forceActiveFocus();
-                            }
-                        }
-
-                        KeyboardController {
-                            id: keyboard_controller
-                            target: inputField
-                            rootObject: root
-                            expressive: true
-                        }
-
-                        StyledText {
-                            id: placeholder
-
-                            anchors.left: lockIcon.right
-                            anchors.leftMargin: Theme.spacingM
-                            anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (externalAuthButton.visible ? externalAuthButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right))))
-                            anchors.rightMargin: Theme.spacingXXS
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: {
-                                if (GreeterState.unlocking) {
-                                    return I18n.tr("Logging in...");
-                                }
-                                if (Greetd.state !== GreetdState.Inactive && !awaitingExternalAuth && !pendingPasswordResponse) {
-                                    return I18n.tr("Authenticating...");
-                                }
-                                if (GreeterState.showPasswordInput) {
-                                    return I18n.tr("Password...");
-                                }
-                                if (root.showUserPicker) {
-                                    return "";
-                                }
-                                return I18n.tr("Username...");
-                            }
-                            color: (GreeterState.unlocking || (Greetd.state !== GreetdState.Inactive && !awaitingExternalAuth && !pendingPasswordResponse)) ? Theme.primary : Theme.outline
-                            font.pixelSize: Theme.fontSizeMedium
-                            opacity: (GreeterState.showPasswordInput ? GreeterState.passwordBuffer.length === 0 : (root.showUserPicker ? false : GreeterState.usernameInput.length === 0)) ? 1 : 0
-
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: LockMetrics.effectsDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                                }
-                            }
-
-                            Behavior on color {
-                                ColorAnimation {
-                                    duration: LockMetrics.effectsDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                                }
-                            }
-                        }
-
-                        StyledText {
-                            anchors.left: lockIcon.right
-                            anchors.leftMargin: Theme.spacingM
-                            anchors.right: (GreeterState.showPasswordInput && revealButton.visible ? revealButton.left : (externalAuthButton.visible ? externalAuthButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right))))
-                            anchors.rightMargin: Theme.spacingXXS
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: {
-                                if (GreeterState.showPasswordInput) {
-                                    if (parent.showPassword) {
-                                        return GreeterState.passwordBuffer;
-                                    }
-                                    return "•".repeat(GreeterState.passwordBuffer.length);
-                                }
-                                return GreeterState.usernameInput;
-                            }
-                            color: Theme.surfaceText
-                            font.pixelSize: (GreeterState.showPasswordInput && !parent.showPassword) ? Theme.fontSizeLarge : Theme.fontSizeMedium
-                            opacity: (GreeterState.showPasswordInput ? GreeterState.passwordBuffer.length > 0 : (root.showUserPicker ? false : GreeterState.usernameInput.length > 0)) ? 1 : 0
-                            clip: true
-                            elide: Text.ElideNone
-                            horizontalAlignment: implicitWidth > width ? Text.AlignRight : Text.AlignLeft
-
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: LockMetrics.effectsDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                                }
-                            }
-                        }
-
-                        LockActionButton {
-                            id: revealButton
-
-                            activeFocusOnTab: false
-                            Accessible.name: parent.showPassword ? I18n.tr("Hide password") : I18n.tr("Show password")
-
-                            anchors.right: externalAuthButton.visible ? externalAuthButton.left : (virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right))
-                            anchors.rightMargin: 0
-                            anchors.verticalCenter: parent.verticalCenter
-                            iconName: parent.showPassword ? "visibility_off" : "visibility"
-                            buttonSize: Theme.buttonHeightXS
-                            visible: GreeterState.showPasswordInput && GreeterState.passwordBuffer.length > 0 && (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking
-                            enabled: visible
-                            onClicked: parent.showPassword = !parent.showPassword
-                        }
-                        LockActionButton {
-                            id: externalAuthButton
-
-                            activeFocusOnTab: false
-                            tooltipText: root.greeterPamHasFprint ? I18n.tr("Fingerprint") : (root.greeterPamHasFaceAuth ? I18n.tr("Face recognition") : I18n.tr("Security key"))
-
-                            anchors.right: virtualKeyboardButton.visible ? virtualKeyboardButton.left : (enterButton.visible ? enterButton.left : parent.right)
-                            anchors.rightMargin: 0
-                            anchors.verticalCenter: parent.verticalCenter
-                            iconName: root.greeterPamHasFprint ? "fingerprint" : (root.greeterPamHasFaceAuth ? "face" : "key")
-                            buttonSize: Theme.buttonHeightXS
-                            visible: GreeterState.showPasswordInput && root.greeterExternalAuthAvailable && GreeterState.passwordBuffer.length === 0 && (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking
-                            enabled: visible
-                            onClicked: root.startAuthSession(false)
-                        }
-                        LockActionButton {
-                            id: virtualKeyboardButton
-
-                            Accessible.name: I18n.tr("Keyboard")
-                            KeyNavigation.tab: sessionDropdown
-                            KeyNavigation.backtab: inputField
-                            Keys.onEscapePressed: {
-                                keyboard_controller.hide();
-                                inputField.forceActiveFocus();
-                            }
-
-                            anchors.right: enterButton.visible ? enterButton.left : parent.right
-                            anchors.rightMargin: enterButton.visible ? 0 : Theme.spacingS
-                            anchors.verticalCenter: parent.verticalCenter
-                            iconName: "keyboard"
-                            buttonSize: Theme.buttonHeightXS
-                            visible: (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking && (!root.showUserPicker || GreeterState.showPasswordInput)
-                            enabled: visible
-                            onClicked: {
-                                if (keyboard_controller.isKeyboardActive) {
-                                    keyboard_controller.hide();
-                                } else {
-                                    keyboard_controller.show();
-                                }
-                            }
-                        }
-
-                        LockActionButton {
-                            id: enterButton
-
-                            activeFocusOnTab: false
-                            Accessible.name: I18n.tr("Login")
-
-                            anchors.right: parent.right
-                            anchors.rightMargin: Theme.spacingXXS
-                            anchors.verticalCenter: parent.verticalCenter
-                            iconName: "keyboard_return"
-                            buttonSize: Theme.buttonHeightXS
-                            visible: (Greetd.state === GreetdState.Inactive || awaitingExternalAuth || pendingPasswordResponse) && !GreeterState.unlocking && (!root.showUserPicker || GreeterState.showPasswordInput)
-                            enabled: true
-                            onClicked: {
-                                if (GreeterState.showPasswordInput) {
-                                    root.startAuthSession(true);
-                                } else {
-                                    if (inputField.text.trim()) {
-                                        root.submitUsername(inputField.text);
-                                        inputField.text = "";
-                                    }
-                                }
-                            }
-
-                            Behavior on opacity {
-                                NumberAnimation {
-                                    duration: LockMetrics.effectsDuration
-                                    easing.type: Easing.BezierSpline
-                                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                                }
-                            }
-                        }
-
-                        Behavior on border.color {
-                            ColorAnimation {
-                                duration: LockMetrics.effectsDuration
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                            }
-                        }
-
-                        Behavior on Layout.preferredHeight {
-                            NumberAnimation {
-                                duration: LockMetrics.effectsDuration
-                                easing.type: Easing.BezierSpline
-                                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                            }
-                        }
-                    }
-                }
-
-                Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: root.showAccountSwitchLink ? Theme.buttonHeightXS : 0
-                    visible: root.showAccountSwitchLink
-
-                    StyledText {
-                        id: accountSwitchLabel
-
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: I18n.tr("Back to user list", "greeter link to return from manual username entry to user picker")
-                        color: Theme.primary
-                        font.pixelSize: Theme.fontSizeSmall
-                        font.underline: accountSwitchMouse.containsMouse
-                    }
-
-                    MouseArea {
-                        id: accountSwitchMouse
-
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: root.returnToUserListFromManualEntry()
-                    }
-                }
-
-                StyledText {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: Math.ceil(Theme.fontSizeSmall * 3)
-                    Layout.topMargin: -Theme.spacingS
-                    Layout.bottomMargin: -Theme.spacingS
-                    text: root.authDisplayMessage
-                    color: root.authFeedbackMessage !== "" ? Theme.error : Theme.lockScreenContentColor
-                    font.pixelSize: Theme.fontSizeSmall
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 2
-                    opacity: root.authDisplayMessage !== "" ? 1 : 0
-
-                    Behavior on opacity {
-                        NumberAnimation {
-                            duration: LockMetrics.effectsDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                        }
-                    }
-                }
-            }
-        }
-
-        GreeterStatusRow {
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.margins: Theme.spacingXL
-            showWeather: SettingsData.lockScreenShowWeather
-            useFahrenheit: SettingsData.useFahrenheit
-            keyboardLayoutVisible: root.keyboardLayoutCount > 1
-            keyboardLayoutLabel: root.keyboardLayoutLabel
-            onKeyboardLayoutCycleRequested: root.cycleKeyboardLayout()
-        }
-
-        LockActionButton {
-            id: powerButton
-
-            Accessible.name: I18n.tr("Power Options")
-            KeyNavigation.tab: inputField
-            KeyNavigation.backtab: sessionDropdown
-            anchors.bottom: parent.bottom
-            anchors.left: parent.left
-            anchors.margins: Theme.spacingXL
-            visible: SettingsData.lockScreenShowPowerActions
-            iconName: "power_settings_new"
-            iconColor: Theme.onSecondaryContainer
-            backgroundColor: Theme.secondaryContainer
-            radius: pressed ? Theme.cornerRadiusS : Theme.fullRadius(width, height)
-            buttonSize: Theme.buttonHeightM
-            onClicked: powerMenu.show()
-        }
 
         Item {
             anchors.bottom: parent.bottom
@@ -1475,9 +902,9 @@ Item {
             DankDropdown {
                 id: sessionDropdown
                 anchors.fill: parent
-                focusReturnTarget: inputField
-                KeyNavigation.tab: powerButton.visible ? powerButton : inputField
-                KeyNavigation.backtab: virtualKeyboardButton.visible ? virtualKeyboardButton : inputField
+                focusReturnTarget: root.authWidget ? root.authWidget.inputItem : null
+                KeyNavigation.tab: root.authWidget ? root.authWidget.inputItem : sessionDropdown
+                KeyNavigation.backtab: root.authWidget ? root.authWidget.inputItem : sessionDropdown
                 text: ""
                 description: ""
                 backgroundColor: Theme.cardSurface
@@ -1766,7 +1193,7 @@ Item {
             }
             authFeedbackMessage = currentAuthMessage();
             GreeterState.passwordBuffer = "";
-            inputField.text = "";
+            root.clearInput();
             placeholderDelay.restart();
             Greetd.cancelSession();
         }
@@ -1782,7 +1209,7 @@ Item {
             GreeterState.pamState = "error";
             authFeedbackMessage = currentAuthMessage();
             GreeterState.passwordBuffer = "";
-            inputField.text = "";
+            root.clearInput();
             placeholderDelay.restart();
             Greetd.cancelSession();
         }
@@ -1818,7 +1245,7 @@ Item {
             GreeterState.pamState = "error";
             authFeedbackMessage = currentAuthMessage();
             GreeterState.passwordBuffer = "";
-            inputField.text = "";
+            root.clearInput();
             placeholderDelay.restart();
             Greetd.cancelSession();
         }
@@ -1846,35 +1273,6 @@ Item {
         onTriggered: clearAuthFeedback()
     }
 
-    SequentialAnimation {
-        id: errorShake
-
-        NumberAnimation {
-            target: passwordBox
-            property: "errorOffset"
-            to: LockMetrics.shakeDistance
-            duration: LockMetrics.shakeDuration / 3
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
-        }
-        NumberAnimation {
-            target: passwordBox
-            property: "errorOffset"
-            to: -LockMetrics.shakeDistance
-            duration: LockMetrics.shakeDuration / 3
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
-        }
-        NumberAnimation {
-            target: passwordBox
-            property: "errorOffset"
-            to: 0
-            duration: LockMetrics.shakeDuration / 3
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Theme.expressiveCurves.expressiveFastSpatial
-        }
-    }
-
     LockPowerMenu {
         id: powerMenu
         expressive: true
@@ -1886,9 +1284,8 @@ Item {
         powerMenuGridLayoutOverride: SettingsData.powerMenuGridLayout
         requiredActions: ["poweroff"]
         onClosed: {
-            if (isPrimaryScreen && inputField && inputField.forceActiveFocus) {
-                Qt.callLater(() => inputField.forceActiveFocus());
-            }
+            if (isPrimaryScreen)
+                Qt.callLater(root.focusInput);
         }
     }
 }

@@ -79,6 +79,8 @@ Singleton {
     property string lockScreenWallpaperPath: Spec.SPEC.lockScreenWallpaperPath.def
     property string lockScreenWallpaperFillMode: Spec.SPEC.lockScreenWallpaperFillMode.def
     property string lockScreenFontFamily: Spec.SPEC.lockScreenFontFamily.def
+    property var lockScreenWidgetInstances: Spec.SPEC.lockScreenWidgetInstances.def
+    property string displayNameMode: Spec.SPEC.displayNameMode.def
 
     property bool greeterRememberLastSession: Spec.SPEC.greeterRememberLastSession.def
     property bool greeterRememberLastUser: Spec.SPEC.greeterRememberLastUser.def
@@ -116,6 +118,15 @@ Singleton {
         default:
             return "#000000";
         }
+    }
+
+    function getScreenDisplayName(screen) {
+        if (!screen)
+            return "";
+        if (displayNameMode !== "model" || !screen.model)
+            return screen.name;
+        const siblings = Array.from(Quickshell.screens).filter(s => s.model === screen.model).sort((a, b) => a.name.localeCompare(b.name));
+        return siblings.length > 1 ? screen.model + "-" + siblings.indexOf(screen) : screen.model;
     }
 
     function getEffectiveTimeFormat() {
