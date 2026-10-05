@@ -429,7 +429,7 @@ Item {
                         if (root.authenticating)
                             return I18n.tr("Authenticating...");
                         if (GreeterState.showPasswordInput)
-                            return I18n.tr("Password...");
+                            return root.passwordVisibility === "always" ? I18n.tr("Password...") : "";
                         if (root.pickerPhase)
                             return "";
                         return I18n.tr("Username...");
@@ -681,25 +681,28 @@ Item {
             }
         }
 
-        StyledText {
-            Layout.fillWidth: true
-            Layout.preferredHeight: Math.ceil(Theme.fontSizeSmall * 3)
-            Layout.topMargin: -Theme.spacingS
-            Layout.bottomMargin: -Theme.spacingS
-            text: root.host?.authDisplayMessage ?? ""
-            color: (root.host?.authFeedbackMessage ?? "") !== "" ? Theme.error : Theme.lockScreenContentColor
-            font.pixelSize: Theme.fontSizeSmall
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.WordWrap
-            maximumLineCount: 2
-            opacity: text !== "" ? 1 : 0
+    }
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: LockMetrics.effectsDuration
-                    easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
-                }
+    // Hangs below the box like the DMS lock widget so a centred box centres the field.
+    StyledText {
+        anchors.top: authColumn.bottom
+        anchors.topMargin: Theme.spacingS
+        anchors.left: parent.left
+        anchors.right: parent.right
+        text: root.host?.authDisplayMessage ?? ""
+        color: (root.host?.authFeedbackMessage ?? "") !== "" ? Theme.error : Theme.lockScreenContentColor
+        font.pixelSize: Theme.fontSizeSmall
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.WordWrap
+        maximumLineCount: 2
+        elide: Text.ElideRight
+        opacity: text !== "" ? 1 : 0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: LockMetrics.effectsDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
             }
         }
     }

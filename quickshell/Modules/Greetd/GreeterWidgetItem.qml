@@ -12,7 +12,7 @@ Item {
     readonly property string instanceId: instanceData?.id ?? ""
     readonly property string widgetType: instanceData?.widgetType ?? ""
     readonly property bool hasSavedPosition: geometry.hasSavedPosition
-    readonly property bool automaticPlacement: widgetType === "lockClock" && (instanceData?.config?.autoPosition ?? true) && !hasSavedPosition
+    readonly property bool automaticPlacement: widgetType === "desktopClock" && (instanceData?.config?.autoPosition ?? true) && !hasSavedPosition
     readonly property var stock: hostLayer.stockRect(widgetType, root)
 
     x: geometry.widgetX
@@ -40,7 +40,7 @@ Item {
         focus: root.widgetType === "lockAuth"
         sourceComponent: {
             switch (root.widgetType) {
-            case "lockClock":
+            case "desktopClock":
                 return clockComponent;
             case "lockDate":
                 return dateComponent;

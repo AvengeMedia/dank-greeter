@@ -13,7 +13,7 @@ FocusScope {
 
     readonly property var screen: Quickshell.screens.find(s => s.name === screenName) ?? null
     readonly property string screenKey: SettingsData.getScreenDisplayName(screen)
-    readonly property var supportedTypes: ["lockClock", "lockDate", "lockAuth", "lockStatus", "lockPower"]
+    readonly property var supportedTypes: ["desktopClock", "lockDate", "lockAuth", "lockStatus", "lockPower"]
     readonly property var instances: (SettingsData.lockScreenWidgetInstances || []).filter(instance => supportedTypes.includes(instance.widgetType))
     readonly property real edgeInset: Theme.spacingXL * 2
 
@@ -38,7 +38,7 @@ FocusScope {
 
     function dateForClock(item) {
         const date = itemOfType("lockDate");
-        return item && item === itemOfType("lockClock") && date && !date.hasSavedPosition ? date : null;
+        return item && item === itemOfType("desktopClock") && date && !date.hasSavedPosition ? date : null;
     }
 
     function dateOffset(item) {
@@ -69,9 +69,9 @@ FocusScope {
     // Same stock layout as the DMS lock screen.
     function stockRect(widgetType, item) {
         const centerX = (width - item.width) / 2;
-        const clock = itemOfType("lockClock");
+        const clock = itemOfType("desktopClock");
         switch (widgetType) {
-        case "lockClock":
+        case "desktopClock":
             {
                 const published = item.automaticPlacement ? publishedPosition(item.instanceId) : null;
                 if (published)
