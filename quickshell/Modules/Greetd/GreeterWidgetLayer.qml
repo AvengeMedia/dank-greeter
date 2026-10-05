@@ -13,8 +13,8 @@ FocusScope {
 
     readonly property var screen: Quickshell.screens.find(s => s.name === screenName) ?? null
     readonly property string screenKey: SettingsData.getScreenDisplayName(screen)
-    readonly property var supportedTypes: ["desktopClock", "lockDate", "lockAuth", "lockStatus", "lockPower"]
-    readonly property var instances: (SettingsData.lockScreenWidgetInstances || []).filter(instance => supportedTypes.includes(instance.widgetType))
+    readonly property var supportedTypes: ["desktopClock", "lockDate", "lockAuth", "lockStatus", "lockPower", "greeterSession"]
+    readonly property var instances: (SettingsData.greeterWidgetInstances || []).filter(instance => supportedTypes.includes(instance.widgetType))
     readonly property real edgeInset: Theme.spacingXL * 2
 
     function showsOnScreen(prefs) {
@@ -49,7 +49,10 @@ FocusScope {
     // DMS publishes the placement it resolved per screen; a screen the greeter names differently
     // falls back to another screen's placement scaled to this size.
     function publishedPosition(instanceId) {
-        const all = SessionData.lockScreenAutoPositions;
+        return positionFrom(SessionData.greeterAutoPositions, instanceId) ?? positionFrom(SessionData.lockScreenAutoPositions, instanceId);
+    }
+
+    function positionFrom(all, instanceId) {
         const exact = all[screenKey];
         if (exact?.positions?.[instanceId])
             return exact.positions[instanceId];
@@ -102,6 +105,11 @@ FocusScope {
         case "lockPower":
             return {
                 x: Theme.spacingXL,
+                y: height - Theme.spacingXL - item.height
+            };
+        case "greeterSession":
+            return {
+                x: width - Theme.spacingXL - item.width,
                 y: height - Theme.spacingXL - item.height
             };
         }

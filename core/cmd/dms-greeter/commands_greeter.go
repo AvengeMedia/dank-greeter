@@ -145,6 +145,34 @@ var greeterStatusCmd = &cobra.Command{
 	},
 }
 
+var greeterUnlinkCmd = &cobra.Command{
+	Use:   "unlink",
+	Short: "Stop syncing this user's DMS settings to the greeter",
+	Long:  "Remove your per-user greeter slot and any cache-root links that point at your home. greetd, PAM and other users' slots are untouched. Run 'dms-greeter sync' (or 'sync --profile' on secondary accounts) to link again.",
+	PreRunE: func(cmd *cobra.Command, args []string) error {
+		if err := rejectNixOSGreeterMutation(cmd); err != nil {
+			return err
+		}
+		if !greeter.UnlinkNeedsPrivilege() {
+			return nil
+		}
+		return preRunPrivileged(cmd, args)
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		yes, _ := cmd.Flags().GetBool("yes")
+		term, _ := cmd.Flags().GetBool("terminal")
+		if term {
+			if err := unlinkInTerminal(yes); err != nil {
+				log.Fatalf("Error launching unlink in terminal: %v", err)
+			}
+			return
+		}
+		if err := unlinkGreeter(yes); err != nil {
+			log.Fatalf("Error unlinking greeter: %v", err)
+		}
+	},
+}
+
 var greeterUninstallCmd = &cobra.Command{
 	Use:     "uninstall",
 	Short:   "Remove DMS greeter configuration and restore previous display manager",
@@ -177,6 +205,8 @@ func init() {
 	greeterEnableCmd.Flags().BoolP("terminal", "t", false, "Run in a new terminal (for entering sudo password)")
 	greeterUninstallCmd.Flags().BoolP("yes", "y", false, "Non-interactive: skip confirmation prompt")
 	greeterUninstallCmd.Flags().BoolP("terminal", "t", false, "Run in a new terminal (for entering sudo password)")
+	greeterUnlinkCmd.Flags().BoolP("yes", "y", false, "Non-interactive: skip confirmation prompt")
+	greeterUnlinkCmd.Flags().BoolP("terminal", "t", false, "Run in a new terminal (for entering sudo password)")
 
 	greeterSyncCmd.Flags().BoolP("yes", "y", false, "Non-interactive mode: skip prompts, use defaults (for UI)")
 	greeterSyncCmd.Flags().BoolP("terminal", "t", false, "Run sync in a new terminal (for entering sudo password); terminal auto-closes when done")
@@ -189,7 +219,7 @@ func init() {
 	greeterLaunchSessionCmd.Flags().Bool("from-memory", false, "Resolve the session id from greeter memory")
 	greeterLaunchSessionCmd.Flags().String("cache-dir", greeter.GreeterCacheDir, "Greeter cache directory")
 
-	rootCmd.AddCommand(greeterInstallCmd, greeterSyncCmd, greeterEnableCmd, greeterStatusCmd, greeterUninstallCmd, greeterLaunchSessionCmd)
+	rootCmd.AddCommand(greeterInstallCmd, greeterSyncCmd, greeterEnableCmd, greeterStatusCmd, greeterUnlinkCmd, greeterUninstallCmd, greeterLaunchSessionCmd)
 }
 
 func rejectNixOSGreeterMutation(cmd *cobra.Command) error {

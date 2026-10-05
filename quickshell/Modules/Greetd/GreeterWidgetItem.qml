@@ -50,6 +50,8 @@ Item {
                 return statusComponent;
             case "lockPower":
                 return powerComponent;
+            case "greeterSession":
+                return sessionComponent;
             }
             return null;
         }
@@ -82,5 +84,10 @@ Item {
     Component {
         id: powerComponent
         GreeterPowerWidget {}
+    }
+
+    Component {
+        id: sessionComponent
+        GreeterSessionWidget {}
     }
 }

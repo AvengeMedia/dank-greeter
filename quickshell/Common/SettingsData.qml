@@ -80,6 +80,7 @@ Singleton {
     property string lockScreenWallpaperFillMode: Spec.SPEC.lockScreenWallpaperFillMode.def
     property string lockScreenFontFamily: Spec.SPEC.lockScreenFontFamily.def
     property var lockScreenWidgetInstances: Spec.SPEC.lockScreenWidgetInstances.def
+    property var greeterWidgetInstances: Spec.SPEC.greeterWidgetInstances.def
     property string displayNameMode: Spec.SPEC.displayNameMode.def
 
     property bool greeterRememberLastSession: Spec.SPEC.greeterRememberLastSession.def
@@ -163,6 +164,9 @@ Singleton {
             const value = spec.coerce ? spec.coerce(settings[key]) : settings[key];
             root[key] = value !== undefined ? value : SpecUtil.cloneDef(spec.def);
         }
+        // DMS versions before the greeter list only synced the lock widgets.
+        if (!("greeterWidgetInstances" in settings) && Array.isArray(settings.lockScreenWidgetInstances))
+            root.greeterWidgetInstances = Spec.greeterWidgetsFromLock(settings.lockScreenWidgetInstances, []);
         if (typeof Theme !== "undefined")
             Theme.applyGreeterTheme(currentThemeName);
         loaded = true;

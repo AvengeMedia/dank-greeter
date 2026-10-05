@@ -24,6 +24,7 @@ Singleton {
     property string weatherCoordinates: Spec.SPEC.weatherCoordinates.def
     property var desktopWidgetInstancePositions: Spec.SPEC.desktopWidgetInstancePositions.def
     property var lockScreenAutoPositions: Spec.SPEC.lockScreenAutoPositions.def
+    property var greeterAutoPositions: Spec.SPEC.greeterAutoPositions.def
 
     function readSession(content) {
         if (!content || !content.trim())

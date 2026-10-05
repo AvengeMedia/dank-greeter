@@ -21,7 +21,7 @@ Item {
     }
 
     property Item authWidget: null
-    readonly property Item sessionDropdownItem: sessionDropdown
+    property Item sessionDropdownItem: null
     readonly property bool powerMenuVisible: powerMenu.isVisible
 
     function clearInput() {
@@ -153,7 +153,7 @@ Item {
             return;
         if (!GreetdSettings.settingsLoaded)
             return;
-        const status = SettingsData.lockScreenWidgetInstances.find(instance => instance.widgetType === "lockStatus");
+        const status = SettingsData.greeterWidgetInstances.find(instance => instance.widgetType === "lockStatus");
         if (!status || status.enabled === false || status.config?.showWeather === false)
             return;
         weatherInitialized = true;
@@ -862,74 +862,6 @@ Item {
         focus: true
         screenName: root.screenName
         lockHost: root
-    }
-
-    Rectangle {
-        anchors.fill: parent
-        color: "transparent"
-
-        Item {
-            anchors.bottom: parent.bottom
-            anchors.right: parent.right
-            anchors.margins: Theme.spacingXL
-            width: Math.max(Theme.fieldDefaultWidth, currentSessionMetrics.width + Theme.buttonHeightM + Theme.spacingXL)
-            height: LockMetrics.fieldHeight
-
-            StyledTextMetrics {
-                id: currentSessionMetrics
-                text: root.currentSessionName
-            }
-
-            property real longestSessionWidth: {
-                let maxWidth = 0;
-                for (var i = 0; i < sessionMetricsRepeater.count; i++) {
-                    const item = sessionMetricsRepeater.itemAt(i);
-                    if (item && item.width > maxWidth) {
-                        maxWidth = item.width;
-                    }
-                }
-                return maxWidth;
-            }
-
-            Repeater {
-                id: sessionMetricsRepeater
-                model: GreeterState.sessionList
-                delegate: StyledTextMetrics {
-                    text: modelData
-                }
-            }
-
-            DankDropdown {
-                id: sessionDropdown
-                anchors.fill: parent
-                focusReturnTarget: root.authWidget ? root.authWidget.inputItem : null
-                KeyNavigation.tab: root.authWidget ? root.authWidget.inputItem : sessionDropdown
-                KeyNavigation.backtab: root.authWidget ? root.authWidget.inputItem : sessionDropdown
-                text: ""
-                description: ""
-                backgroundColor: Theme.cardSurface
-                hoverBackgroundColor: Theme.blend(Theme.cardSurface, Theme.onSurface, Theme.stateLayerHover)
-                normalBorderColor: Theme.outlineMedium
-                currentValue: root.currentSessionName
-                options: GreeterState.sessionList
-                enableFuzzySearch: GreeterState.sessionList.length > 5
-                popupWidthOffset: 0
-                popupWidth: Math.max(Theme.fieldDefaultWidth + Theme.buttonHeightM, parent.longestSessionWidth + Theme.buttonHeightM + Theme.spacingXL * 2)
-                openUpwards: true
-                alignPopupRight: true
-                onValueChanged: value => {
-                    const idx = GreeterState.sessionList.indexOf(value);
-                    if (idx < 0)
-                        return;
-                    GreeterState.sessionManuallySelected = true;
-                    GreeterState.currentSessionIndex = idx;
-                    GreeterState.selectedSession = GreeterState.sessionExecs[idx];
-                    GreeterState.selectedSessionPath = GreeterState.sessionPaths[idx];
-                    GreeterState.selectedSessionDesktopId = GreeterState.sessionDesktopIds[idx];
-                    GreeterState.selectedSessionDesktopNames = GreeterState.sessionDesktopNames[idx] || "";
-                }
-            }
-        }
     }
 
     property string currentSessionName: GreeterState.sessionList[GreeterState.currentSessionIndex] || ""
