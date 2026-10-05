@@ -4,12 +4,12 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.DankCommon.Common as DankCommon
+import qs.DCommon.Common as DCommon
 import qs.Modules.Greetd
 import qs.Services
-import "../DankCommon/Common/Shape.js" as Shape
-import "../DankCommon/Common/Contrast.js" as Contrast
-import "../DankCommon/Common/settings/SharedSettingsSpec.js" as Spec
+import "../DCommon/Common/Shape.js" as Shape
+import "../DCommon/Common/Contrast.js" as Contrast
+import "../DCommon/Common/settings/SharedSettingsSpec.js" as Spec
 import "StockThemes.js" as StockThemes
 
 Singleton {
@@ -466,13 +466,13 @@ Singleton {
 
     function resolvedFontFamily(family) {
         if (family === defaultFontFamily)
-            return DankCommon.Fonts.sans;
+            return DCommon.Fonts.sans;
         return family;
     }
 
     function resolvedMonoFontFamily(family) {
         if (family === defaultMonoFontFamily)
-            return DankCommon.Fonts.mono;
+            return DCommon.Fonts.mono;
         return family;
     }
 

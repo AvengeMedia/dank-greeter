@@ -31,7 +31,7 @@ dank-greeter/
 │   ├── Services/       # Read-only status (network, battery, audio, weather)
 │   ├── Widgets/        # Dank UI controls
 │   ├── Common/         # Shared resources, themes, and i18n
-│   ├── DankCommon/     # → symlink into the dank-qml-common submodule
+│   ├── DCommon/     # → symlink into the dank-qml-common submodule
 │   └── translations/   # POEditor-managed string catalogs
 ├── dank-qml-common/    # Shared DMS widget library (git submodule)
 ├── core/               # Go backend and CLI

@@ -138,12 +138,12 @@ stage_go_toolchains() {
     printf '%s' "$ver"
 }
 
-# Pack current checkout for git OBS builds (submodule + vendor + DankCommon link)
+# Pack current checkout for git OBS builds (submodule + vendor + DCommon link)
 pack_git_source_tree() {
     local dest_dir="$1"
     local tmp pack_root
 
-    if [[ ! -e "$REPO_ROOT/dank-qml-common/DankCommon/Widgets/DankIcon.qml" ]]; then
+    if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
         echo "Error: dank-qml-common submodule missing. Run: git submodule update --init"
         exit 1
     fi
@@ -158,10 +158,10 @@ pack_git_source_tree() {
     mkdir -p "$pack_root/dank-qml-common"
     tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
         | tar -C "$pack_root/dank-qml-common" -xf -
-    rm -rf "$pack_root/quickshell/DankCommon"
-    ln -sfn ../dank-qml-common/DankCommon "$pack_root/quickshell/DankCommon"
-    test -e "$pack_root/quickshell/DankCommon/Widgets/DankIcon.qml" \
-        || { echo "Error: DankCommon missing after pack"; exit 1; }
+    rm -rf "$pack_root/quickshell/DCommon"
+    ln -sfn ../dank-qml-common/DCommon "$pack_root/quickshell/DCommon"
+    test -e "$pack_root/quickshell/DCommon/Widgets/DIcon.qml" \
+        || { echo "Error: DCommon missing after pack"; exit 1; }
 
     # Vendor Go deps for offline OBS (release tarballs already vendor; git may not)
     if [[ ! -d "$pack_root/core/vendor" ]]; then

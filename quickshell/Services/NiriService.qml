@@ -4,7 +4,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.DankCommon.Common as DankCommon
+import qs.DCommon.Common as DCommon
 import qs.Services
 
 Singleton {
@@ -18,7 +18,7 @@ Singleton {
     property var keyboardLayoutNames: []
     property int currentKeyboardLayoutIndex: 0
 
-    DankCommon.DankSocket {
+    DCommon.DSocket {
         id: eventStreamSocket
 
         path: root.socketPath
@@ -40,7 +40,7 @@ Singleton {
         }
     }
 
-    DankCommon.DankSocket {
+    DCommon.DSocket {
         id: requestSocket
 
         path: root.socketPath

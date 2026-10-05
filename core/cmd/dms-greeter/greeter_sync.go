@@ -475,7 +475,7 @@ func buildAndInstallLocalGreeter(checkout localGreeterCheckout, logFunc func(str
 		}
 	}
 
-	commonMarker := filepath.Join(checkout.shellDir, "DankCommon", "Widgets", "DankIcon.qml")
+	commonMarker := filepath.Join(checkout.shellDir, "DCommon", "Widgets", "DIcon.qml")
 	if info, err := os.Stat(commonMarker); err != nil || info.IsDir() {
 		return "", fmt.Errorf("dank-qml-common is missing from %s; run 'git submodule update --init dank-qml-common' in the checkout", checkout.rootDir)
 	}

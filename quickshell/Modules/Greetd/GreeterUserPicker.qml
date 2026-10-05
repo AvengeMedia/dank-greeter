@@ -117,7 +117,7 @@ Item {
                 elide: Text.ElideRight
             }
 
-            DankIcon {
+            DIcon {
                 Layout.alignment: Qt.AlignVCenter
                 name: "expand_more"
                 size: Theme.iconSizeMedium
@@ -140,7 +140,7 @@ Item {
         visible: expanded
         spacing: Theme.spacingXS
 
-        DankListView {
+        DListView {
             id: userListView
 
             width: parent.width
@@ -161,7 +161,7 @@ Item {
                 selected: GreeterState.username === modelData.username
                 onClicked: root.userSelected(modelData.username)
 
-                DankCircularImage {
+                DCircularImage {
                     Layout.preferredWidth: Theme.avatarSize
                     Layout.preferredHeight: Theme.avatarSize
                     imageSource: root.profileImageSource(userRow.modelData.username)
@@ -183,7 +183,7 @@ Item {
             visible: root.manualEntryVisible
             onClicked: root.manualEntryRequested()
 
-            DankIcon {
+            DIcon {
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: Theme.spacingS
                 name: "person_add"
@@ -205,7 +205,7 @@ Item {
             visible: root.autoLoginVisible
             onClicked: root.autoLoginToggled()
 
-            DankIcon {
+            DIcon {
                 Layout.alignment: Qt.AlignVCenter
                 Layout.leftMargin: Theme.spacingS
                 name: root.autoLoginChecked ? "check_box" : "check_box_outline_blank"

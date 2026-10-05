@@ -1,9 +1,9 @@
 import QtQuick
 import Quickshell
 import qs.Common
-import qs.DankCommon.Widgets as DankCommon
+import qs.DCommon.Widgets as DCommon
 
-DankCommon.DankClockWidget {
+DCommon.DClockWidget {
     id: root
 
     property real widgetWidth: 280

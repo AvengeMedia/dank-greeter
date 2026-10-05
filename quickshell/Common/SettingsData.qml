@@ -5,9 +5,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Services
-import "../DankCommon/Common/Shape.js" as Shape
-import "../DankCommon/Common/settings/SharedSettingsSpec.js" as Spec
-import "../DankCommon/Common/settings/SpecUtil.js" as SpecUtil
+import "../DCommon/Common/Shape.js" as Shape
+import "../DCommon/Common/settings/SharedSettingsSpec.js" as Spec
+import "../DCommon/Common/settings/SpecUtil.js" as SpecUtil
 
 Singleton {
     id: root

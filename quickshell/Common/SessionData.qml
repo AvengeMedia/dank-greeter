@@ -5,9 +5,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Services
-import "../DankCommon/Common/MaterialWallpaper.js" as MaterialWallpaper
-import "../DankCommon/Common/settings/SharedSessionSpec.js" as Spec
-import "../DankCommon/Common/settings/SpecUtil.js" as SpecUtil
+import "../DCommon/Common/MaterialWallpaper.js" as MaterialWallpaper
+import "../DCommon/Common/settings/SharedSessionSpec.js" as Spec
+import "../DCommon/Common/settings/SpecUtil.js" as SpecUtil
 
 Singleton {
     id: root

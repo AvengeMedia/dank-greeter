@@ -6,7 +6,7 @@ import Quickshell.Services.Greetd
 import qs.Common
 import qs.Services
 import qs.Widgets
-import qs.DankCommon.Session
+import qs.DCommon.Session
 
 Item {
     id: root
@@ -102,7 +102,7 @@ Item {
                 Layout.alignment: Qt.AlignTop
                 visible: root.showProfileImage
 
-                DankCircularImage {
+                DCircularImage {
                     anchors.fill: parent
                     imageSource: {
                         const displayUser = GreeterState.username || (root.host?.pickerThemeUsername ?? "");
@@ -145,7 +145,7 @@ Item {
                         }
                     }
 
-                    DankIcon {
+                    DIcon {
                         anchors.centerIn: parent
                         name: "switch_account"
                         size: Theme.iconSize
@@ -257,7 +257,7 @@ Item {
                     width: !visible ? 0 : (root.morph ? LockMetrics.fieldHeight - Theme.spacingS * 2 : Theme.iconSizeSmall)
                     height: root.morph ? width : Theme.iconSizeSmall
 
-                    DankMaterialShape {
+                    DMaterialShape {
                         id: morphContainer
                         anchors.fill: parent
                         visible: root.morph
@@ -293,7 +293,7 @@ Item {
                         }
                     }
 
-                    DankLoadingIndicator {
+                    DLoadingIndicator {
                         anchors.centerIn: parent
                         size: parent.width
                         contained: true
@@ -301,7 +301,7 @@ Item {
                         running: visible
                     }
 
-                    DankIcon {
+                    DIcon {
                         id: lockIcon
                         anchors.centerIn: parent
                         visible: !(root.morph && root.authenticating)
@@ -598,7 +598,7 @@ Item {
                     }
                 }
 
-                DankLoadingIndicator {
+                DLoadingIndicator {
                     anchors.right: enterButton.visible ? enterButton.left : parent.right
                     anchors.rightMargin: Theme.spacingM
                     anchors.verticalCenter: parent.verticalCenter
@@ -680,7 +680,6 @@ Item {
                 onClicked: root.host.returnToUserListFromManualEntry()
             }
         }
-
     }
 
     // Hangs below the box like the DMS lock widget so a centred box centres the field.

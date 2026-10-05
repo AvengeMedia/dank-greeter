@@ -47,7 +47,7 @@ Row {
             id: keyboardLayoutRow
             spacing: Theme.spacingXS
 
-            DankIcon {
+            DIcon {
                 name: "keyboard"
                 size: Theme.iconSize
                 color: root.contentColor
@@ -81,7 +81,7 @@ Row {
         visible: root.weatherVisible
         anchors.verticalCenter: parent.verticalCenter
 
-        DankIcon {
+        DIcon {
             name: WeatherService.getWeatherIcon(WeatherService.weather.wCode)
             size: Theme.iconSize
             color: root.contentColor
@@ -107,7 +107,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         visible: NetworkService.networkStatus !== "disconnected" || (BluetoothService.available && BluetoothService.enabled) || (AudioService.sink && AudioService.sink.audio)
 
-        DankIcon {
+        DIcon {
             name: NetworkService.networkStatus === "ethernet" ? "lan" : NetworkService.wifiSignalIcon
             size: Theme.iconSizeSmall
             color: root.contentColor
@@ -115,7 +115,7 @@ Row {
             visible: NetworkService.networkStatus !== "disconnected"
         }
 
-        DankIcon {
+        DIcon {
             name: "bluetooth"
             size: Theme.iconSizeSmall
             color: root.contentColor
@@ -123,7 +123,7 @@ Row {
             visible: BluetoothService.available && BluetoothService.enabled
         }
 
-        DankIcon {
+        DIcon {
             name: AudioService.sinkVolumeIconName
             size: Theme.iconSizeSmall
             color: AudioService.sinkSilent ? root.dimColor : root.contentColor
@@ -142,7 +142,7 @@ Row {
         visible: BatteryService.batteryAvailable
         anchors.verticalCenter: parent.verticalCenter
 
-        DankIcon {
+        DIcon {
             name: BatteryService.getBatteryIcon()
             size: Theme.iconSize
             color: root.batteryColor

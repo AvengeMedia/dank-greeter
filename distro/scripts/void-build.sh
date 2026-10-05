@@ -61,7 +61,7 @@ done
 
 cd "$REPO_ROOT"
 
-if [[ ! -e "$REPO_ROOT/dank-qml-common/DankCommon/Widgets/DankIcon.qml" ]]; then
+if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
     echo "ERROR: dank-qml-common submodule missing. Run: git submodule update --init" >&2
     exit 1
 fi
@@ -85,8 +85,8 @@ stage_checkout_tree() {
     mkdir -p "$dest/dank-qml-common"
     tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
         | tar -C "$dest/dank-qml-common" -xf -
-    rm -rf "$dest/quickshell/DankCommon"
-    ln -sfn ../dank-qml-common/DankCommon "$dest/quickshell/DankCommon"
+    rm -rf "$dest/quickshell/DCommon"
+    ln -sfn ../dank-qml-common/DCommon "$dest/quickshell/DCommon"
 }
 
 # Flat tarball for create_wrksrc=yes + build_wrksrc=core (dms-git pattern).
@@ -159,7 +159,7 @@ run_sync_shell_smoke() {
     local core_dir="$1"
     require_tar_on_path
     make -C "$core_dir" sync-shell
-    test -f "$core_dir/internal/shellembed/dist/DankCommon/Widgets/DankIcon.qml"
+    test -f "$core_dir/internal/shellembed/dist/DCommon/Widgets/DIcon.qml"
 }
 
 smoke_git() {

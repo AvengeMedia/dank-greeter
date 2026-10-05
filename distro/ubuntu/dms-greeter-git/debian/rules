@@ -28,7 +28,7 @@ override_dh_auto_build:
 
 	test -d $(SRCDIR)/core || (echo "ERROR: $(SRCDIR)/core not found!" && exit 1)
 	test -d $(SRCDIR)/core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
-	test -e $(SRCDIR)/quickshell/DankCommon/Widgets/DankIcon.qml || (echo "ERROR: DankCommon missing!" && exit 1)
+	test -e $(SRCDIR)/quickshell/DCommon/Widgets/DIcon.qml || (echo "ERROR: DCommon missing!" && exit 1)
 
 	# Align the go directive (and vendored annotations) with the distro toolchain
 	GO_VERSION=$$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/'); \

@@ -25,7 +25,7 @@ func makeLocalGreeterTestCheckout(t *testing.T) localGreeterCheckout {
 	writeLocalGreeterTestFile(t, filepath.Join(root, "core", "go.mod"), 0o644)
 	writeLocalGreeterTestFile(t, filepath.Join(root, "core", "Makefile"), 0o644)
 	writeLocalGreeterTestFile(t, filepath.Join(root, "quickshell", "shell.qml"), 0o644)
-	writeLocalGreeterTestFile(t, filepath.Join(root, "quickshell", "DankCommon", "Widgets", "DankIcon.qml"), 0o644)
+	writeLocalGreeterTestFile(t, filepath.Join(root, "quickshell", "DCommon", "Widgets", "DIcon.qml"), 0o644)
 	return localGreeterCheckout{rootDir: root, shellDir: filepath.Join(root, "quickshell")}
 }
 
@@ -85,7 +85,7 @@ func TestBuildAndInstallLocalGreeterBuildsEmbeddedBinary(t *testing.T) {
 
 func TestBuildAndInstallLocalGreeterRequiresQMLSubmodule(t *testing.T) {
 	checkout := makeLocalGreeterTestCheckout(t)
-	if err := os.Remove(filepath.Join(checkout.shellDir, "DankCommon", "Widgets", "DankIcon.qml")); err != nil {
+	if err := os.Remove(filepath.Join(checkout.shellDir, "DCommon", "Widgets", "DIcon.qml")); err != nil {
 		t.Fatal(err)
 	}
 

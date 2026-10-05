@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.Widgets
-import qs.DankCommon.Session
+import qs.DCommon.Session
 
 Item {
     id: root
@@ -50,7 +50,7 @@ Item {
         }
     }
 
-    DankDropdown {
+    DDropdown {
         id: sessionDropdown
         anchors.fill: parent
         focusReturnTarget: root.authInput

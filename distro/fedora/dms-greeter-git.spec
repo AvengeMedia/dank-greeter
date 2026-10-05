@@ -61,10 +61,10 @@ Switch explicitly with: dnf swap dms-greeter dms-greeter-git
 rm -rf dank-qml-common
 tar -xzf %{SOURCE3}
 # git_repo_pack may leave an empty submodule dir or a dangling symlink;
-# restore quickshell/DankCommon → ../dank-qml-common/DankCommon
-rm -rf quickshell/DankCommon
-ln -sfn ../dank-qml-common/DankCommon quickshell/DankCommon
-test -e quickshell/DankCommon/Widgets/DankIcon.qml || { echo "DankCommon missing after submodule unpack"; exit 1; }
+# restore quickshell/DCommon → ../dank-qml-common/DCommon
+rm -rf quickshell/DCommon
+ln -sfn ../dank-qml-common/DCommon quickshell/DCommon
+test -e quickshell/DCommon/Widgets/DIcon.qml || { echo "DCommon missing after submodule unpack"; exit 1; }
 
 %build
 VERSION="%{version}"

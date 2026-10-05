@@ -8,8 +8,8 @@ import Quickshell.Services.Greetd
 import qs.Common
 import qs.Services
 import qs.Widgets
-import qs.DankCommon.Session
-import "../../DankCommon/Common/LayoutCodes.js" as LayoutCodes
+import qs.DCommon.Session
+import "../../DCommon/Common/LayoutCodes.js" as LayoutCodes
 
 Item {
     id: root

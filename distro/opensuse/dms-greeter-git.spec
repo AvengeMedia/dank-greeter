@@ -55,8 +55,8 @@ Switch explicitly (e.g. zypper remove dms-greeter && zypper install dms-greeter-
 %prep
 %setup -q -n dms-greeter-git-source
 test -d core/vendor || { echo "ERROR: vendored Go dependencies missing from source tarball"; exit 1; }
-# Ensure DankCommon submodule content is present (packed by obs-upload.sh)
-test -e quickshell/DankCommon/Widgets/DankIcon.qml || { echo "ERROR: DankCommon missing from source tarball"; exit 1; }
+# Ensure DCommon submodule content is present (packed by obs-upload.sh)
+test -e quickshell/DCommon/Widgets/DIcon.qml || { echo "ERROR: DCommon missing from source tarball"; exit 1; }
 
 %build
 case "%{_arch}" in

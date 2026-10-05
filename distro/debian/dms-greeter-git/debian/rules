@@ -28,7 +28,7 @@ override_dh_auto_build:
 
 	test -d core || (echo "ERROR: core directory not found!" && exit 1)
 	test -d core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
-	test -e quickshell/DankCommon/Widgets/DankIcon.qml || (echo "ERROR: DankCommon missing!" && exit 1)
+	test -e quickshell/DCommon/Widgets/DIcon.qml || (echo "ERROR: DCommon missing!" && exit 1)
 
 	# Bundled Go at source root (go$$VER.linux-{amd64,arm64}.tar.gz); staged by obs-upload.sh
 	GO_TOOLCHAIN_VERSION=$$(grep -m1 '^go ' core/go.mod | awk '{print $$2}'); \

@@ -166,7 +166,7 @@ ${PACKAGE} (${NEW_VERSION}) ${SERIES}; urgency=medium
 EOF
 
     info "Packing git source tree into dms-greeter-git-source/"
-    if [[ ! -e "$REPO_ROOT/dank-qml-common/DankCommon/Widgets/DankIcon.qml" ]]; then
+    if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
         error "dank-qml-common submodule missing. Run: git submodule update --init"
         exit 1
     fi
@@ -177,8 +177,8 @@ EOF
     mkdir -p "$SRC_DIR/dank-qml-common"
     tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
         | tar -C "$SRC_DIR/dank-qml-common" -xf -
-    rm -rf "$SRC_DIR/quickshell/DankCommon"
-    ln -sfn ../dank-qml-common/DankCommon "$SRC_DIR/quickshell/DankCommon"
+    rm -rf "$SRC_DIR/quickshell/DCommon"
+    ln -sfn ../dank-qml-common/DCommon "$SRC_DIR/quickshell/DCommon"
     if [[ ! -d "$SRC_DIR/core/vendor" ]]; then
         info "Vendoring Go dependencies for Launchpad offline build..."
         if ! command -v go &>/dev/null; then

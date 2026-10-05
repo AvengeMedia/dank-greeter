@@ -28,9 +28,9 @@ The Quickshell UI. `shell.qml` is the entry and only loads `GreeterSurface`.
 
 - `Modules/Greetd/` - the whole visible greeter: `GreeterContent` (login form, session picker, auth flow), `GreeterUserPicker`, `GreeterStatusRow` (top-right weather, network, battery), `GreeterUserTheme`, `GreetdSettings` (reads the synced settings), `GreetdMemory` (last user and session).
 - `Services/` - headless singletons that only read system state: network, battery, bluetooth, audio, weather, compositor, niri, `GreeterUsersService`. They use Quickshell's own services (UPower, Pipewire, Networking, Bluetooth). `Log` is the only logging path; `console.*` is rejected by pre-commit.
-- `Common/` - Theme, SettingsData, SessionData, I18n, Paths, StockThemes. SettingsData and SessionData are read-only loaders over the schema shared with DMS in `DankCommon/Common/settings/` (SharedSettingsSpec.js, SharedSessionSpec.js), so key names and defaults never drift from DMS. Those files hold only the keys the greeter reads; DMS keeps the rest in its own spec and merges the shared ones in. A key the greeter starts reading has to move into the shared spec. The greeter has no keys of its own beyond the `greeter*` entries in that schema.
-- `Widgets/` - one-line re-exports of `DankCommon` widgets so QML here can `import qs.Widgets` like DMS does.
-- `DankCommon/` - symlink into the `dank-qml-common` submodule. Never edit through the symlink.
+- `Common/` - Theme, SettingsData, SessionData, I18n, Paths, StockThemes. SettingsData and SessionData are read-only loaders over the schema shared with DMS in `DCommon/Common/settings/` (SharedSettingsSpec.js, SharedSessionSpec.js), so key names and defaults never drift from DMS. Those files hold only the keys the greeter reads; DMS keeps the rest in its own spec and merges the shared ones in. A key the greeter starts reading has to move into the shared spec. The greeter has no keys of its own beyond the `greeter*` entries in that schema.
+- `Widgets/` - one-line re-exports of `DCommon` widgets so QML here can `import qs.Widgets` like DMS does.
+- `DCommon/` - symlink into the `dank-qml-common` submodule. Never edit through the symlink.
 - `translations/` - POEditor-synced catalogs. `make i18n-*` targets drive them.
 
 ### Other directories:
@@ -66,7 +66,7 @@ Pre-commit runs gofmt, go vet, go test, go mod tidy, and the no-console-in-QML c
 - Stay in step with DMS. `Common/` and `Services/` here are trimmed copies of DMS files. When fixing something that also exists in DMS, fix it the same way in both, and prefer moving shared code into `dank-qml-common`.
 - Resource usage matters. The greeter sits on the login screen indefinitely. Audit any change for idle CPU cost, timers, polling, and extra processes.
 - Follow each app's own conventions. QML uses Theme tokens instead of hardcoded colors, spacing, or other constants.
-- Use the Dank* wrappers in `Widgets/` or `DankCommon/Widgets` instead of raw ListView/Flickable/ScrollView.
+- Use the Dank* wrappers in `Widgets/` or `DCommon/Widgets` instead of raw ListView/Flickable/ScrollView.
 - All user-facing text goes through I18n.tr(). Prefer reusing existing catalog terms over adding new ones. Never edit the translation catalogs by hand, they are synced with POEditor.
 - Use the `Log` service in QML, never `console.*`.
 - The Go binary is pure Go, `CGO_ENABLED=0`. Do not add cgo dependencies.

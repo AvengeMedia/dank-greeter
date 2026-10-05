@@ -115,7 +115,7 @@ build_stable() {
 }
 
 build_git() {
-    if [[ ! -e "$REPO_ROOT/dank-qml-common/DankCommon/Widgets/DankIcon.qml" ]]; then
+    if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
         echo "ERROR: dank-qml-common submodule missing. Run: git submodule update --init"
         exit 1
     fi
@@ -150,8 +150,8 @@ build_git() {
     mkdir -p "$tmp_pack/${src_dir_safe}/dank-qml-common"
     tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
         | tar -C "$tmp_pack/${src_dir_safe}/dank-qml-common" -xf -
-    rm -rf "$tmp_pack/${src_dir_safe}/quickshell/DankCommon"
-    ln -sfn ../dank-qml-common/DankCommon "$tmp_pack/${src_dir_safe}/quickshell/DankCommon"
+    rm -rf "$tmp_pack/${src_dir_safe}/quickshell/DCommon"
+    ln -sfn ../dank-qml-common/DCommon "$tmp_pack/${src_dir_safe}/quickshell/DCommon"
 
     local tarball="${PACKAGE}-${version}.tar.gz"
     tar -C "$tmp_pack" -czf ~/rpmbuild/SOURCES/"$tarball" "${src_dir_safe}"

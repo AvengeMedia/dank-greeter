@@ -3,7 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import Quickshell
 import qs.Common
-import qs.DankCommon.Session
+import qs.DCommon.Session
 
 FocusScope {
     id: root
