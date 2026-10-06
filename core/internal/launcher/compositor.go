@@ -7,31 +7,14 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/AvengeMedia/dank-greeter/core/internal/config"
 )
 
 var niriOverrideFiles = []string{
 	"/usr/share/greetd/niri_overrides.kdl",
 	"/etc/greetd/niri_overrides.kdl",
 }
-
-const niriBaseConfig = `hotkey-overlay {
-    skip-at-startup
-}
-
-environment {
-    DMS_RUN_GREETER "1"
-}
-
-gestures {
-   hot-corners {
-     off
-   }
-}
-
-layout {
-  background-color "#000000"
-}
-`
 
 var hyprlandLuaPattern = regexp.MustCompile(`(^|[^[:alnum:]_])hl\.`)
 
@@ -77,7 +60,7 @@ func buildNiriPlan(configPath, qsCmd string) (launchPlan, error) {
 		return launchPlan{}, err
 	}
 
-	base := niriBaseConfig
+	base := config.NiriGreeterConfig
 	if configPath != "" {
 		content, err := os.ReadFile(configPath)
 		if err != nil {
