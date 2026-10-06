@@ -118,7 +118,7 @@ Item {
     // Falls back to PAM-only detection until the fprintd D-Bus probe completes.
     readonly property bool greeterPamHasFprint: greeterPamStackHasFprint && (!fprintdProbeComplete || fprintdHasDevice)
     readonly property bool greeterPamHasU2f: greeterPamStackHasModule("pam_u2f")
-    readonly property bool greeterPamHasFaceAuth: greeterPamStackHasModule("pam_howdy") || greeterPamStackHasModule("pam_sentinel") || greeterPamStackHasModule("pam_face")
+    readonly property bool greeterPamHasFaceAuth: greeterPamStackHasModule("pam_howdy") || greeterPamStackHasModule("pam_sentinel") || greeterPamStackHasModule("pam_face") || greeterPamStackHasModule("pam_smile2unlock")
     readonly property bool greeterPamHasHowdy: greeterPamHasFaceAuth
     readonly property bool greeterExternalAuthAvailable: (greeterPamHasFprint && SettingsData.greeterEnableFprint) || (greeterPamHasU2f && SettingsData.greeterEnableU2f) || greeterPamHasFaceAuth
     readonly property bool greeterPamHasExternalAuth: greeterPamHasFprint || greeterPamHasU2f || greeterPamHasFaceAuth
