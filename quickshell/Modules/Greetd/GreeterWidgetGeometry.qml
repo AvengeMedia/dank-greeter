@@ -19,6 +19,10 @@ QtObject {
     readonly property string screenKey: SettingsData.getScreenDisplayName(screen)
     readonly property string positionKey: syncPositionAcrossScreens ? "_synced" : screenKey
     readonly property var storedPositions: SessionData.desktopWidgetInstancePositions[instanceId] ?? null
+    readonly property var anchorKeys: ({
+            x: "anchorX",
+            y: "anchorY"
+        })
     readonly property int screenWidth: screen?.width ?? 1920
     readonly property int screenHeight: screen?.height ?? 1080
 
@@ -26,18 +30,28 @@ QtObject {
         return storedPositions?.[positionKey]?.[key];
     }
 
-    function storedCoordinate(key, extent, fallback) {
-        const val = storedGeometry(key);
-        if (val === undefined)
+    function anchoredPosition(anchor, offset, extent, size) {
+        switch (anchor) {
+        case "center":
+            return (extent - size) / 2 + offset;
+        case "end":
+            return extent - size - offset;
+        }
+        return offset;
+    }
+
+    function storedCoordinate(key, extent, size, fallback) {
+        const offset = storedGeometry(key);
+        if (offset === undefined)
             return fallback;
-        return syncPositionAcrossScreens ? val * extent : val;
+        return anchoredPosition(storedGeometry(anchorKeys[key]), syncPositionAcrossScreens ? offset * extent : offset, extent, size);
     }
 
     readonly property bool hasSavedPosition: storedGeometry("x") !== undefined
     readonly property real savedWidth: storedGeometry("width") ?? defaultWidth
     readonly property real savedHeight: forceSquare ? savedWidth : (storedGeometry("height") ?? defaultHeight)
-    readonly property real savedX: storedCoordinate("x", screenWidth, defaultX)
-    readonly property real savedY: storedCoordinate("y", screenHeight, defaultY)
+    readonly property real savedX: storedCoordinate("x", screenWidth, widgetWidth, defaultX)
+    readonly property real savedY: storedCoordinate("y", screenHeight, widgetHeight, defaultY)
 
     readonly property real widgetWidth: Math.max(minWidth, Math.min(savedWidth, screenWidth))
     readonly property real widgetHeight: Math.max(minHeight, Math.min(savedHeight, screenHeight))
