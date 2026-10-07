@@ -99,17 +99,16 @@ func Run(opts Options) error {
 
 func setupEnvironment(opts Options) error {
 	env := map[string]string{
-		"XDG_SESSION_TYPE":                    "wayland",
-		"QT_QPA_PLATFORM":                     "wayland",
-		"QT_WAYLAND_DISABLE_WINDOWDECORATION": "1",
-		"QT_NO_XDG_DESKTOP_PORTAL":            "1",
-		"EGL_PLATFORM":                        "gbm",
-		"DMS_RUN_GREETER":                     "1",
-		"DMS_GREET_CFG_DIR":                   opts.CacheDir,
-		"HOME":                                opts.CacheDir,
-		"XDG_STATE_HOME":                      filepath.Join(opts.CacheDir, ".local/state"),
-		"XDG_DATA_HOME":                       filepath.Join(opts.CacheDir, ".local/share"),
-		"XDG_CACHE_HOME":                      filepath.Join(opts.CacheDir, ".cache"),
+		"XDG_SESSION_TYPE":         "wayland",
+		"QT_QPA_PLATFORM":          "wayland",
+		"QT_NO_XDG_DESKTOP_PORTAL": "1",
+		"EGL_PLATFORM":             "gbm",
+		"DMS_RUN_GREETER":          "1",
+		"DMS_GREET_CFG_DIR":        opts.CacheDir,
+		"HOME":                     opts.CacheDir,
+		"XDG_STATE_HOME":           filepath.Join(opts.CacheDir, ".local/state"),
+		"XDG_DATA_HOME":            filepath.Join(opts.CacheDir, ".local/share"),
+		"XDG_CACHE_HOME":           filepath.Join(opts.CacheDir, ".cache"),
 	}
 	for key, value := range env {
 		if err := os.Setenv(key, value); err != nil {
