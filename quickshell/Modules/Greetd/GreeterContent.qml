@@ -101,6 +101,8 @@ Item {
     property int passwordFailureCount: 0
     property int passwordAttemptLimitHint: 0
     property string authFeedbackMessage: ""
+    // the prompt pam asked for, e.g. "PIN:"; empty falls back to the generic label
+    property string authPromptText: ""
     property string greetdPamText: ""
     property string systemAuthPamText: ""
     property string commonAuthPamText: ""
@@ -110,7 +112,7 @@ Item {
     property string commonAuthPcPamText: ""
     property string loginPamText: ""
     property string faillockConfigText: ""
-    property string externalAuthAutoStartedForUser: ""
+    property string authSessionAutoStartedForUser: ""
     property bool fprintdProbeComplete: false
     property bool fprintdHasDevice: false
     property bool autoLoginOnSuccess: false
@@ -327,6 +329,7 @@ Item {
     function clearAuthFeedback() {
         GreeterState.pamState = "";
         authFeedbackMessage = "";
+        authPromptText = "";
     }
 
     Connections {
@@ -367,7 +370,7 @@ Item {
         onLoaded: {
             root.greetdPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.greetdPamText = "";
@@ -382,7 +385,7 @@ Item {
         onLoaded: {
             root.systemAuthPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.systemAuthPamText = "";
@@ -397,7 +400,7 @@ Item {
         onLoaded: {
             root.commonAuthPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.commonAuthPamText = "";
@@ -412,7 +415,7 @@ Item {
         onLoaded: {
             root.passwordAuthPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.passwordAuthPamText = "";
@@ -427,7 +430,7 @@ Item {
         onLoaded: {
             root.systemLoginPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.systemLoginPamText = "";
@@ -442,7 +445,7 @@ Item {
         onLoaded: {
             root.systemLocalLoginPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.systemLocalLoginPamText = "";
@@ -457,7 +460,7 @@ Item {
         onLoaded: {
             root.commonAuthPcPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.commonAuthPcPamText = "";
@@ -472,7 +475,7 @@ Item {
         onLoaded: {
             root.loginPamText = text();
             root.refreshPasswordAttemptPolicyHint();
-            root.maybeAutoStartExternalAuth();
+            root.maybeAutoStartAuthSession();
         }
         onLoadFailed: {
             root.loginPamText = "";
@@ -563,7 +566,7 @@ Item {
         authTimeout.stop();
         clearAuthFeedback();
         passwordFailureCount = 0;
-        externalAuthAutoStartedForUser = "";
+        authSessionAutoStartedForUser = "";
         if (Greetd.state !== GreetdState.Inactive)
             Greetd.cancelSession();
         const previousUser = GreeterState.username;
@@ -591,7 +594,7 @@ Item {
         if (GreeterState.username !== user) {
             passwordFailureCount = 0;
             clearAuthFeedback();
-            externalAuthAutoStartedForUser = "";
+            authSessionAutoStartedForUser = "";
         }
         root.pickerThemeUsername = user;
         GreeterState.username = user;
@@ -601,7 +604,7 @@ Item {
         GreeterState.passwordBuffer = "";
         pendingPasswordResponse = false;
         passwordSubmitRequested = false;
-        maybeAutoStartExternalAuth();
+        maybeAutoStartAuthSession();
     }
 
     function submitBufferedPassword() {
@@ -631,22 +634,26 @@ Item {
                 passwordSubmitRequested = true;
             return;
         }
-        if (!submitPassword && !hasPasswordBuffer && !root.greeterExternalAuthAvailable)
-            return;
         pendingPasswordResponse = false;
         passwordSubmitRequested = submitPassword;
         awaitingExternalAuth = !submitPassword && !hasPasswordBuffer && root.greeterExternalAuthAvailable;
         // Let the effective PAM stack finish external authentication.
         const waitingOnPamExternalBeforePassword = submitPassword && root.greeterPamHasExternalAuth;
-        authTimeout.interval = (awaitingExternalAuth || waitingOnPamExternalBeforePassword) ? externalAuthTimeoutMs : defaultAuthTimeoutMs;
-        authTimeout.restart();
+        // nothing submitted yet means we wait for the user, not for pam
+        const waitingForUserInput = !submitPassword && !hasPasswordBuffer && !awaitingExternalAuth;
+        if (waitingForUserInput) {
+            authTimeout.stop();
+        } else {
+            authTimeout.interval = (awaitingExternalAuth || waitingOnPamExternalBeforePassword) ? externalAuthTimeoutMs : defaultAuthTimeoutMs;
+            authTimeout.restart();
+        }
         Greetd.createSession(GreeterState.username);
     }
 
-    function maybeAutoStartExternalAuth() {
+    // start the conversation as soon as a user is known, so the prompt is known
+    // before typing; external auth needed this already
+    function maybeAutoStartAuthSession() {
         if (!GreeterState.showPasswordInput || !GreeterState.username)
-            return;
-        if (!root.greeterExternalAuthAvailable)
             return;
         if (GreeterState.unlocking || Greetd.state !== GreetdState.Inactive)
             return;
@@ -654,10 +661,10 @@ Item {
             return;
         if (GreeterState.passwordBuffer && GreeterState.passwordBuffer.length > 0)
             return;
-        if (externalAuthAutoStartedForUser === GreeterState.username)
+        if (authSessionAutoStartedForUser === GreeterState.username)
             return;
 
-        externalAuthAutoStartedForUser = GreeterState.username;
+        authSessionAutoStartedForUser = GreeterState.username;
         startAuthSession(false);
     }
 
@@ -720,12 +727,12 @@ Item {
                     return; // PAM-only fallback stays active
                 root.fprintdHasDevice = text.includes("objectpath");
                 root.fprintdProbeComplete = true;
-                root.maybeAutoStartExternalAuth();
+                root.maybeAutoStartAuthSession();
             }
         }
         onExited: function (exitCode, exitStatus) {
             if (!root.fprintdProbeComplete)
-                root.maybeAutoStartExternalAuth(); // PAM-only fallback stays active
+                root.maybeAutoStartAuthSession(); // PAM-only fallback stays active
         }
     }
 
@@ -1035,6 +1042,8 @@ Item {
             if (responseRequired) {
                 awaitingExternalAuth = false;
                 pendingPasswordResponse = true;
+                const trimmedPrompt = (message || "").replace(/:\s*$/, "").trim();
+                root.authPromptText = trimmedPrompt;
                 const hasPasswordBuffer = GreeterState.passwordBuffer && GreeterState.passwordBuffer.length > 0;
                 if (!passwordSubmitRequested && hasPasswordBuffer)
                     passwordSubmitRequested = true;
@@ -1113,6 +1122,8 @@ Item {
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
             passwordSubmitRequested = false;
+            // the session that carried the prompt is gone, allow a fresh one
+            authSessionAutoStartedForUser = "";
             authTimeout.interval = defaultAuthTimeoutMs;
             authTimeout.stop();
             launchTimeout.stop();
@@ -1134,6 +1145,7 @@ Item {
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
             passwordSubmitRequested = false;
+            authSessionAutoStartedForUser = "";
             authTimeout.interval = defaultAuthTimeoutMs;
             authTimeout.stop();
             launchTimeout.stop();
