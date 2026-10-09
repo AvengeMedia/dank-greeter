@@ -105,15 +105,27 @@ EOF
 }
 
 go_toolchain_version() {
-    grep -m1 '^go ' "$REPO_ROOT/core/go.mod" 2>/dev/null | awk '{print $2}'
+    local declared
+    declared="$(grep -m1 '^go ' "$1" 2>/dev/null | awk '{print $2}')"
+    [[ -n "$declared" ]] || return 1
+    if [[ "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf '%s' "$declared"
+        return
+    fi
+    [[ "$declared" =~ ^[0-9]+\.[0-9]+$ ]] || return 1
+    curl -fsSL 'https://go.dev/dl/?mode=json&include=all' \
+        | grep -o "\"version\": *\"go${declared//./\\.}\.[0-9]*\"" \
+        | grep -o '[0-9][0-9.]*' \
+        | sort -t. -k3,3n \
+        | tail -1
 }
 
 stage_go_toolchains() {
     local dest="$1"
     local ver arch url cached
-    ver="$(go_toolchain_version)"
+    ver="$(go_toolchain_version "$REPO_ROOT/core/go.mod" || true)"
     if [[ -z "$ver" ]]; then
-        echo "Error: Could not read Go version from core/go.mod"
+        echo "Error: Could not resolve a Go toolchain release from core/go.mod" >&2
         exit 1
     fi
     mkdir -p "$GO_TOOLCHAIN_CACHE/$ver"
@@ -416,9 +428,11 @@ else
         exit 1
     fi
 
-    GO_VER=$(tar -xzOf "$WORK_DIR/$SOURCE_TARBALL" "dank-greeter-${VERSION}/core/go.mod" | grep -m1 '^go ' | awk '{print $2}')
+    tar -xzOf "$WORK_DIR/$SOURCE_TARBALL" "dank-greeter-${VERSION}/core/go.mod" > "$WORK_DIR/release-go.mod"
+    GO_VER="$(go_toolchain_version "$WORK_DIR/release-go.mod" || true)"
+    rm -f "$WORK_DIR/release-go.mod"
     if [[ -z "$GO_VER" ]]; then
-        echo "Error: Could not read Go version from the release tarball's core/go.mod"
+        echo "Error: Could not resolve a Go toolchain release from the release tarball's core/go.mod"
         exit 1
     fi
     mkdir -p "$GO_TOOLCHAIN_CACHE/$GO_VER"

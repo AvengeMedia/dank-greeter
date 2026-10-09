@@ -16,6 +16,22 @@ set -euo pipefail
 REPO="AvengeMedia/dank-greeter"
 COPR_PROJECT="avengemedia/danklinux"
 
+go_toolchain_version() {
+    local declared
+    declared="$(grep -m1 '^go ' "$1" 2>/dev/null | awk '{print $2}')"
+    [[ -n "$declared" ]] || return 1
+    if [[ "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf '%s' "$declared"
+        return
+    fi
+    [[ "$declared" =~ ^[0-9]+\.[0-9]+$ ]] || return 1
+    curl -fsSL 'https://go.dev/dl/?mode=json&include=all' \
+        | grep -o "\"version\": *\"go${declared//./\\.}\.[0-9]*\"" \
+        | grep -o '[0-9][0-9.]*' \
+        | sort -t. -k3,3n \
+        | tail -1
+}
+
 PACKAGE="dms-greeter"
 VERSION=""
 RELEASE="1"
@@ -131,9 +147,9 @@ build_git() {
 
     local src_dir_safe go_ver
     src_dir_safe="$(echo "${PACKAGE}-${version}" | tr '+' '_')"
-    go_ver="$(grep -m1 '^go ' "$REPO_ROOT/core/go.mod" | awk '{print $2}')"
+    go_ver="$(go_toolchain_version "$REPO_ROOT/core/go.mod" || true)"
     if [[ -z "$go_ver" ]]; then
-        echo "ERROR: Could not determine Go version from core/go.mod"
+        echo "ERROR: Could not resolve a Go toolchain release from core/go.mod"
         exit 1
     fi
 
