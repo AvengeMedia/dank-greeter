@@ -38,6 +38,9 @@ func NormalizeBool(flagName, value string) (string, error) {
 // wrapper did: XDG_CONFIG_HOME, /usr/share/quickshell, then XDG_CONFIG_DIRS.
 func LocateShellConfig(name string) (string, error) {
 	if filepath.IsAbs(name) {
+		if info, err := os.Stat(filepath.Join(name, "shell.qml")); err != nil || info.IsDir() {
+			return "", fmt.Errorf("no shell.qml in quickshell config %q", name)
+		}
 		return name, nil
 	}
 
