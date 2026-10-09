@@ -18,6 +18,7 @@ Singleton {
     property bool perMonitorWallpaper: Spec.SPEC.perMonitorWallpaper.def
     property bool perModeWallpaper: Spec.SPEC.perModeWallpaper.def
     property var materialWallpapers: Spec.SPEC.materialWallpapers.def
+    property var materialWallpaperProfiles: Spec.SPEC.materialWallpaperProfiles.def
     property var monitorWallpapers: Spec.SPEC.monitorWallpapers.def
     property var monitorWallpaperFillModes: Spec.SPEC.monitorWallpaperFillModes.def
     property string weatherLocation: Spec.SPEC.weatherLocation.def
@@ -108,7 +109,7 @@ Singleton {
     }
 
     function getMonitorMaterialWallpaper(screenName) {
-        return MaterialWallpaper.composition(materialWallpaperEntry(materialWallpaperTarget(screenName)));
+        return MaterialWallpaper.composition(materialWallpaperEntry(materialWallpaperTarget(screenName)), materialWallpaperProfiles);
     }
 
     function getMonitorWallpaper(screenName) {
