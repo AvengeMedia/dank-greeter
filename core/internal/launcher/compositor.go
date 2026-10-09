@@ -117,6 +117,7 @@ end)
 `, qsCmd)
 		tempConfig, err = writeTempConfig(lua, ".lua")
 	default:
+		// hyprlang stays usable until 0.57 ships; legacy dispatch is the only form a .conf session accepts
 		content, readErr := os.ReadFile(configPath)
 		if readErr != nil {
 			return launchPlan{}, readErr
