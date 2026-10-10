@@ -100,6 +100,11 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./core/go.mod
+
       - name: Install build dependencies
         run: |
           sudo apt-get update
@@ -110,8 +115,7 @@ jobs:
             build-essential \
             fakeroot \
             dpkg-dev \
-            openssh-client \
-            golang-go
+            openssh-client
 
       - name: Configure GPG
         env:

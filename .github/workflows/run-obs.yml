@@ -79,10 +79,15 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Install OSC and Go
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: ./core/go.mod
+
+      - name: Install OSC
         run: |
           sudo apt-get update
-          sudo apt-get install -y osc golang-go
+          sudo apt-get install -y osc
 
           mkdir -p ~/.config/osc
           cat > ~/.config/osc/oscrc << EOF
