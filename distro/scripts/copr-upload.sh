@@ -109,11 +109,33 @@ build_stable() {
         }
     fi
 
+    local go_gomod go_ver arch go_tgz
+    go_gomod="$(mktemp)"
+    tar -xzOf ~/rpmbuild/SOURCES/"$tarball" "dank-greeter-${VERSION}/core/go.mod" > "$go_gomod"
+    go_ver="$(go_toolchain_version "$go_gomod" || true)"
+    rm -f "$go_gomod"
+    if [[ -z "$go_ver" ]]; then
+        echo "ERROR: Could not resolve a Go toolchain release from the release tarball's core/go.mod"
+        exit 1
+    fi
+    for arch in amd64 arm64; do
+        go_tgz="go${go_ver}.linux-${arch}.tar.gz"
+        if [[ ! -f ~/rpmbuild/SOURCES/"$go_tgz" ]]; then
+            echo "Downloading ${go_tgz}..."
+            wget -q -O ~/rpmbuild/SOURCES/"$go_tgz" "https://go.dev/dl/${go_tgz}" || {
+                rm -f ~/rpmbuild/SOURCES/"$go_tgz"
+                echo "ERROR: Failed to download ${go_tgz}"
+                exit 1
+            }
+        fi
+    done
+
     cp "$SPEC_SRC" ~/rpmbuild/SPECS/"${PACKAGE}".spec
     local changelog_date
     changelog_date="$(date '+%a %b %d %Y')"
     sed -i "s/VERSION_PLACEHOLDER/${VERSION}/g" ~/rpmbuild/SPECS/"${PACKAGE}".spec
     sed -i "s/RELEASE_PLACEHOLDER/${RELEASE}/g" ~/rpmbuild/SPECS/"${PACKAGE}".spec
+    sed -i "s/GO_TOOLCHAIN_PLACEHOLDER/${go_ver}/g" ~/rpmbuild/SPECS/"${PACKAGE}".spec
     sed -i "s/CHANGELOG_DATE_PLACEHOLDER/${changelog_date}/g" ~/rpmbuild/SPECS/"${PACKAGE}".spec
 
     echo "Building SRPM..."

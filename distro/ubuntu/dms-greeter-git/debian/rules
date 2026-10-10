@@ -7,13 +7,15 @@ UPSTREAM_VERSION := $(shell echo $(DEB_VERSION) | sed 's/^[0-9]*://; s/ppa[0-9]*
 COMMIT_HASH := $(shell echo $(UPSTREAM_VERSION) | sed -n 's/.*\.\([a-f0-9]\{7,8\}\)$$/\1/p')
 SRCDIR := dms-greeter-git-source
 
+DEB_HOST_ARCH := $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
 # Go needs writable directories for its caches
 export HOME := $(CURDIR)/debian/tmp-home
 export GOCACHE := $(CURDIR)/debian/tmp-home/go-cache
 export GOMODCACHE := $(CURDIR)/debian/tmp-home/go-mod
 
 # Launchpad has no network access: dependencies are vendored in the source
-# tree and the distro golang-go toolchain is used as-is (same as stable).
+# and the Go toolchain is bundled (distro golang-go lags go.mod)
 export GOTOOLCHAIN := local
 export GOFLAGS := -mod=vendor
 
@@ -30,14 +32,16 @@ override_dh_auto_build:
 	test -d $(SRCDIR)/core/vendor || (echo "ERROR: vendored Go dependencies missing!" && exit 1)
 	test -e $(SRCDIR)/quickshell/DCommon/Widgets/DIcon.qml || (echo "ERROR: DCommon missing!" && exit 1)
 
-	# Align the go directive (and vendored annotations) with the distro toolchain
-	GO_VERSION=$$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/'); \
-	if [ -n "$$GO_VERSION" ]; then \
-		sed -E -i "s/^go 1\.[0-9]+(\.[0-9]+)?/go $$GO_VERSION/" $(SRCDIR)/core/go.mod; \
-		sed -E -i "s/^(## explicit; go )1\.[0-9]+(\.[0-9]+)?$$/\1$$GO_VERSION/" $(SRCDIR)/core/vendor/modules.txt; \
-	fi
-	sed -E -i '/^toolchain go[0-9.]+$$/d' $(SRCDIR)/core/go.mod
-
+	# Bundled Go (go$$VER.linux-{amd64,arm64}.tar.gz), staged by ppa-upload.sh
+	GO_TARBALL=$$(ls "$(CURDIR)"/go[0-9]*.linux-$(DEB_HOST_ARCH).tar.gz 2>/dev/null | head -n1); \
+	test -f "$$GO_TARBALL" || (echo "ERROR: Missing bundled Go toolchain for $(DEB_HOST_ARCH)" && exit 1); \
+	rm -rf "$(CURDIR)/go-bootstrap" "$(CURDIR)/.go-toolchain"; \
+	mkdir -p "$(CURDIR)/go-bootstrap"; \
+	tar -xzf "$$GO_TARBALL" -C "$(CURDIR)/go-bootstrap"; \
+	mv "$(CURDIR)/go-bootstrap/go" "$(CURDIR)/.go-toolchain"; \
+	export PATH="$(CURDIR)/.go-toolchain/bin:$$PATH"; \
+	export GOROOT="$(CURDIR)/.go-toolchain"; \
+	go version; \
 	$(MAKE) -C $(SRCDIR)/core build VERSION="$(UPSTREAM_VERSION)" COMMIT="$(COMMIT_HASH)"
 
 override_dh_auto_install:
@@ -62,5 +66,5 @@ override_dh_auto_install:
 
 override_dh_auto_clean:
 	rm -rf $(SRCDIR)/core/bin $(SRCDIR)/core/internal/shellembed/dist
-	rm -rf debian/tmp-home
+	rm -rf debian/tmp-home go-bootstrap .go-toolchain
 	dh_auto_clean

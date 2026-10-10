@@ -31,14 +31,13 @@ override_dh_auto_build:
 	test -e quickshell/DCommon/Widgets/DIcon.qml || (echo "ERROR: DCommon missing!" && exit 1)
 
 	# Bundled Go at source root (go$$VER.linux-{amd64,arm64}.tar.gz); staged by obs-upload.sh
-	GO_TOOLCHAIN_VERSION=$$(grep -m1 '^go ' core/go.mod | awk '{print $$2}'); \
 	case "$(DEB_HOST_ARCH)" in \
 	amd64) GO_LINUX_ARCH=amd64 ;; \
 	arm64) GO_LINUX_ARCH=arm64 ;; \
 	*) echo "ERROR: Unsupported architecture: $(DEB_HOST_ARCH)" && exit 1 ;; \
 	esac; \
-	GO_TARBALL="$(CURDIR)/go$$GO_TOOLCHAIN_VERSION.linux-$$GO_LINUX_ARCH.tar.gz"; \
-	test -f "$$GO_TARBALL" || (echo "ERROR: Missing bundled Go toolchain $$GO_TARBALL" && exit 1); \
+	GO_TARBALL=$$(ls "$(CURDIR)"/go[0-9]*.linux-$$GO_LINUX_ARCH.tar.gz 2>/dev/null | head -n1); \
+	test -f "$$GO_TARBALL" || (echo "ERROR: Missing bundled Go toolchain for $(DEB_HOST_ARCH)" && exit 1); \
 	rm -rf "$(CURDIR)/go-bootstrap" "$(CURDIR)/.go-toolchain"; \
 	mkdir -p "$(CURDIR)/go-bootstrap"; \
 	tar -xzf "$$GO_TARBALL" -C "$(CURDIR)/go-bootstrap"; \
@@ -46,6 +45,7 @@ override_dh_auto_build:
 	export PATH="$(CURDIR)/.go-toolchain/bin:$$PATH"; \
 	export GOROOT="$(CURDIR)/.go-toolchain"; \
 	go version; \
+	GO_TOOLCHAIN_VERSION=$$(go env GOVERSION | sed "s/^go//"); \
 	sed -i "s/^go [0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$$/go $$GO_TOOLCHAIN_VERSION/" core/go.mod; \
 	sed -i "s/^\(## explicit; go \)[0-9]\+\.[0-9]\+\(\.[0-9]*\)\?$$/\1$$GO_TOOLCHAIN_VERSION/" core/vendor/modules.txt; \
 	COMMIT=$$(echo "$(UPSTREAM_VERSION)" | grep -oP '(?<=git)[0-9]+\.[a-f0-9]+' | cut -d. -f2 | head -c8 || echo "unknown"); \

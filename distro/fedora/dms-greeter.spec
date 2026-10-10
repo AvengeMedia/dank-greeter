@@ -3,6 +3,7 @@
 %global debug_package %{nil}
 %global version VERSION_PLACEHOLDER
 %global pkg_summary DMS Greeter for greetd
+%global go_toolchain_version GO_TOOLCHAIN_PLACEHOLDER
 
 Name:           dms-greeter
 # Epoch 1: versions restarted at 1.0.0 when the greeter moved to its own repo;
@@ -16,8 +17,9 @@ License:        MIT
 URL:            https://github.com/AvengeMedia/dank-greeter
 
 Source0:        dank-greeter-%{version}.tar.gz
+Source1:        https://go.dev/dl/go%{go_toolchain_version}.linux-amd64.tar.gz
+Source2:        https://go.dev/dl/go%{go_toolchain_version}.linux-arm64.tar.gz
 
-BuildRequires:  golang >= 1.24
 BuildRequires:  make
 BuildRequires:  systemd-rpm-macros
 
@@ -48,19 +50,32 @@ DankMaterialShell.
 test -d core/vendor || { echo "ERROR: vendored Go dependencies missing from source tarball"; exit 1; }
 
 %build
+# Copr builds are offline and distro Go lags go.mod; use the bundled toolchain
+case "%{_arch}" in
+  x86_64)
+    GO_TARBALL="%{_sourcedir}/go%{go_toolchain_version}.linux-amd64.tar.gz"
+    ;;
+  aarch64)
+    GO_TARBALL="%{_sourcedir}/go%{go_toolchain_version}.linux-arm64.tar.gz"
+    ;;
+  *)
+    echo "Unsupported architecture for bundled Go: %{_arch}"
+    exit 1
+    ;;
+esac
+
+rm -rf .go
+tar -xzf "$GO_TARBALL"
+mv go .go
+export GOROOT="$PWD/.go"
+export PATH="$GOROOT/bin:$PATH"
 export HOME=%{_builddir}/go-home
 export GOCACHE=%{_builddir}/go-cache
 export GOMODCACHE=%{_builddir}/go-mod
 mkdir -p $HOME $GOCACHE $GOMODCACHE
 export GOTOOLCHAIN=local
 export GOFLAGS=-mod=vendor
-
-# Align the go directive (and vendored annotations) with the distro toolchain;
-# builds are offline so a newer requested toolchain cannot be downloaded.
-GO_VERSION=$(go env GOVERSION | sed -E 's/^go([0-9]+\.[0-9]+).*/\1/')
-sed -E -i "s/^go 1\.[0-9]+(\.[0-9]+)?/go $GO_VERSION/" core/go.mod
-sed -E -i "s/^(## explicit; go )1\.[0-9]+(\.[0-9]+)?$/\1$GO_VERSION/" core/vendor/modules.txt
-sed -E -i '/^toolchain go[0-9.]+$/d' core/go.mod
+go version
 
 make -C core build VERSION=%{version} COMMIT=release
 

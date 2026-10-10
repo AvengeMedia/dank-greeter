@@ -37,6 +37,50 @@ LAUNCHPAD_API="https://api.launchpad.net/1.0"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+GO_TOOLCHAIN_CACHE="${GO_TOOLCHAIN_CACHE:-$HOME/.cache/dms-ppa-go-toolchain}"
+
+# go.mod may declare "1.27" with no patch level; resolve it to the newest release.
+go_toolchain_version() {
+    local declared
+    declared="$(grep -m1 '^go ' "$1" 2>/dev/null | awk '{print $2}')"
+    [[ -n "$declared" ]] || return 1
+    if [[ "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        printf '%s' "$declared"
+        return
+    fi
+    [[ "$declared" =~ ^[0-9]+\.[0-9]+$ ]] || return 1
+    curl -fsSL 'https://go.dev/dl/?mode=json&include=all' \
+        | grep -o "\"version\": *\"go${declared//./\\.}\.[0-9]*\"" \
+        | grep -o '[0-9][0-9.]*' \
+        | sort -t. -k3,3n \
+        | tail -1
+}
+
+# Launchpad has no network and distro Go lags go.mod; ship the toolchain in the source package.
+bundle_go_toolchains() {
+    local gomod="$1" dest="$2" ver arch tarball cache
+    ver="$(go_toolchain_version "$gomod" || true)"
+    if [[ -z "$ver" ]]; then
+        error "Could not resolve a Go toolchain release from $gomod"
+        exit 1
+    fi
+    cache="$GO_TOOLCHAIN_CACHE/$ver"
+    mkdir -p "$cache"
+    for arch in amd64 arm64; do
+        tarball="go${ver}.linux-${arch}.tar.gz"
+        if [[ ! -f "$cache/$tarball" ]]; then
+            info "Downloading Go ${ver} (${arch})..."
+            if ! curl -fsSL -o "$cache/$tarball.tmp" "https://go.dev/dl/$tarball"; then
+                rm -f "$cache/$tarball.tmp"
+                error "Failed to download https://go.dev/dl/$tarball"
+                exit 1
+            fi
+            mv "$cache/$tarball.tmp" "$cache/$tarball"
+        fi
+        cp -f "$cache/$tarball" "$dest/$tarball"
+    done
+    success "Bundled Go ${ver} toolchains"
+}
 
 KEEP_BUILDS=false
 VERSION=""
@@ -187,6 +231,7 @@ EOF
         fi
         (cd "$SRC_DIR/core" && go mod vendor)
     fi
+    bundle_go_toolchains "$SRC_DIR/core/go.mod" "$WORK_PACKAGE_DIR"
 else
     cat > debian/changelog <<EOF
 ${PACKAGE} (${NEW_VERSION}) ${SERIES}; urgency=medium
@@ -202,6 +247,9 @@ EOF
         error "Failed to download $TARBALL_URL"
         exit 1
     fi
+    tar -xzOf dms-greeter-source.tar.gz "dank-greeter-${VERSION}/core/go.mod" > release-go.mod
+    bundle_go_toolchains release-go.mod "$WORK_PACKAGE_DIR"
+    rm -f release-go.mod
 fi
 
 info "Building source package..."
