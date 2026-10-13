@@ -101,6 +101,7 @@ Item {
     property int passwordFailureCount: 0
     property int passwordAttemptLimitHint: 0
     property string authFeedbackMessage: ""
+    property string authPromptText: ""
     property string greetdPamText: ""
     property string systemAuthPamText: ""
     property string commonAuthPamText: ""
@@ -1032,6 +1033,7 @@ Item {
         enabled: isPrimaryScreen
 
         function onAuthMessage(message, error, responseRequired, echoResponse) {
+            authPromptText = responseRequired ? (message || "").replace(/:\s*$/, "").trim() : "";
             if (responseRequired) {
                 awaitingExternalAuth = false;
                 pendingPasswordResponse = true;
@@ -1063,6 +1065,7 @@ Item {
             if (Greetd.state === GreetdState.Inactive) {
                 awaitingExternalAuth = false;
                 pendingPasswordResponse = false;
+                authPromptText = "";
                 authTimeout.interval = defaultAuthTimeoutMs;
                 authTimeout.stop();
                 passwordSubmitRequested = false;

@@ -428,8 +428,11 @@ Item {
                             return I18n.tr("Logging in...");
                         if (root.authenticating)
                             return I18n.tr("Authenticating...");
-                        if (GreeterState.showPasswordInput)
-                            return root.passwordVisibility === "always" ? I18n.tr("Password...") : "";
+                        if (GreeterState.showPasswordInput) {
+                            if (root.passwordVisibility !== "always")
+                                return "";
+                            return root.host?.authPromptText || I18n.tr("Password...");
+                        }
                         if (root.pickerPhase)
                             return "";
                         return I18n.tr("Username...");
