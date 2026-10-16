@@ -83,7 +83,9 @@ func resolveLaunchShellDir(cmd *cobra.Command) (string, error) {
 		return custom, nil
 	}
 	if cmd.Flags().Changed("path") {
-		return launcher.LocateShellConfig(launchFlags.legacyShellPath)
+		if dir, err := launcher.LocateShellConfig(launchFlags.legacyShellPath); err == nil {
+			return dir, nil
+		}
 	}
 	if envDir := os.Getenv("DMS_GREETER_SHELL_DIR"); envDir != "" {
 		return envDir, nil
