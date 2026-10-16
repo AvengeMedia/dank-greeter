@@ -899,10 +899,7 @@ Item {
         GreeterState.selectedSessionDesktopNames = GreeterState.sessionDesktopNames[0] || "";
     }
 
-    // Session directories in XDG precedence order, highest first. A desktop
-    // file in an earlier directory shadows one with the same file name in a
-    // later directory, which lets e.g. /usr/local/share/wayland-sessions hide
-    // a packaged session via Hidden=true.
+    // Highest XDG precedence first, so a Hidden=true file in an earlier dir shadows a later one.
     property var sessionDirs: {
         const homeDir = Quickshell.env("HOME") || "";
         const dataDirs = [];
@@ -932,9 +929,7 @@ Item {
     property var _pendingFiles: ({})
     property int _pendingCount: 0
 
-    // Desktop ID -> { priority, path, name, exec, desktopNames, hidden }. Files
-    // load asynchronously, so precedence is decided by directory priority
-    // rather than load order.
+    // Keyed by desktop id. Files load asynchronously, so directory priority decides precedence, not load order.
     property var _sessionEntries: ({})
 
     function _addSession(path, priority, name, exec, desktopNames, hidden) {
@@ -1062,11 +1057,13 @@ Item {
         model: isPrimaryScreen ? sessionDirs : []
 
         Item {
+            id: sessionDir
             required property string modelData
             required property int index
 
+            // Bare index here resolves to FolderListModel.index(), not the delegate property.
             FolderListModel {
-                folder: encodeFileUrl(modelData)
+                folder: encodeFileUrl(sessionDir.modelData)
                 nameFilters: ["*.desktop"]
                 showDirs: false
                 showDotAndDotDot: false
@@ -1078,7 +1075,7 @@ Item {
                         let fp = get(i, "filePath");
                         if (fp.startsWith("file://"))
                             fp = fp.substring(7);
-                        root._loadDesktopFile(fp, index);
+                        root._loadDesktopFile(fp, sessionDir.index);
                     }
                 }
             }
@@ -1145,6 +1142,7 @@ Item {
                 GreeterState.pamState = "error";
                 authFeedbackMessage = currentAuthMessage();
                 placeholderDelay.restart();
+                Greetd.cancelSession();
                 return;
             }
 
