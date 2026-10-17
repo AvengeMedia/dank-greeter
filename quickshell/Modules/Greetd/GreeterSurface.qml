@@ -11,7 +11,7 @@ Variants {
     PanelWindow {
         id: root
 
-        property var modelData
+        required property var modelData
 
         screen: modelData
         anchors {
@@ -27,7 +27,7 @@ Variants {
 
         GreeterContent {
             anchors.fill: parent
-            screenName: root.screen?.name ?? ""
+            screen: root.modelData
         }
     }
 }

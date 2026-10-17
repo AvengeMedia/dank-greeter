@@ -68,7 +68,11 @@ Item {
     }
 
     readonly property string xdgDataDirs: Quickshell.env("XDG_DATA_DIRS")
-    property string screenName: ""
+    property var screen: null
+    readonly property int maxTextureSize: 8192
+    readonly property real screenScale: screen?.devicePixelRatio || 1
+    readonly property int textureWidth: Math.min(Math.round((screen?.width ?? width) * screenScale), maxTextureSize)
+    readonly property int textureHeight: Math.min(Math.round((screen?.height ?? height) * screenScale), maxTextureSize)
     property string hyprlandCurrentLayout: ""
     property string hyprlandKeyboard: ""
     property int hyprlandLayoutCount: 0
@@ -87,7 +91,7 @@ Item {
         return "";
     }
     readonly property string pamState: GreeterState.pamState
-    property bool isPrimaryScreen: !Quickshell.screens?.length || screenName === Quickshell.screens[0]?.name
+    property bool isPrimaryScreen: !Quickshell.screens?.length || screen?.name === Quickshell.screens[0]?.name
 
     property bool weatherInitialized: false
     property bool awaitingExternalAuth: false
@@ -799,18 +803,18 @@ Item {
     readonly property string wallpaperSource: {
         if (hasCustomWallpaper)
             return encodeFileUrl(GreetdSettings.resolveUserPath(SettingsData.lockScreenWallpaperPath));
-        var w = SessionData.getMonitorWallpaper(screenName);
+        var w = SessionData.getMonitorWallpaper(screen?.name ?? "");
         return (w && !w.startsWith("#")) ? encodeFileUrl(w) : "";
     }
     readonly property string wallpaperFillModeName: {
         if (SettingsData.lockScreenWallpaperFillMode !== "")
             return SettingsData.lockScreenWallpaperFillMode;
-        return hasCustomWallpaper ? "Fill" : SessionData.getMonitorWallpaperFillMode(screenName);
+        return hasCustomWallpaper ? "Fill" : SessionData.getMonitorWallpaperFillMode(screen?.name ?? "");
     }
 
     DankBackdrop {
         anchors.fill: parent
-        screenName: root.screenName
+        screenName: root.screen?.name ?? ""
         blur: Theme.lockScreenBlur
         blurMax: Theme.lockScreenBlurMax
         visible: root.wallpaperSource === "" || wallpaperBackground.status === Image.Error
@@ -821,6 +825,7 @@ Item {
 
         anchors.fill: parent
         source: root.wallpaperSource
+        sourceSize: Qt.size(root.textureWidth, root.textureHeight)
         fillMode: Theme.getFillMode(root.wallpaperFillModeName)
         smooth: true
         asynchronous: false
@@ -861,7 +866,7 @@ Item {
     GreeterWidgetLayer {
         anchors.fill: parent
         focus: true
-        screenName: root.screenName
+        screenName: root.screen?.name ?? ""
         lockHost: root
     }
 
