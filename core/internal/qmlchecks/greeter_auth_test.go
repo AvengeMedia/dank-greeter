@@ -32,6 +32,7 @@ func TestGreeterExternalAuthTabTriggerAndFaceSupport(t *testing.T) {
 	for _, required := range []string{
 		"greeterPamHasFaceAuth",
 		"pam_sentinel",
+		"pam_gaze",
 	} {
 		if !strings.Contains(string(content), required) {
 			t.Fatalf("greeter QML must contain %q for face auth support", required)
