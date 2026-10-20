@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: dms-greeter
 Upstream-Contact: Avenge Media LLC <AvengeMedia.US@gmail.com>
-Source: https://github.com/AvengeMedia/dank-greeter
+Source: https://github.com/duxlabs-dev/dux-greeter
 
 Files: *
 Copyright: 2026 Avenge Media LLC

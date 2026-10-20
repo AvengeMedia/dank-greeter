@@ -52,7 +52,7 @@ yay -S greetd-dms-greeter-git
 
 ### Debian / openSUSE
 
-Official packages are available from the [Dux Linux OBS repository](https://software.opensuse.org/download/package?package=dms-greeter&project=home%3AAvengeMedia%3Adanklinux). Add the repo for your distribution, then install **`dms-greeter`** (stable) or **`dms-greeter-git`** (master; Conflicts with stable):
+Official packages are available from the [Dux Labs OBS repository](https://software.opensuse.org/download/package?package=dms-greeter&project=home%3AAvengeMedia%3Adanklinux). Add the repo for your distribution, then install **`dms-greeter`** (stable) or **`dms-greeter-git`** (master; Conflicts with stable):
 
 ```bash
 # Debian 13
