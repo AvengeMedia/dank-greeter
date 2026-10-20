@@ -42,6 +42,13 @@
     "comment": ""
   },
   {
+    "term": "Awaiting face authentication",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Awaiting fingerprint authentication",
     "translation": "",
     "context": "",
@@ -70,7 +77,42 @@
     "comment": ""
   },
   {
+    "term": "Face recognition",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Fingerprint",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Hide password",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Keyboard",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Logging in...",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Login",
     "translation": "",
     "context": "",
     "reference": "",
@@ -91,9 +133,30 @@
     "comment": ""
   },
   {
+    "term": "Power Options",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Security key",
+    "translation": "",
+    "context": "",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Select user...",
     "translation": "",
     "context": "greeter user picker placeholder",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show password",
+    "translation": "",
+    "context": "",
     "reference": "",
     "comment": ""
   },

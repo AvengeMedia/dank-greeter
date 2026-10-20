@@ -2,97 +2,151 @@
   {
     "term": "Authenticating...",
     "context": "Authenticating...",
-    "reference": "Modules/Greetd/GreeterContent.qml:1185",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:600",
     "comment": ""
   },
   {
     "term": "Authentication error - try again",
     "context": "Authentication error - try again",
-    "reference": "Modules/Greetd/GreeterContent.qml:253",
+    "reference": "Modules/Greetd/GreeterContent.qml:315",
     "comment": ""
   },
   {
     "term": "Authentication failed - attempt %1 of %2",
     "context": "Authentication failed - attempt %1 of %2",
-    "reference": "Modules/Greetd/GreeterContent.qml:261",
+    "reference": "Modules/Greetd/GreeterContent.qml:323",
     "comment": ""
   },
   {
     "term": "Authentication failed - lockout can occur",
     "context": "Authentication failed - lockout can occur",
-    "reference": "Modules/Greetd/GreeterContent.qml:263",
+    "reference": "Modules/Greetd/GreeterContent.qml:325",
     "comment": ""
   },
   {
     "term": "Authentication failed - try again",
     "context": "Authentication failed - try again",
-    "reference": "Modules/Greetd/GreeterContent.qml:265",
+    "reference": "Modules/Greetd/GreeterContent.qml:327",
     "comment": ""
   },
   {
     "term": "Auto-login",
     "context": "Auto-login",
-    "reference": "Modules/Greetd/GreeterUserPicker.qml:223",
+    "reference": "Modules/Greetd/GreeterUserPicker.qml:218",
+    "comment": ""
+  },
+  {
+    "term": "Awaiting face authentication",
+    "context": "Awaiting face authentication",
+    "reference": "Modules/Greetd/GreeterContent.qml:139",
     "comment": ""
   },
   {
     "term": "Awaiting fingerprint authentication",
     "context": "Awaiting fingerprint authentication",
-    "reference": "Modules/Greetd/GreeterContent.qml:78",
+    "reference": "Modules/Greetd/GreeterContent.qml:137",
     "comment": ""
   },
   {
     "term": "Awaiting fingerprint or security key authentication",
     "context": "Awaiting fingerprint or security key authentication",
-    "reference": "Modules/Greetd/GreeterContent.qml:76",
+    "reference": "Modules/Greetd/GreeterContent.qml:135",
     "comment": ""
   },
   {
     "term": "Awaiting security key authentication",
     "context": "Awaiting security key authentication",
-    "reference": "Modules/Greetd/GreeterContent.qml:79",
+    "reference": "Modules/Greetd/GreeterContent.qml:140",
     "comment": ""
   },
   {
     "term": "Back to user list",
     "context": "Back to user list",
-    "reference": "Modules/Greetd/GreeterContent.qml:1341",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:841",
     "comment": "greeter link to return from manual username entry to user picker"
+  },
+  {
+    "term": "Face recognition",
+    "context": "Face recognition",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:736",
+    "comment": ""
+  },
+  {
+    "term": "Fingerprint",
+    "context": "Fingerprint",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:736",
+    "comment": ""
+  },
+  {
+    "term": "Hide password",
+    "context": "Hide password",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:720",
+    "comment": ""
+  },
+  {
+    "term": "Keyboard",
+    "context": "Keyboard",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:751",
+    "comment": ""
   },
   {
     "term": "Logging in...",
     "context": "Logging in...",
-    "reference": "Modules/Greetd/GreeterContent.qml:1182",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:598",
+    "comment": ""
+  },
+  {
+    "term": "Login",
+    "context": "Login",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:788",
     "comment": ""
   },
   {
     "term": "Not listed?",
     "context": "Not listed?",
-    "reference": "Modules/Greetd/GreeterUserPicker.qml:184",
+    "reference": "Modules/Greetd/GreeterUserPicker.qml:196",
     "comment": "greeter link to switch to manual username entry"
   },
   {
     "term": "Password...",
     "context": "Password...",
-    "reference": "Modules/Greetd/GreeterContent.qml:1188",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:604",
+    "comment": ""
+  },
+  {
+    "term": "Power Options",
+    "context": "Power Options",
+    "reference": "Modules/Greetd/GreeterPowerWidget.qml:38",
+    "comment": ""
+  },
+  {
+    "term": "Security key",
+    "context": "Security key",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:736",
     "comment": ""
   },
   {
     "term": "Select user...",
     "context": "Select user...",
-    "reference": "Modules/Greetd/GreeterUserPicker.qml:73",
+    "reference": "Modules/Greetd/GreeterUserPicker.qml:114",
     "comment": "greeter user picker placeholder"
+  },
+  {
+    "term": "Show password",
+    "context": "Show password",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:720",
+    "comment": ""
   },
   {
     "term": "Too many failed attempts - account may be locked",
     "context": "Too many failed attempts - account may be locked",
-    "reference": "Modules/Greetd/GreeterContent.qml:255",
+    "reference": "Modules/Greetd/GreeterContent.qml:317",
     "comment": ""
   },
   {
     "term": "Username...",
     "context": "Username...",
-    "reference": "Modules/Greetd/GreeterContent.qml:1193",
+    "reference": "Modules/Greetd/GreeterAuthWidget.qml:608",
     "comment": ""
   }
 ]
