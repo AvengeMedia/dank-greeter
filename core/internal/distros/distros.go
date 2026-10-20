@@ -27,7 +27,7 @@ type DistroConfig struct {
 
 var Registry = buildRegistry(map[DistroFamily][]string{
 	FamilyArch:   {"arch", "archarm", "archcraft", "cachyos", "catos", "endeavouros", "manjaro", "obarun", "garuda", "artix", "XeroLinux"},
-	FamilyDebian: {"debian"},
+	FamilyDebian: {"debian", "pika"},
 	FamilyFedora: {"fedora", "evernight", "nobara", "fedora-asahi-remix", "bluefin", "ultramarine"},
 	FamilyGentoo: {"gentoo"},
 	FamilySUSE:   {"opensuse-tumbleweed", "opensuse-leap", "opensuse-slowroll"},
