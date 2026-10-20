@@ -3,7 +3,7 @@ module github.com/duxlabs-dev/dux-greeter/core
 go 1.27
 
 require (
-	github.com/duxlabs-dev/dux-go v0.0.0-00010101000000-000000000000
+	github.com/duxlabs-dev/dux-go v1.6.3-0.20261020163124-e2ca52bdf500
 	github.com/sblinch/kdl-go v0.0.0-20260121213736-8b7053306ca6
 	github.com/spf13/cobra v1.10.2
 )
