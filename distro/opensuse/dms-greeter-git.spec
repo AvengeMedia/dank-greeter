@@ -16,7 +16,7 @@ Release:        1%{?dist}
 Summary:        %{pkg_summary}
 
 License:        MIT
-URL:            https://github.com/AvengeMedia/dank-greeter
+URL:            https://github.com/duxlabs-dev/dux-greeter
 
 Source0:        dms-greeter-git-source.tar.gz
 Source1:        go%{go_toolchain_version}.linux-amd64.tar.gz
@@ -40,14 +40,14 @@ Suggests:       hyprland
 Suggests:       sway
 
 %description
-DMS Greeter is a greetd login screen with the Dank Material aesthetic.
-This git package builds from the tip of the dank-greeter repository.
+DMS Greeter is a greetd login screen with the Dux Shell aesthetic.
+This git package builds from the tip of the dux-greeter repository.
 A single Go binary with the Quickshell UI embedded; the UI is extracted
 to the greeter cache directory at startup.
 
 Supports multiple compositors including Niri, Hyprland, Mango,and Sway with
 session selection, user authentication, and dynamic theming synced from
-DankMaterialShell.
+Dux Shell.
 
 Conflicts with the stable dms-greeter package; both install /usr/bin/dms-greeter.
 Switch explicitly (e.g. zypper remove dms-greeter && zypper install dms-greeter-git).
@@ -355,7 +355,7 @@ Finish setup before rebooting:
      dms-greeter sync
 
 Verify with: dms-greeter status
-Documentation: https://danklinux.com/docs/dankgreeter/
+Documentation: https://duxlabs.dev/docs/dms-greeter/
 =========================================================================
 
 EOF

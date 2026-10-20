@@ -35,7 +35,7 @@ on:
 jobs:
   determine-matrix:
     runs-on: ubuntu-latest
-    if: github.repository == 'AvengeMedia/dank-greeter'
+    if: github.repository == 'duxlabs-dev/dux-greeter'
     outputs:
       series: ${{ steps.set.outputs.series }}
       packages: ${{ steps.set.outputs.packages }}
@@ -81,7 +81,7 @@ jobs:
     name: Upload ${{ matrix.package }} (${{ matrix.series }})
     needs: determine-matrix
     runs-on: ubuntu-latest
-    if: github.repository == 'AvengeMedia/dank-greeter'
+    if: github.repository == 'duxlabs-dev/dux-greeter'
     timeout-minutes: 60
     strategy:
       fail-fast: false

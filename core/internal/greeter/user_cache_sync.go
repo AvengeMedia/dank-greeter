@@ -11,8 +11,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
-	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 )
 
 var monitorWallpaperSanitizer = regexp.MustCompile(`[^a-zA-Z0-9]+`)
@@ -274,8 +274,8 @@ type userSlotSources struct {
 
 func newUserSlotSources(homeDir string) userSlotSources {
 	return userSlotSources{
-		settings: filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json"),
-		session:  filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json"),
+		settings: filepath.Join(utils.UserDMSDir(homeDir, ".config"), "settings.json"),
+		session:  filepath.Join(utils.UserDMSDir(homeDir, ".local", "state"), "session.json"),
 		colors:   GreeterColorsSource(homeDir),
 	}
 }

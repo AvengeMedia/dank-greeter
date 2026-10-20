@@ -133,13 +133,13 @@ func TestWallpaperAccessDirs(t *testing.T) {
 		filepath.Join(homeDir, ".local", "share", "wallpapers", "b.jpg"),
 		"~/Pictures/Walls/c.jpg",
 		"/mnt/data/walls/d.jpg",
-		filepath.Join(homeDir, ".config", "DankMaterialShell", "e.jpg"),
+		filepath.Join(homeDir, ".config", "dms", "e.jpg"),
 	}
 
 	got := wallpaperAccessDirs(homeDir, paths)
 	want := []string{
 		"/home",
-		"/home/alice/.config/DankMaterialShell",
+		"/home/alice/.config/dms",
 		"/home/alice/.local/share/wallpapers",
 		"/home/alice/Pictures",
 		"/home/alice/Pictures/Walls",
@@ -178,9 +178,9 @@ func TestLinkUserSlotReplacesSnapshot(t *testing.T) {
 	root := t.TempDir()
 	homeDir := filepath.Join(root, "home")
 	sources := userSlotSources{
-		settings: filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json"),
-		session:  filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json"),
-		colors:   filepath.Join(homeDir, ".cache", "DankMaterialShell", "dms-colors.json"),
+		settings: filepath.Join(homeDir, ".config", "dms", "settings.json"),
+		session:  filepath.Join(homeDir, ".local", "state", "dms", "session.json"),
+		colors:   filepath.Join(homeDir, ".cache", "dms", "dms-colors.json"),
 	}
 	writeTestFile(t, sources.settings, `{"currentThemeName":"blue"}`)
 	writeTestFile(t, sources.session, `{"wallpaperPath":"/x.jpg"}`)

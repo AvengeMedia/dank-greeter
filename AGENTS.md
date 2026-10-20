@@ -1,6 +1,6 @@
 ## What is this?
 
-dank-greeter is a greetd login screen (`dms-greeter`) that looks and behaves like the DankMaterialShell (DMS) lock screen. It is a sibling of DMS, not DMS itself. It ships as a single pure-Go binary with the Quickshell UI embedded, launches its own compositor session (niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC), and reads theme, wallpaper, and settings that `dms-greeter sync` copies out of a user's DMS config into `/var/cache/dms-greeter`.
+dank-greeter is a greetd login screen (`dms-greeter`) that looks and behaves like the Dux Shell (DMS) lock screen. It is a sibling of DMS, not DMS itself. It ships as a single pure-Go binary with the Quickshell UI embedded, launches its own compositor session (niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC), and reads theme, wallpaper, and settings that `dms-greeter sync` copies out of a user's DMS config into `/var/cache/dms-greeter`.
 
 The greeter is read-only. Greeter options are edited in DMS under Settings -> Greeter and synced here. The greeter never writes back to DMS config.
 
@@ -66,7 +66,7 @@ Pre-commit runs gofmt, go vet, go test, go mod tidy, and the no-console-in-QML c
 - Stay in step with DMS. `Common/` and `Services/` here are trimmed copies of DMS files. When fixing something that also exists in DMS, fix it the same way in both, and prefer moving shared code into `dank-qml-common`.
 - Resource usage matters. The greeter sits on the login screen indefinitely. Audit any change for idle CPU cost, timers, polling, and extra processes.
 - Follow each app's own conventions. QML uses Theme tokens instead of hardcoded colors, spacing, or other constants.
-- Use the Dank* wrappers in `Widgets/` or `DCommon/Widgets` instead of raw ListView/Flickable/ScrollView.
+- Use the D* widgets (DListView, DFlickable, and so on) from `Widgets/` or `DCommon/Widgets` instead of raw ListView/Flickable/ScrollView.
 - All user-facing text goes through I18n.tr(). Prefer reusing existing catalog terms over adding new ones. Never edit the translation catalogs by hand, they are synced with POEditor.
 - Use the `Log` service in QML, never `console.*`.
 - The Go binary is pure Go, `CGO_ENABLED=0`. Do not add cgo dependencies.

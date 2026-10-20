@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-REPO="AvengeMedia/dank-greeter"
+REPO="duxlabs-dev/dux-greeter"
 PACKAGE="dms-greeter"
 OBS_PROJECT="home:AvengeMedia:danklinux"
 OBS_BASE="${OBS_BASE:-$HOME/.cache/osc-checkouts}"
@@ -70,7 +70,7 @@ cd "$REPO_ROOT"
 
 if [[ ! -d "distro/debian/$PACKAGE" ]]; then
     echo "Error: Package tree missing: distro/debian/$PACKAGE"
-    echo "Run this script from the dank-greeter repository"
+    echo "Run this script from the dux-greeter repository"
     exit 1
 fi
 

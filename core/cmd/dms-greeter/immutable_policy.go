@@ -9,11 +9,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
 	"github.com/spf13/cobra"
 )
 
-// Policy files are shared with DankMaterialShell, so blocked_commands specs
+// Policy files are shared with Dux Shell, so blocked_commands specs
 // keep the historical "greeter <sub>" form; normalizeCommandSpec maps both
 // those specs and this binary's command paths onto bare subcommand names.
 const (

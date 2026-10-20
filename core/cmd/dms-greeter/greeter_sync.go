@@ -10,10 +10,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/greeter"
-	sharedpam "github.com/AvengeMedia/dank-greeter/core/internal/pam"
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
-	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/greeter"
+	sharedpam "github.com/duxlabs-dev/dux-greeter/core/internal/pam"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 )
 
 var fallbackTerminals = []string{"ghostty", "foot", "kitty", "alacritty", "wezterm", "konsole", "gnome-terminal", "xfce4-terminal", "xterm"}
@@ -99,7 +99,7 @@ func syncGreeterAutoLoginOnly() error {
 		return fmt.Errorf("failed to get user home directory: %w", err)
 	}
 
-	settingsPath := filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json")
+	settingsPath := filepath.Join(utils.UserDMSDir(homeDir, ".config"), "settings.json")
 	cacheSettingsPath := filepath.Join(greeter.GreeterCacheDir, "settings.json")
 	enabled := false
 	for _, path := range []string{cacheSettingsPath, settingsPath} {

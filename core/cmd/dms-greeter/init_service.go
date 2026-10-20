@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/greeter"
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/greeter"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
 )
 
 // runit (Void Linux) service helpers. Services live in /etc/sv and are "enabled"

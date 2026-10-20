@@ -43,7 +43,7 @@ concurrency:
 jobs:
   determine-packages:
     runs-on: ubuntu-latest
-    if: github.repository == 'AvengeMedia/dank-greeter'
+    if: github.repository == 'duxlabs-dev/dux-greeter'
     outputs:
       packages: ${{ steps.set.outputs.packages }}
     steps:
@@ -74,7 +74,7 @@ jobs:
   build-and-upload:
     needs: determine-packages
     runs-on: ubuntu-latest
-    if: github.repository == 'AvengeMedia/dank-greeter'
+    if: github.repository == 'duxlabs-dev/dux-greeter'
     strategy:
       fail-fast: false
       matrix:

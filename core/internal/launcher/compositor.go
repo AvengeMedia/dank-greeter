@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/config"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/config"
 )
 
 var niriOverrideFiles = []string{

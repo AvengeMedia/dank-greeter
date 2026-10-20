@@ -27,7 +27,7 @@ success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
 error() { echo -e "${RED}[ERROR]${NC} $1"; }
 
-REPO="AvengeMedia/dank-greeter"
+REPO="duxlabs-dev/dux-greeter"
 PACKAGE="dms-greeter"
 PPA_OWNER="avengemedia"
 PPA_NAME="danklinux"

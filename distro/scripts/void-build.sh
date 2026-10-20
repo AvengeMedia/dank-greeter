@@ -14,7 +14,7 @@
 
 set -euo pipefail
 
-REPO="AvengeMedia/dank-greeter"
+REPO="duxlabs-dev/dux-greeter"
 PACKAGE="dms-greeter-git"
 VERSION=""
 SMOKE=false

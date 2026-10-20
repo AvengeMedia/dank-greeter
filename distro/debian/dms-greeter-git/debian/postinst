@@ -92,7 +92,7 @@ Next steps:
      dms-greeter sync
 
 Ready to test? Run: sudo systemctl start greetd
-Documentation: https://danklinux.com/docs/dankgreeter/
+Documentation: https://duxlabs.dev/docs/dms-greeter/
 =========================================================================
 
 EOF

@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/greeter"
-	sharedpam "github.com/AvengeMedia/dank-greeter/core/internal/pam"
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
-	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/greeter"
+	sharedpam "github.com/duxlabs-dev/dux-greeter/core/internal/pam"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 )
 
 func installGreeter(nonInteractive bool) error {

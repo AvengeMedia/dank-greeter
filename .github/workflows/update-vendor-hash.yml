@@ -1,4 +1,4 @@
-# SOURCE: https://github.com/AvengeMedia/dankcalendar/blob/master/.github/workflows/update-vendor-hash.yml
+# SOURCE: https://github.com/duxlabs-dev/dux-calendar/blob/master/.github/workflows/update-vendor-hash.yml
 
 name: Update Vendor Hash
 

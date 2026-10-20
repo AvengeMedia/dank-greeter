@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/config"
-	"github.com/AvengeMedia/dank-greeter/core/internal/distros"
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
-	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/config"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/distros"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 	"github.com/sblinch/kdl-go"
 	"github.com/sblinch/kdl-go/document"
 )
@@ -460,7 +460,7 @@ func readSessionDesktopEntry(path string) (sessionDesktopEntry, error) {
 func resolveGreeterAutoLoginState(cacheDir, homeDir string) (enabled bool, loginUser string, sessionID string, err error) {
 	settingsPath := filepath.Join(cacheDir, "settings.json")
 	if _, statErr := os.Stat(settingsPath); statErr != nil {
-		settingsPath = filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json")
+		settingsPath = filepath.Join(utils.UserDMSDir(homeDir, ".config"), "settings.json")
 	}
 
 	cfg, err := readGreeterAutoLoginConfig(settingsPath)
@@ -1210,9 +1210,9 @@ func RemediateStaleACLs(logFunc func(string), sudoPassword string) {
 	dirs := []string{
 		homeDir,
 		filepath.Join(homeDir, ".config"),
-		filepath.Join(homeDir, ".config", "DankMaterialShell"),
+		utils.UserDMSDir(homeDir, ".config"),
 		filepath.Join(homeDir, ".cache"),
-		filepath.Join(homeDir, ".cache", "DankMaterialShell"),
+		utils.UserDMSDir(homeDir, ".cache"),
 		filepath.Join(homeDir, ".local"),
 		filepath.Join(homeDir, ".local", "state"),
 		filepath.Join(homeDir, ".local", "share"),
@@ -1315,9 +1315,9 @@ func SetupDMSGroup(logFunc func(string), sudoPassword string) error {
 		path string
 		desc string
 	}{
-		{filepath.Join(homeDir, ".config", "DankMaterialShell"), "DankMaterialShell config"},
-		{filepath.Join(homeDir, ".local", "state", "DankMaterialShell"), "DankMaterialShell state"},
-		{filepath.Join(homeDir, ".cache", "DankMaterialShell"), "DankMaterialShell cache"},
+		{utils.UserDMSDir(homeDir, ".config"), "Dux Shell config"},
+		{utils.UserDMSDir(homeDir, ".local", "state"), "Dux Shell state"},
+		{utils.UserDMSDir(homeDir, ".cache"), "Dux Shell cache"},
 		{filepath.Join(homeDir, ".cache", "quickshell"), "quickshell cache"},
 		{filepath.Join(homeDir, ".config", "quickshell"), "quickshell config"},
 		{filepath.Join(homeDir, ".local", "share", "wayland-sessions"), "wayland sessions"},
@@ -1353,7 +1353,7 @@ func SetupDMSGroup(logFunc func(string), sudoPassword string) error {
 }
 
 func GreeterColorsSource(homeDir string) string {
-	return filepath.Join(homeDir, ".cache", "DankMaterialShell", "dms-colors.json")
+	return filepath.Join(utils.UserDMSDir(homeDir, ".cache"), "dms-colors.json")
 }
 
 func ensureGreeterSyncSourceFile(path string) error {
@@ -1407,12 +1407,12 @@ func SyncDMSConfigs(compositor string, logFunc func(string), sudoPassword string
 		desc   string
 	}{
 		{
-			source: filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json"),
+			source: filepath.Join(utils.UserDMSDir(homeDir, ".config"), "settings.json"),
 			target: filepath.Join(cacheDir, "settings.json"),
 			desc:   "core settings (theme, clock formats, etc)",
 		},
 		{
-			source: filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json"),
+			source: filepath.Join(utils.UserDMSDir(homeDir, ".local", "state"), "session.json"),
 			target: filepath.Join(cacheDir, "session.json"),
 			desc:   "state (wallpaper configuration)",
 		},

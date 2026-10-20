@@ -1,6 +1,6 @@
 // Package pam manages the DMS-managed auth block in /etc/pam.d/greetd
 // (fingerprint / U2F lines for the greeter). Marker strings are kept
-// byte-identical to DankMaterialShell so blocks written by older DMS
+// byte-identical to Dux Shell so blocks written by older DMS
 // versions are recognized.
 package pam
 
@@ -14,8 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/distros"
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/distros"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 )
 
 const (
@@ -87,7 +88,7 @@ func IsNixOS() bool {
 // ReadAuthSettings reads the greeter auth toggles from the user's DMS
 // settings; DMS Settings remains the front-end for these values.
 func ReadAuthSettings(homeDir string) (AuthSettings, error) {
-	settingsPath := filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json")
+	settingsPath := filepath.Join(utils.UserDMSDir(homeDir, ".config"), "settings.json")
 	data, err := os.ReadFile(settingsPath)
 	if err != nil {
 		if os.IsNotExist(err) {

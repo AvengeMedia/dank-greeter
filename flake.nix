@@ -4,7 +4,7 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     dank-qml-common = {
-      url = "github:AvengeMedia/dank-qml-common";
+      url = "github:duxlabs-dev/dux-qml-common";
       flake = false;
     };
   };
@@ -101,8 +101,8 @@
             '';
 
             meta = {
-              description = "greetd login screen with the Dank Material aesthetic";
-              homepage = "https://github.com/AvengeMedia/dank-greeter";
+              description = "greetd login screen with the Dux Shell aesthetic";
+              homepage = "https://github.com/duxlabs-dev/dux-greeter";
               license = pkgs.lib.licenses.mit;
               mainProgram = "dms-greeter";
               platforms = pkgs.lib.platforms.linux;

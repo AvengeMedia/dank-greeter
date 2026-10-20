@@ -1,24 +1,24 @@
 # DMS Greeter
 
 <div align="center">
-  <a href="https://danklinux.com">
+  <a href="https://duxlabs.dev">
     <img src="assets/danklogo.svg" alt="DMS Greeter" width="200">
   </a>
 
-### A greetd login screen with the Dank Material aesthetic
+### A greetd login screen with the Dux Shell aesthetic
 
 Built with [Quickshell](https://quickshell.org/) and [Go](https://go.dev/)
 
-[![Documentation](https://img.shields.io/badge/docs-danklinux.com-9ccbfb?style=for-the-badge&labelColor=101418)](https://danklinux.com/docs/dankgreeter)
-[![GitHub stars](https://img.shields.io/github/stars/AvengeMedia/dank-greeter?style=for-the-badge&labelColor=101418&color=ffd700)](https://github.com/AvengeMedia/dank-greeter/stargazers)
-[![GitHub License](https://img.shields.io/github/license/AvengeMedia/dank-greeter?style=for-the-badge&labelColor=101418&color=b9c8da)](https://github.com/AvengeMedia/dank-greeter/blob/master/LICENSE)
+[![Documentation](https://img.shields.io/badge/docs-duxlabs.dev-9ccbfb?style=for-the-badge&labelColor=101418)](https://duxlabs.dev/docs/dms-greeter)
+[![GitHub stars](https://img.shields.io/github/stars/duxlabs-dev/dux-greeter?style=for-the-badge&labelColor=101418&color=ffd700)](https://github.com/duxlabs-dev/dux-greeter/stargazers)
+[![GitHub License](https://img.shields.io/github/license/duxlabs-dev/dux-greeter?style=for-the-badge&labelColor=101418&color=b9c8da)](https://github.com/duxlabs-dev/dux-greeter/blob/master/LICENSE)
 [![AUR version (git)](<https://img.shields.io/aur/version/greetd-dms-greeter-git?style=for-the-badge&labelColor=101418&color=9ccbfb&label=AUR%20(git)>)](https://aur.archlinux.org/packages/greetd-dms-greeter-git)
 [![Discord](https://img.shields.io/badge/discord-join?style=for-the-badge&logo=discord&logoColor=ffffff&label=discord&labelColor=101418&color=5865f2)](https://discord.gg/ppWTpKmPgT)
 [![Ko-Fi donate](https://img.shields.io/badge/donate-kofi?style=for-the-badge&logo=ko-fi&logoColor=ffffff&label=ko-fi&labelColor=101418&color=f16061&link=https%3A%2F%2Fko-fi.com%2Fdanklinux)](https://ko-fi.com/danklinux)
 
 </div>
 
-DMS Greeter is a login screen for [greetd](https://github.com/kennylevinsen/greetd) that looks and behaves like the [DankMaterialShell](https://github.com/AvengeMedia/DankMaterialShell) lock screen. It ships as a single `dms-greeter` binary with the Quickshell UI embedded, runs under niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC, or Aqueous, and syncs your DMS theme, wallpaper, and settings so the login screen matches your desktop. The lock screen widgets you arrange in DMS (clock, date, password field, status row, power button, with their styles and positions) render the same way here; desktop plugins and notifications stay on the lock screen.
+DMS Greeter is a login screen for [greetd](https://github.com/kennylevinsen/greetd) that looks and behaves like the [Dux Shell](https://github.com/duxlabs-dev/dux-shell) lock screen. It ships as a single `dms-greeter` binary with the Quickshell UI embedded, runs under niri, Hyprland, Sway, Scroll, Miracle WM, labwc, MangoWC, or Aqueous, and syncs your DMS theme, wallpaper, and settings so the login screen matches your desktop. The lock screen widgets you arrange in DMS (clock, date, password field, status row, power button, with their styles and positions) render the same way here; desktop plugins and notifications stay on the lock screen.
 
 ## Repository Structure
 
@@ -52,7 +52,7 @@ yay -S greetd-dms-greeter-git
 
 ### Debian / openSUSE
 
-Official packages are available from the [DankLinux OBS repository](https://software.opensuse.org/download/package?package=dms-greeter&project=home%3AAvengeMedia%3Adanklinux). Add the repo for your distribution, then install **`dms-greeter`** (stable) or **`dms-greeter-git`** (master; Conflicts with stable):
+Official packages are available from the [Dux Linux OBS repository](https://software.opensuse.org/download/package?package=dms-greeter&project=home%3AAvengeMedia%3Adanklinux). Add the repo for your distribution, then install **`dms-greeter`** (stable) or **`dms-greeter-git`** (master; Conflicts with stable):
 
 ```bash
 # Debian 13
@@ -64,7 +64,7 @@ zypper install dms-greeter
 # zypper install dms-greeter-git
 ```
 
-Ubuntu uses the same package names from [`ppa:avengemedia/danklinux`](https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux). See the [Installation guide](https://danklinux.com/docs/dankgreeter/installation) for full repository setup.
+Ubuntu uses the same package names from [`ppa:avengemedia/danklinux`](https://launchpad.net/~avengemedia/+archive/ubuntu/danklinux). See the [Installation guide](https://duxlabs.dev/docs/dms-greeter/installation) for full repository setup.
 
 ### Fedora / RHEL / Rocky / Alma
 
@@ -102,14 +102,14 @@ Or run `dms-greeter install` for interactive setup - it installs greetd where ne
 ### From Source
 
 ```bash
-git clone --recurse-submodules https://github.com/AvengeMedia/dank-greeter.git
+git clone --recurse-submodules https://github.com/duxlabs-dev/dux-greeter.git
 cd dank-greeter
 make build
 sudo make install
 ```
 
 Already cloned without submodules? Run `git submodule update --init` first -
-the shared widget library ([dank-qml-common](https://github.com/AvengeMedia/dank-qml-common))
+the shared widget library ([dank-qml-common](https://github.com/duxlabs-dev/dux-qml-common))
 is vendored as a submodule and the build fails without it.
 
 Then create the greeter user and cache directory if your setup doesn't have them:
@@ -161,7 +161,7 @@ uses `programs.aqueous.package` when available, falling back to `pkgs.aqueous`.
 ## Features
 
 **DMS Sync**
-`dms-greeter sync` copies your DankMaterialShell theme, wallpaper, and settings
+`dms-greeter sync` copies your Dux Shell theme, wallpaper, and settings
 into the greeter cache, so the login screen matches your desktop. Greeter
 options live in DMS under **Settings → Greeter** - the greeter itself only
 reads the synced files.
@@ -254,13 +254,13 @@ sudo usermod -aG greeter $USER
 setfacl -m u:greeter:x ~ ~/.config ~/.local ~/.cache ~/.local/state
 
 # Set group permissions on DMS directories
-sudo chgrp -R greeter ~/.config/DankMaterialShell ~/.local/state/DankMaterialShell ~/.cache/quickshell
-sudo chmod -R g+rX ~/.config/DankMaterialShell ~/.local/state/DankMaterialShell ~/.cache/quickshell
+sudo chgrp -R greeter ~/.config/dms ~/.local/state/dms ~/.cache/quickshell
+sudo chmod -R g+rX ~/.config/dms ~/.local/state/dms ~/.cache/quickshell
 
 # Create symlinks for theme files
-sudo ln -sf ~/.config/DankMaterialShell/settings.json /var/cache/dms-greeter/settings.json
-sudo ln -sf ~/.local/state/DankMaterialShell/session.json /var/cache/dms-greeter/session.json
-sudo ln -sf ~/.cache/DankMaterialShell/dms-colors.json /var/cache/dms-greeter/colors.json
+sudo ln -sf ~/.config/dms/settings.json /var/cache/dms-greeter/settings.json
+sudo ln -sf ~/.local/state/dms/session.json /var/cache/dms-greeter/session.json
+sudo ln -sf ~/.cache/dms/dms-colors.json /var/cache/dms-greeter/colors.json
 
 # Logout and login for group membership to take effect
 ```

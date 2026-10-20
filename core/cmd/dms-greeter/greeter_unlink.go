@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/greeter"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/greeter"
 )
 
 func unlinkInTerminal(nonInteractive bool) error {

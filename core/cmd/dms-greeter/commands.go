@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/launcher"
-	"github.com/AvengeMedia/dank-greeter/core/internal/shellembed"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/launcher"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/shellembed"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ var launchFlags struct {
 var rootCmd = &cobra.Command{
 	Use:   "dms-greeter",
 	Short: "DMS Greeter",
-	Long:  "DMS Greeter - a greetd login screen with the Dank Material aesthetic.\n\nInvoked from greetd as: dms-greeter --command COMPOSITOR",
+	Long:  "DMS Greeter - a greetd login screen with the Dux Shell aesthetic.\n\nInvoked from greetd as: dms-greeter --command COMPOSITOR",
 	Args:  cobra.NoArgs,
 	RunE:  runGreeter,
 }

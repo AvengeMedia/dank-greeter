@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/privesc"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/privesc"
 )
 
 var cacheRootLinkNames = []string{"settings.json", "session.json", "colors.json"}

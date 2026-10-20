@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/greeter"
-	sharedpam "github.com/AvengeMedia/dank-greeter/core/internal/pam"
-	"github.com/AvengeMedia/dankgo/log"
+	"github.com/duxlabs-dev/dux-go/log"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/greeter"
+	sharedpam "github.com/duxlabs-dev/dux-greeter/core/internal/pam"
 	"github.com/spf13/cobra"
 )
 

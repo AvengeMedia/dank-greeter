@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/distros"
-	"github.com/AvengeMedia/dank-greeter/core/internal/greeter"
-	sharedpam "github.com/AvengeMedia/dank-greeter/core/internal/pam"
-	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/distros"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/greeter"
+	sharedpam "github.com/duxlabs-dev/dux-greeter/core/internal/pam"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 )
 
 func isGreeterEnabled() bool {
@@ -320,12 +320,12 @@ func checkGreeterStatus() error {
 		desc   string
 	}{
 		{
-			source: filepath.Join(homeDir, ".config", "DankMaterialShell", "settings.json"),
+			source: filepath.Join(utils.UserDMSDir(homeDir, ".config"), "settings.json"),
 			target: filepath.Join(cacheDir, "settings.json"),
 			desc:   "Settings",
 		},
 		{
-			source: filepath.Join(homeDir, ".local", "state", "DankMaterialShell", "session.json"),
+			source: filepath.Join(utils.UserDMSDir(homeDir, ".local", "state"), "session.json"),
 			target: filepath.Join(cacheDir, "session.json"),
 			desc:   "Session state",
 		},

@@ -1,6 +1,6 @@
 # Template file for 'dms-greeter'
 #
-# DMS Greeter for greetd, built from the dank-greeter repository.
+# DMS Greeter for greetd, built from the dux-greeter repository.
 # Single Go binary with the Quickshell UI embedded (built with the
 # `withshell` tag); the release tarball carries the dank-qml-common
 # submodule and vendored Go dependencies.
@@ -11,19 +11,19 @@ revision=1
 build_wrksrc="core"
 build_style=go
 hostmakedepends="make tar"
-go_import_path="github.com/AvengeMedia/dank-greeter/core"
+go_import_path="github.com/duxlabs-dev/dux-greeter/core"
 go_package="${go_import_path}/cmd/dms-greeter"
 go_build_tags="withshell"
 go_ldflags="-X main.Version=${version}"
-short_desc="Greetd login screen with the Dank Material aesthetic"
+short_desc="Greetd login screen with the Dux Shell aesthetic"
 maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
 license="MIT"
-homepage="https://github.com/AvengeMedia/dank-greeter"
-changelog="https://github.com/AvengeMedia/dank-greeter/releases"
-distfiles="https://github.com/AvengeMedia/dank-greeter/releases/download/v${version}/dank-greeter-${version}.tar.gz"
+homepage="https://github.com/duxlabs-dev/dux-greeter"
+changelog="https://github.com/duxlabs-dev/dux-greeter/releases"
+distfiles="https://github.com/duxlabs-dev/dux-greeter/releases/download/v${version}/dank-greeter-${version}.tar.gz"
 checksum=badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadb
 
-# Versions restarted at 1.0.0 when the greeter moved off DankMaterialShell's
+# Versions restarted at 1.0.0 when the greeter moved off Dux Shell's
 # 1.5.x numbering; reverts lets xbps upgrade over those old higher versions.
 reverts="1.5.0_2 1.5.0_1"
 

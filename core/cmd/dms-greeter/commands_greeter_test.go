@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	sharedpam "github.com/AvengeMedia/dank-greeter/core/internal/pam"
+	sharedpam "github.com/duxlabs-dev/dux-greeter/core/internal/pam"
 	"github.com/spf13/cobra"
 )
 

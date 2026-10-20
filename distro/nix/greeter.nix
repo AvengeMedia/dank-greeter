@@ -122,7 +122,7 @@ in
       default = [ ];
       description = "Config files to copy into the greeter data directory";
       example = [
-        "/home/user/.config/DankMaterialShell/settings.json"
+        "/home/user/.config/dms/settings.json"
       ];
     };
     configHome = lib.mkOption {
@@ -130,7 +130,7 @@ in
       default = null;
       example = "/home/user";
       description = ''
-        User home directory to copy DankMaterialShell configurations from.
+        User home directory to copy Dux Shell configurations from.
         If DMS config files are in non-standard locations use configFiles instead.
       '';
     };
@@ -252,10 +252,14 @@ in
       mv dms-colors.json colors.json || :
       chown ${user}: * || :
     '';
+    # DMS before 2.0 used DankMaterialShell dirs; later entries win, so the current dms paths come last.
     programs.dms-greeter.configFiles = lib.mkIf (cfg.configHome != null) [
       "${cfg.configHome}/.config/DankMaterialShell/settings.json"
       "${cfg.configHome}/.local/state/DankMaterialShell/session.json"
       "${cfg.configHome}/.cache/DankMaterialShell/dms-colors.json"
+      "${cfg.configHome}/.config/dms/settings.json"
+      "${cfg.configHome}/.local/state/dms/session.json"
+      "${cfg.configHome}/.cache/dms/dms-colors.json"
     ];
   };
 }

@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/shellembed"
-	"github.com/AvengeMedia/dankgo/shellapp"
+	"github.com/duxlabs-dev/dux-go/shellapp"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/shellembed"
 )
 
 var shellApp = shellapp.New(shellapp.Config{
 	ID:        "dms-greeter",
 	EnvPrefix: "DMS_GREETER",
-	QSAppID:   "com.danklinux.dms-greeter",
+	QSAppID:   "dev.duxlabs.greeter",
 	Version:   Version,
 	Embedded:  embeddedShell{},
 	Boot:      bootPreviewBackend,

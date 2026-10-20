@@ -9,16 +9,16 @@ create_wrksrc=yes
 build_wrksrc="core"
 build_style=go
 hostmakedepends="make tar"
-go_import_path="github.com/AvengeMedia/dank-greeter/core"
+go_import_path="github.com/duxlabs-dev/dux-greeter/core"
 go_package="${go_import_path}/cmd/dms-greeter"
 go_build_tags="withshell"
 go_ldflags="-X main.Version=${version}"
-short_desc="Greetd login screen with the Dank Material aesthetic (git)"
+short_desc="Greetd login screen with the Dux Shell aesthetic (git)"
 maintainer="AvengeMedia <AvengeMedia.US@gmail.com>"
 license="MIT"
-homepage="https://github.com/AvengeMedia/dank-greeter"
+homepage="https://github.com/duxlabs-dev/dux-greeter"
 # CI populates distfiles/checksum dynamically; these are placeholders.
-distfiles="https://github.com/AvengeMedia/dank-greeter/archive/refs/heads/master.tar.gz"
+distfiles="https://github.com/duxlabs-dev/dux-greeter/archive/refs/heads/master.tar.gz"
 checksum=badbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadbadb
 
 conflicts="dms-greeter"

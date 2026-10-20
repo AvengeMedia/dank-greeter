@@ -9,7 +9,7 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/AvengeMedia/dank-greeter/core/internal/utils"
+	"github.com/duxlabs-dev/dux-greeter/core/internal/utils"
 )
 
 var sessionWallpaperStringKeys = []string{"wallpaperPath", "wallpaperPathLight", "wallpaperPathDark"}
@@ -66,9 +66,9 @@ func greeterTraversalDirs(homeDir string) []string {
 
 func greeterStateDirs(homeDir string) []string {
 	return []string{
-		filepath.Join(homeDir, ".config", "DankMaterialShell"),
-		filepath.Join(homeDir, ".local", "state", "DankMaterialShell"),
-		filepath.Join(homeDir, ".cache", "DankMaterialShell"),
+		utils.UserDMSDir(homeDir, ".config"),
+		utils.UserDMSDir(homeDir, ".local", "state"),
+		utils.UserDMSDir(homeDir, ".cache"),
 	}
 }
 

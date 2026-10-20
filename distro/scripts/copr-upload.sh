@@ -13,7 +13,7 @@ set -euo pipefail
 #   ./distro/scripts/copr-upload.sh dms-greeter-git        # git snapshot from HEAD (release 1)
 #   ./distro/scripts/copr-upload.sh dms-greeter-git 2      # git snapshot, RPM release 2 (same commit rebuild)
 
-REPO="AvengeMedia/dank-greeter"
+REPO="duxlabs-dev/dux-greeter"
 COPR_PROJECT="avengemedia/danklinux"
 
 go_toolchain_version() {
