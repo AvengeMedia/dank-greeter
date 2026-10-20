@@ -61,8 +61,8 @@ done
 
 cd "$REPO_ROOT"
 
-if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
-    echo "ERROR: dank-qml-common submodule missing. Run: git submodule update --init" >&2
+if [[ ! -e "$REPO_ROOT/dux-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
+    echo "ERROR: dux-qml-common submodule missing. Run: git submodule update --init" >&2
     exit 1
 fi
 
@@ -81,12 +81,12 @@ stage_checkout_tree() {
     local dest="$1"
     mkdir -p "$dest"
     git archive --format=tar HEAD | tar -x -C "$dest"
-    rm -rf "$dest/dank-qml-common"
-    mkdir -p "$dest/dank-qml-common"
-    tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
-        | tar -C "$dest/dank-qml-common" -xf -
+    rm -rf "$dest/dux-qml-common"
+    mkdir -p "$dest/dux-qml-common"
+    tar -C "$REPO_ROOT/dux-qml-common" --exclude='.git' -cf - . \
+        | tar -C "$dest/dux-qml-common" -xf -
     rm -rf "$dest/quickshell/DCommon"
-    ln -sfn ../dank-qml-common/DCommon "$dest/quickshell/DCommon"
+    ln -sfn ../dux-qml-common/DCommon "$dest/quickshell/DCommon"
 }
 
 # Flat tarball for create_wrksrc=yes + build_wrksrc=core (dms-git pattern).

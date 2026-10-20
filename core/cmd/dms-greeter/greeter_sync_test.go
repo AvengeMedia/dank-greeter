@@ -94,7 +94,7 @@ func TestBuildAndInstallLocalGreeterRequiresQMLSubmodule(t *testing.T) {
 		runBuild:      func(string, string, ...string) error { return errors.New("must not run") },
 		install:       func(string, func(string), string) (string, error) { return "", errors.New("must not run") },
 	})
-	if err == nil || !strings.Contains(err.Error(), "git submodule update --init dank-qml-common") {
+	if err == nil || !strings.Contains(err.Error(), "git submodule update --init dux-qml-common") {
 		t.Fatalf("expected submodule guidance, got %v", err)
 	}
 }

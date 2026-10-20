@@ -33,7 +33,7 @@ on:
       - "distro/fedora/dms-greeter-git.spec"
       - "distro/scripts/copr-upload.sh"
       - ".gitmodules"
-      - "dank-qml-common"
+      - "dux-qml-common"
       - ".github/workflows/run-copr.yml"
 
 concurrency:

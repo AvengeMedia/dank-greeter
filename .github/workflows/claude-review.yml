@@ -96,7 +96,7 @@ jobs:
             - Bugs: wrong logic, crashes, nil/undefined access, races, leaks (timers, connections, processes, handles), bad Go error handling, edge cases that will clearly be hit.
             - QML: undefined refs, missing imports, binding loops, bindings that never update, handlers on the wrong object, raw Flickable/ListView/ScrollView instead of the Dank* wrappers.
             - Security: command injection, path traversal, unsafe file permissions, secrets in code.
-            - Project rules: user-facing strings in `I18n.tr()` with translator context, reuse existing terms from quickshell/translations/en.json; quickshell/translations/ catalogs are POEditor-managed, flag PR edits to en.json/template.json; CGO stays disabled; PAM, greetd config and compositor launcher code must fail closed; new dank-qml-common contract properties need the matching library change.
+            - Project rules: user-facing strings in `I18n.tr()` with translator context, reuse existing terms from quickshell/translations/en.json; quickshell/translations/ catalogs are POEditor-managed, flag PR edits to en.json/template.json; CGO stays disabled; PAM, greetd config and compositor launcher code must fail closed; new dux-qml-common contract properties need the matching library change.
             - Go: unformatted code, go.mod/go.sum out of sync with imports, tests that no longer compile.
 
             Don't flag style or naming, pre-existing issues, anything a linter or compiler catches, speculative input-dependent problems, missing tests or docs, or refactor ideas. Not sure it's real: don't post it.

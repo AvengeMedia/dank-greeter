@@ -168,7 +168,7 @@ jobs:
           go-version-file: ./core/go.mod
 
       # Distro packages build offline from this tarball: it carries the checked-out
-      # dank-qml-common submodule plus vendored Go dependencies.
+      # dux-qml-common submodule plus vendored Go dependencies.
       - name: Generate vendored source tarball
         run: |
           VERSION_NUM=${GITHUB_REF_NAME#v}

@@ -155,8 +155,8 @@ pack_git_source_tree() {
     local dest_dir="$1"
     local tmp pack_root
 
-    if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
-        echo "Error: dank-qml-common submodule missing. Run: git submodule update --init"
+    if [[ ! -e "$REPO_ROOT/dux-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
+        echo "Error: dux-qml-common submodule missing. Run: git submodule update --init"
         exit 1
     fi
 
@@ -166,12 +166,12 @@ pack_git_source_tree() {
 
     # Tracked files via git archive, then overlay submodule (archive skips submodule content)
     git archive --format=tar HEAD | tar -x -C "$pack_root"
-    rm -rf "$pack_root/dank-qml-common"
-    mkdir -p "$pack_root/dank-qml-common"
-    tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
-        | tar -C "$pack_root/dank-qml-common" -xf -
+    rm -rf "$pack_root/dux-qml-common"
+    mkdir -p "$pack_root/dux-qml-common"
+    tar -C "$REPO_ROOT/dux-qml-common" --exclude='.git' -cf - . \
+        | tar -C "$pack_root/dux-qml-common" -xf -
     rm -rf "$pack_root/quickshell/DCommon"
-    ln -sfn ../dank-qml-common/DCommon "$pack_root/quickshell/DCommon"
+    ln -sfn ../dux-qml-common/DCommon "$pack_root/quickshell/DCommon"
     test -e "$pack_root/quickshell/DCommon/Widgets/DIcon.qml" \
         || { echo "Error: DCommon missing after pack"; exit 1; }
 

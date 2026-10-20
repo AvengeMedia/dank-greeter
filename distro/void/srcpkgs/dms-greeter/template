@@ -2,7 +2,7 @@
 #
 # DMS Greeter for greetd, built from the dux-greeter repository.
 # Single Go binary with the Quickshell UI embedded (built with the
-# `withshell` tag); the release tarball carries the dank-qml-common
+# `withshell` tag); the release tarball carries the dux-qml-common
 # submodule and vendored Go dependencies.
 # CI rewrites version/checksum from the selected release tag before building.
 pkgname=dms-greeter

@@ -210,19 +210,19 @@ ${PACKAGE} (${NEW_VERSION}) ${SERIES}; urgency=medium
 EOF
 
     info "Packing git source tree into dms-greeter-git-source/"
-    if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
-        error "dank-qml-common submodule missing. Run: git submodule update --init"
+    if [[ ! -e "$REPO_ROOT/dux-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
+        error "dux-qml-common submodule missing. Run: git submodule update --init"
         exit 1
     fi
     SRC_DIR="$WORK_PACKAGE_DIR/dms-greeter-git-source"
     mkdir -p "$SRC_DIR"
     git -C "$REPO_ROOT" archive --format=tar HEAD | tar -x -C "$SRC_DIR"
-    rm -rf "$SRC_DIR/dank-qml-common"
-    mkdir -p "$SRC_DIR/dank-qml-common"
-    tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
-        | tar -C "$SRC_DIR/dank-qml-common" -xf -
+    rm -rf "$SRC_DIR/dux-qml-common"
+    mkdir -p "$SRC_DIR/dux-qml-common"
+    tar -C "$REPO_ROOT/dux-qml-common" --exclude='.git' -cf - . \
+        | tar -C "$SRC_DIR/dux-qml-common" -xf -
     rm -rf "$SRC_DIR/quickshell/DCommon"
-    ln -sfn ../dank-qml-common/DCommon "$SRC_DIR/quickshell/DCommon"
+    ln -sfn ../dux-qml-common/DCommon "$SRC_DIR/quickshell/DCommon"
     if [[ ! -d "$SRC_DIR/core/vendor" ]]; then
         info "Vendoring Go dependencies for Launchpad offline build..."
         if ! command -v go &>/dev/null; then

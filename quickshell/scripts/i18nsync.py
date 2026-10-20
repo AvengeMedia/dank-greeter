@@ -18,7 +18,7 @@ SYNC_STATE = REPO_ROOT.parent / ".git" / "i18n_sync_state.json"
 # overwrite, so DMS-owned terms and translations are untouched), tagging
 # merges with existing tags, prune only removes this tag from stale terms
 # (never deletes — the term may still be owned by DMS), and downloads export
-# only the tag. dank-qml-common translations ship inside the submodule and
+# only the tag. dux-qml-common translations ship inside the submodule and
 # are not synced from this repo.
 APP_TAG = "dms-greeter"
 

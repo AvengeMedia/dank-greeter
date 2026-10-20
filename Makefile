@@ -38,10 +38,10 @@ fmt:
 vet:
 	@$(MAKE) -C $(CORE_DIR) vet
 
-# Pull the latest dank-qml-common and pin it everywhere it is consumed
+# Pull the latest dux-qml-common and pin it everywhere it is consumed
 # (submodule pointer + nix flake input). Commit both in one change.
 update-common:
-	git submodule update --remote --merge dank-qml-common
+	git submodule update --remote --merge dux-qml-common
 	nix --extra-experimental-features 'nix-command flakes' flake update dank-qml-common
 
 i18n-extract:
@@ -84,7 +84,7 @@ help:
 	@echo "  dev                - Fast development build"
 	@echo "  run                - Build and preview the greeter against the in-repo quickshell config"
 	@echo "  clean / test / fmt / vet"
-	@echo "  update-common      - Bump the dank-qml-common submodule + flake input"
+	@echo "  update-common      - Bump the dux-qml-common submodule + flake input"
 	@echo "  i18n-extract       - Regenerate translations/en.json from I18n.tr() calls"
 	@echo "  i18n-local         - Re-extract and show added/removed terms (no POEditor)"
 	@echo "  i18n-test          - Extract and validate, no POEditor calls"

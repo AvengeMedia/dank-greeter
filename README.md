@@ -31,9 +31,9 @@ dank-greeter/
 │   ├── Services/       # Read-only status (network, battery, audio, weather)
 │   ├── Widgets/        # Dank UI controls
 │   ├── Common/         # Shared resources, themes, and i18n
-│   ├── DCommon/     # → symlink into the dank-qml-common submodule
+│   ├── DCommon/     # → symlink into the dux-qml-common submodule
 │   └── translations/   # POEditor-managed string catalogs
-├── dank-qml-common/    # Shared DMS widget library (git submodule)
+├── dux-qml-common/    # Shared DMS widget library (git submodule)
 ├── core/               # Go backend and CLI
 │   ├── cmd/dms-greeter/# CLI entrypoint and greeter launcher
 │   └── internal/       # Compositor launcher, greetd config, sync, PAM
@@ -109,7 +109,7 @@ sudo make install
 ```
 
 Already cloned without submodules? Run `git submodule update --init` first -
-the shared widget library ([dank-qml-common](https://github.com/duxlabs-dev/dux-qml-common))
+the shared widget library ([dux-qml-common](https://github.com/duxlabs-dev/dux-qml-common))
 is vendored as a submodule and the build fails without it.
 
 Then create the greeter user and cache directory if your setup doesn't have them:
@@ -240,9 +240,9 @@ Per-user settings are stored under `/var/cache/dms-greeter/users/<username>/` fo
 
 ### Local development
 
-Run `dms-greeter sync --local` from a `dank-greeter` checkout to build its Go launcher with the checkout's QML embedded. The development binary is installed separately at `/usr/local/bin/dms-greeter-local`; the package-owned `/usr/bin/dms-greeter` is not replaced. Re-run the command after Go, QML, or `dank-qml-common` changes. Run `dms-greeter sync` without `--local` to point greetd back at the packaged binary.
+Run `dms-greeter sync --local` from a `dank-greeter` checkout to build its Go launcher with the checkout's QML embedded. The development binary is installed separately at `/usr/local/bin/dms-greeter-local`; the package-owned `/usr/bin/dms-greeter` is not replaced. Re-run the command after Go, QML, or `dux-qml-common` changes. Run `dms-greeter sync` without `--local` to point greetd back at the packaged binary.
 
-The `dank-qml-common` submodule must be initialized (`git submodule update --init dank-qml-common`). `dankgo` is consumed at the version pinned in `core/go.mod`; use a Go workspace or `replace` directive explicitly when testing a local `dankgo` checkout.
+The `dux-qml-common` submodule must be initialized (`git submodule update --init dux-qml-common`). `dankgo` is consumed at the version pinned in `core/go.mod`; use a Go workspace or `replace` directive explicitly when testing a local `dankgo` checkout.
 
 **Manual method:** if you want greeter settings to always mirror your shell:
 

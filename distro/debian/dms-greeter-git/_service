@@ -1,6 +1,6 @@
 <services>
   <!-- Reference only: obs-upload.sh packs from the local checkout (with
-       dank-qml-common + vendored Go) rather than letting OBS fetch SCM. -->
+       dux-qml-common + vendored Go) rather than letting OBS fetch SCM. -->
   <service name="tar_scm" mode="disabled">
     <param name="scm">git</param>
     <param name="url">https://github.com/duxlabs-dev/dux-greeter.git</param>

@@ -153,8 +153,8 @@ build_stable() {
 }
 
 build_git() {
-    if [[ ! -e "$REPO_ROOT/dank-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
-        echo "ERROR: dank-qml-common submodule missing. Run: git submodule update --init"
+    if [[ ! -e "$REPO_ROOT/dux-qml-common/DCommon/Widgets/DIcon.qml" ]]; then
+        echo "ERROR: dux-qml-common submodule missing. Run: git submodule update --init"
         exit 1
     fi
 
@@ -184,12 +184,12 @@ build_git() {
 
     mkdir -p "$tmp_pack/${src_dir_safe}"
     git archive --format=tar HEAD | tar -x -C "$tmp_pack/${src_dir_safe}"
-    rm -rf "$tmp_pack/${src_dir_safe}/dank-qml-common"
-    mkdir -p "$tmp_pack/${src_dir_safe}/dank-qml-common"
-    tar -C "$REPO_ROOT/dank-qml-common" --exclude='.git' -cf - . \
-        | tar -C "$tmp_pack/${src_dir_safe}/dank-qml-common" -xf -
+    rm -rf "$tmp_pack/${src_dir_safe}/dux-qml-common"
+    mkdir -p "$tmp_pack/${src_dir_safe}/dux-qml-common"
+    tar -C "$REPO_ROOT/dux-qml-common" --exclude='.git' -cf - . \
+        | tar -C "$tmp_pack/${src_dir_safe}/dux-qml-common" -xf -
     rm -rf "$tmp_pack/${src_dir_safe}/quickshell/DCommon"
-    ln -sfn ../dank-qml-common/DCommon "$tmp_pack/${src_dir_safe}/quickshell/DCommon"
+    ln -sfn ../dux-qml-common/DCommon "$tmp_pack/${src_dir_safe}/quickshell/DCommon"
 
     local tarball="${PACKAGE}-${version}.tar.gz"
     tar -C "$tmp_pack" -czf ~/rpmbuild/SOURCES/"$tarball" "${src_dir_safe}"
@@ -197,8 +197,8 @@ build_git() {
     trap - EXIT
 
     tar -C "$REPO_ROOT" \
-        --exclude='dank-qml-common/.git' \
-        -czf ~/rpmbuild/SOURCES/dank-qml-common.tar.gz dank-qml-common
+        --exclude='dux-qml-common/.git' \
+        -czf ~/rpmbuild/SOURCES/dux-qml-common.tar.gz dux-qml-common
 
     local arch go_tgz
     for arch in amd64 arm64; do
@@ -215,7 +215,7 @@ build_git() {
         -e "s|%global go_toolchain_version .*|%global go_toolchain_version ${go_ver}|" \
         -e "s|VCS:            {{{ git_repo_vcs }}}|VCS:            ${vcs_url}|" \
         -e "s|Source0:        {{{ git_repo_pack }}}|Source0:        ${tarball}|" \
-        -e "s|Source3:        {{{ git_pack path=\$GIT_ROOT/dank-qml-common dir_name=dank-qml-common source_name=dank-qml-common.tar.gz }}}|Source3:        dank-qml-common.tar.gz|" \
+        -e "s|Source3:        {{{ git_pack path=\$GIT_ROOT/dux-qml-common dir_name=dux-qml-common source_name=dux-qml-common.tar.gz }}}|Source3:        dux-qml-common.tar.gz|" \
         -e "s|{{{ git_repo_setup_macro }}}|%setup -q -n ${src_dir_safe}|" \
         -e "s|RELEASE_PLACEHOLDER|${RELEASE}|g" \
         "$SPEC_SRC" > "$expanded"
