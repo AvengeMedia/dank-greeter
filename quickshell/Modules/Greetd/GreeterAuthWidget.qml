@@ -2,8 +2,10 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Shapes
 import Quickshell.Services.Greetd
 import qs.Common
+import qs.DCommon.Common as DC
 import qs.Services
 import qs.Widgets
 import qs.DCommon.Session
@@ -15,10 +17,11 @@ Item {
     property var lockHost: null
     readonly property var host: lockHost
     readonly property var cfg: instanceData?.config ?? ({})
-    // Ring cannot host the user picker, so the greeter renders it as the pill.
-    readonly property string style: cfg.style === "ring" ? "pill" : (cfg.style ?? "pill")
+    readonly property string style: cfg.style ?? "pill"
     readonly property bool pickerPhase: host?.showUserPicker ?? false
-    readonly property bool contained: pickerPhase || style === "pill" || style === "expressive"
+    // The ring hosts neither the user picker nor the username field, so those phases keep the pill.
+    readonly property bool ring: style === "ring" && !pickerPhase && GreeterState.showPasswordInput
+    readonly property bool contained: pickerPhase || style === "pill" || style === "expressive" || (style === "ring" && !ring)
     readonly property bool dots: !pickerPhase && style === "dots"
     readonly property bool morph: !pickerPhase && style === "expressive"
     readonly property bool minimal: !pickerPhase && style === "minimal"
@@ -35,12 +38,22 @@ Item {
     readonly property color accentColor: Theme.primary
     readonly property color plainColor: Theme.lockScreenContentColor
     readonly property Item inputItem: inputField
-    readonly property real minWidth: LockMetrics.fieldWidth / 2
+    readonly property real ringSize: LockMetrics.fieldHeight * 2.5
+    readonly property real ringStroke: Theme.spacingS
+    readonly property real minWidth: ring ? ringSize : LockMetrics.fieldWidth / 2
     readonly property real minHeight: implicitHeight
     readonly property bool resizable: true
+    readonly property string profileImageSource: {
+        const displayUser = GreeterState.username || (host?.pickerThemeUsername ?? "");
+        if (!displayUser)
+            return "";
+        const cachedPath = GreeterUsersService.profileImagePath(displayUser);
+        return cachedPath ? host.encodeFileUrl(cachedPath) : "";
+    }
     property int typedCount: 0
+    property real keyAngle: 0
 
-    implicitWidth: Math.min(LockMetrics.passwordRowWidth, (host?.width ?? LockMetrics.passwordRowWidth) - Theme.spacingXL * 2)
+    implicitWidth: ring ? ringSize : Math.min(LockMetrics.passwordRowWidth, (host?.width ?? LockMetrics.passwordRowWidth) - Theme.spacingXL * 2)
     implicitHeight: authColumn.implicitHeight
 
     function clearInput() {
@@ -77,7 +90,12 @@ Item {
         function onPasswordBufferChanged() {
             const grew = GreeterState.passwordBuffer.length > root.typedCount;
             root.typedCount = GreeterState.passwordBuffer.length;
-            if (grew)
+            if (!grew)
+                return;
+            root.keyAngle = (GreeterState.passwordBuffer.length * 137.5) % 360;
+            if (root.ring)
+                keyPulse.restart();
+            if (root.morph)
                 morphPulse.restart();
         }
     }
@@ -88,7 +106,159 @@ Item {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        spacing: Theme.spacingM
+        spacing: root.ring ? 0 : Theme.spacingM
+
+        Item {
+            id: ringIndicator
+
+            readonly property color toneColor: root.failed ? Theme.error : root.accentColor
+            readonly property real radius: root.ringSize / 2 - root.ringStroke / 2
+
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredWidth: root.ringSize
+            Layout.preferredHeight: root.ringSize
+            visible: root.ring
+            opacity: root.inputVisible || root.showProfileImage ? 1 : 0
+            transform: Translate {
+                x: Math.max(-LockMetrics.shakeDistance, Math.min(LockMetrics.shakeDistance, passwordBox.errorOffset))
+            }
+
+            Shape {
+                anchors.fill: parent
+                opacity: root.inputVisible ? 1 : 0
+                preferredRendererType: Shape.CurveRenderer
+
+                ShapePath {
+                    strokeColor: {
+                        if (root.failed)
+                            return Theme.withAlpha(Theme.error, Theme.pendingOpacity);
+                        if (root.authenticating || GreeterState.passwordBuffer.length === 0)
+                            return Theme.withAlpha(root.plainColor, Theme.stateLayerDrag);
+                        return Theme.withAlpha(root.accentColor, Theme.pendingOpacity);
+                    }
+                    strokeWidth: root.ringStroke
+                    fillColor: "transparent"
+                    capStyle: ShapePath.RoundCap
+
+                    PathAngleArc {
+                        centerX: root.ringSize / 2
+                        centerY: root.ringSize / 2
+                        radiusX: ringIndicator.radius
+                        radiusY: ringIndicator.radius
+                        startAngle: 0
+                        sweepAngle: 360
+                    }
+
+                    Behavior on strokeColor {
+                        ColorAnimation {
+                            duration: LockMetrics.effectsDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+                        }
+                    }
+                }
+            }
+
+            Shape {
+                id: keySegment
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                opacity: 0
+
+                ShapePath {
+                    strokeColor: root.accentColor
+                    strokeWidth: root.ringStroke
+                    fillColor: "transparent"
+                    capStyle: ShapePath.RoundCap
+
+                    PathAngleArc {
+                        centerX: root.ringSize / 2
+                        centerY: root.ringSize / 2
+                        radiusX: ringIndicator.radius
+                        radiusY: ringIndicator.radius
+                        startAngle: root.keyAngle - 90
+                        sweepAngle: 30
+                    }
+                }
+
+                SequentialAnimation {
+                    id: keyPulse
+                    PropertyAction {
+                        target: keySegment
+                        property: "opacity"
+                        value: 1
+                    }
+                    NumberAnimation {
+                        target: keySegment
+                        property: "opacity"
+                        to: 0
+                        duration: Theme.expressiveDurations.expressiveSlowEffects
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Theme.expressiveCurves.expressiveEffects
+                    }
+                }
+            }
+
+            Shape {
+                id: verifyArc
+                anchors.fill: parent
+                preferredRendererType: Shape.CurveRenderer
+                visible: root.ring && root.authenticating
+
+                ShapePath {
+                    strokeColor: root.accentColor
+                    strokeWidth: root.ringStroke
+                    fillColor: "transparent"
+                    capStyle: ShapePath.RoundCap
+
+                    PathAngleArc {
+                        centerX: root.ringSize / 2
+                        centerY: root.ringSize / 2
+                        radiusX: ringIndicator.radius
+                        radiusY: ringIndicator.radius
+                        startAngle: -90
+                        sweepAngle: 90
+                    }
+                }
+
+                RotationAnimator on rotation {
+                    running: verifyArc.visible
+                    loops: Animation.Infinite
+                    duration: DC.Anims.durLong
+                    from: 0
+                    to: 360
+                }
+            }
+
+            DCircularImage {
+                anchors.centerIn: parent
+                width: root.ringSize - root.ringStroke * 4
+                height: width
+                visible: root.showProfileImage
+                imageSource: root.profileImageSource
+                fallbackIcon: "material:person"
+            }
+
+            DIcon {
+                anchors.centerIn: parent
+                visible: !root.showProfileImage
+                name: GreeterState.unlocking ? "lock_open" : "lock"
+                size: Theme.iconSizeLarge
+                color: ringIndicator.toneColor
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: root.pickerAvailable ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: {
+                    if (root.pickerAvailable) {
+                        root.host.returnToUserPicker();
+                        return;
+                    }
+                    inputField.forceActiveFocus();
+                }
+            }
+        }
 
         RowLayout {
             LayoutMirroring.enabled: I18n.isRtl
@@ -100,17 +270,11 @@ Item {
                 Layout.preferredWidth: LockMetrics.avatarSize
                 Layout.preferredHeight: LockMetrics.avatarSize
                 Layout.alignment: Qt.AlignTop
-                visible: root.showProfileImage
+                visible: root.showProfileImage && !root.ring
 
                 DCircularImage {
                     anchors.fill: parent
-                    imageSource: {
-                        const displayUser = GreeterState.username || (root.host?.pickerThemeUsername ?? "");
-                        if (!displayUser)
-                            return "";
-                        const cachedPath = GreeterUsersService.profileImagePath(displayUser);
-                        return cachedPath ? root.host.encodeFileUrl(cachedPath) : "";
-                    }
+                    imageSource: root.profileImageSource
                     fallbackIcon: "material:person"
                 }
 
@@ -182,7 +346,13 @@ Item {
                 }
 
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.pickerPhase && (root.host?.userListOpen ?? false) ? Math.max(LockMetrics.fieldHeight, userPicker.implicitHeight + Theme.spacingM * 2) : LockMetrics.fieldHeight
+                Layout.preferredHeight: {
+                    if (root.ring)
+                        return 0;
+                    if (root.pickerPhase && (root.host?.userListOpen ?? false))
+                        return Math.max(LockMetrics.fieldHeight, userPicker.implicitHeight + Theme.spacingM * 2);
+                    return LockMetrics.fieldHeight;
+                }
 
                 clip: true
                 opacity: root.inputVisible ? 1 : 0
@@ -253,7 +423,7 @@ Item {
                     anchors.left: parent.left
                     anchors.leftMargin: root.morph ? Theme.spacingS : Theme.spacingM
                     anchors.verticalCenter: parent.verticalCenter
-                    visible: !root.pickerPhase && !root.dots && !root.minimal
+                    visible: !root.pickerPhase && !root.dots && !root.ring && !root.minimal
                     width: !visible ? 0 : (root.morph ? LockMetrics.fieldHeight - Theme.spacingS * 2 : Theme.iconSizeSmall)
                     height: root.morph ? width : Theme.iconSizeSmall
 

@@ -444,7 +444,10 @@ Singleton {
             "extraLarge": currentAnimationBaseDuration * 2.0,
             "expressiveFastSpatial": currentAnimationBaseDuration * 0.7,
             "expressiveDefaultSpatial": currentAnimationBaseDuration,
-            "expressiveEffects": currentAnimationBaseDuration * 0.4
+            "expressiveSlowSpatial": currentAnimationBaseDuration * 1.3,
+            "expressiveFastEffects": currentAnimationBaseDuration * 0.3,
+            "expressiveEffects": currentAnimationBaseDuration * 0.4,
+            "expressiveSlowEffects": currentAnimationBaseDuration * 0.6
         })
 
     property string fontFamily: resolvedFontFamily(SettingsData.lockScreenFontFamily !== "" ? SettingsData.lockScreenFontFamily : SettingsData.fontFamily)
