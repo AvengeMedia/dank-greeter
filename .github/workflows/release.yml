@@ -28,6 +28,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: ./core/go.mod
+          cache-dependency-path: core/go.sum
 
       - name: Run tests
         run: go test -v ./...
@@ -52,6 +53,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: ./core/go.mod
+          cache-dependency-path: core/go.sum
 
       - name: Build binary
         env:
@@ -94,6 +96,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: ./core/go.mod
+          cache-dependency-path: core/go.sum
 
       - name: Generate completions
         run: |
@@ -166,6 +169,7 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: ./core/go.mod
+          cache-dependency-path: core/go.sum
 
       # Distro packages build offline from this tarball: it carries the checked-out
       # dux-qml-common submodule plus vendored Go dependencies.
