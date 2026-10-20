@@ -58,7 +58,7 @@
             pname = "dms-greeter";
             src = ./.;
             modRoot = "core";
-            vendorHash = "sha256-/YjeOwoMFmfp+JigLZY9BA0HpF/g/8n60OSzlTNlRBA=";
+            vendorHash = "sha256-gtzhwzCoIwIeRFO4k6EKSThkLrzG0LECkQVuMVQNn88=";
 
             subPackages = [ "cmd/dms-greeter" ];
 
