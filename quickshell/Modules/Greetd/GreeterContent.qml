@@ -97,8 +97,6 @@ Item {
     property bool awaitingExternalAuth: false
     property bool pendingPasswordResponse: false
     property bool passwordSubmitRequested: false
-    property int defaultAuthTimeoutMs: 10000
-    property int externalAuthTimeoutMs: 30000
     property int memoryFlushDelayMs: 120
     property string pendingLaunchCommand: ""
     property var pendingLaunchEnv: []
@@ -564,8 +562,6 @@ Item {
         awaitingExternalAuth = false;
         pendingPasswordResponse = false;
         passwordSubmitRequested = false;
-        authTimeout.interval = defaultAuthTimeoutMs;
-        authTimeout.stop();
         clearAuthFeedback();
         passwordFailureCount = 0;
         externalAuthAutoStartedForUser = "";
@@ -613,8 +609,6 @@ Item {
         pendingPasswordResponse = false;
         passwordSubmitRequested = false;
         awaitingExternalAuth = false;
-        authTimeout.interval = defaultAuthTimeoutMs;
-        authTimeout.restart();
         // Some PAM stacks expect an explicit empty response to advance U2F/fprint or fail normally.
         Greetd.respond(GreeterState.passwordBuffer || "");
         GreeterState.passwordBuffer = "";
@@ -641,10 +635,6 @@ Item {
         pendingPasswordResponse = false;
         passwordSubmitRequested = submitPassword;
         awaitingExternalAuth = !submitPassword && !hasPasswordBuffer && root.greeterExternalAuthAvailable;
-        // Let the effective PAM stack finish external authentication.
-        const waitingOnPamExternalBeforePassword = submitPassword && root.greeterPamHasExternalAuth;
-        authTimeout.interval = (awaitingExternalAuth || waitingOnPamExternalBeforePassword) ? externalAuthTimeoutMs : defaultAuthTimeoutMs;
-        authTimeout.restart();
         Greetd.createSession(GreeterState.username);
     }
 
@@ -1092,6 +1082,9 @@ Item {
         enabled: isPrimaryScreen
 
         function onAuthMessage(message, error, responseRequired, echoResponse) {
+            // greetd answers a cancelled session's pending request after cancelSession() already went Inactive.
+            if (Greetd.state === GreetdState.Inactive)
+                return;
             authPromptText = responseRequired ? (message || "").replace(/:\s*$/, "").trim() : "";
             if (responseRequired) {
                 awaitingExternalAuth = false;
@@ -1101,23 +1094,11 @@ Item {
                     passwordSubmitRequested = true;
                 if (passwordSubmitRequested && !root.submitBufferedPassword())
                     passwordSubmitRequested = false;
-                if (passwordSubmitRequested || hasPasswordBuffer) {
-                    authTimeout.interval = defaultAuthTimeoutMs;
-                    authTimeout.restart();
-                } else {
-                    authTimeout.stop();
-                }
                 return;
             }
             pendingPasswordResponse = false;
             if (!passwordSubmitRequested)
                 awaitingExternalAuth = root.greeterExternalAuthAvailable;
-            if (awaitingExternalAuth || (passwordSubmitRequested && root.greeterPamHasExternalAuth))
-                authTimeout.interval = externalAuthTimeoutMs;
-            else
-                authTimeout.interval = defaultAuthTimeoutMs;
-            authTimeout.restart();
-            Greetd.respond("");
         }
 
         function onStateChanged() {
@@ -1125,8 +1106,6 @@ Item {
                 awaitingExternalAuth = false;
                 pendingPasswordResponse = false;
                 authPromptText = "";
-                authTimeout.interval = defaultAuthTimeoutMs;
-                authTimeout.stop();
                 passwordSubmitRequested = false;
             }
         }
@@ -1135,8 +1114,6 @@ Item {
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
             passwordSubmitRequested = false;
-            authTimeout.interval = defaultAuthTimeoutMs;
-            authTimeout.stop();
             passwordFailureCount = 0;
             clearAuthFeedback();
             const sessionCmd = GreeterState.selectedSession || GreeterState.sessionExecs[GreeterState.currentSessionIndex];
@@ -1173,11 +1150,11 @@ Item {
         }
 
         function onAuthFailure(message) {
+            if (Greetd.state === GreetdState.Inactive)
+                return;
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
             passwordSubmitRequested = false;
-            authTimeout.interval = defaultAuthTimeoutMs;
-            authTimeout.stop();
             launchTimeout.stop();
             GreeterState.unlocking = false;
             if (isLikelyLockoutMessage(message)) {
@@ -1194,11 +1171,11 @@ Item {
         }
 
         function onError(error) {
+            if (Greetd.state === GreetdState.Inactive)
+                return;
             awaitingExternalAuth = false;
             pendingPasswordResponse = false;
             passwordSubmitRequested = false;
-            authTimeout.interval = defaultAuthTimeoutMs;
-            authTimeout.stop();
             launchTimeout.stop();
             GreeterState.unlocking = false;
             GreeterState.pamState = "error";
@@ -1224,25 +1201,6 @@ Item {
             const needsVoidDbusSession = Quickshell.env("DMS_VOID") === "1" && !Quickshell.env("DBUS_SESSION_BUS_ADDRESS") && sessionArgs[0] !== "dbus-run-session";
             const launchArgs = needsVoidDbusSession ? ["dbus-run-session"].concat(sessionArgs) : sessionArgs;
             Greetd.launch(launchArgs, launchEnv);
-        }
-    }
-
-    Timer {
-        id: authTimeout
-        interval: defaultAuthTimeoutMs
-        onTriggered: {
-            if (GreeterState.unlocking || Greetd.state === GreetdState.Inactive)
-                return;
-            awaitingExternalAuth = false;
-            pendingPasswordResponse = false;
-            passwordSubmitRequested = false;
-            authTimeout.interval = defaultAuthTimeoutMs;
-            GreeterState.pamState = "error";
-            authFeedbackMessage = currentAuthMessage();
-            GreeterState.passwordBuffer = "";
-            root.clearInput();
-            placeholderDelay.restart();
-            Greetd.cancelSession();
         }
     }
 
