@@ -12,7 +12,7 @@ Built with [Quickshell](https://quickshell.org/) and [Go](https://go.dev/)
 [![Documentation](https://img.shields.io/badge/docs-duxlabs.dev-9ccbfb?style=for-the-badge&labelColor=101418)](https://duxlabs.dev/docs/dms-greeter)
 [![GitHub stars](https://img.shields.io/github/stars/duxlabs-dev/dux-greeter?style=for-the-badge&labelColor=101418&color=ffd700)](https://github.com/duxlabs-dev/dux-greeter/stargazers)
 [![GitHub License](https://img.shields.io/github/license/duxlabs-dev/dux-greeter?style=for-the-badge&labelColor=101418&color=b9c8da)](https://github.com/duxlabs-dev/dux-greeter/blob/master/LICENSE)
-[![AUR version (git)](<https://img.shields.io/aur/version/greetd-dms-greeter-git?style=for-the-badge&labelColor=101418&color=9ccbfb&label=AUR%20(git)>)](https://aur.archlinux.org/packages/greetd-dms-greeter-git)
+[![AUR version (git)](<https://img.shields.io/aur/version/dux-greeter-git?style=for-the-badge&labelColor=101418&color=9ccbfb&label=AUR%20(git)>)](https://aur.archlinux.org/packages/dux-greeter-git)
 [![Discord](https://img.shields.io/badge/discord-join?style=for-the-badge&logo=discord&logoColor=ffffff&label=discord&labelColor=101418&color=5865f2)](https://discord.gg/ppWTpKmPgT)
 [![Ko-Fi donate](https://img.shields.io/badge/donate-kofi?style=for-the-badge&logo=ko-fi&logoColor=ffffff&label=ko-fi&labelColor=101418&color=f16061&link=https%3A%2F%2Fko-fi.com%2Fduxlabs)](https://ko-fi.com/duxlabs)
 
@@ -47,7 +47,7 @@ dank-greeter/
 ### Arch Linux (AUR)
 
 ```bash
-yay -S greetd-dms-greeter-git
+yay -S dux-greeter-git
 ```
 
 ### Debian / openSUSE
