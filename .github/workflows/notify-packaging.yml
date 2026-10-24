@@ -1,6 +1,6 @@
 name: Notify packaging
 
-# Asks duxlabs-dev/dux-packaging to rebuild now (push -> -git, release -> stable)
+# Asks duxlabs-dev/dux-repo to rebuild now (push -> -git, release -> stable)
 # instead of waiting for its 6-hour poll.
 
 on:
@@ -37,9 +37,9 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: dux-packaging
+          repositories: dux-repo
 
-      - name: Dispatch dux-packaging
+      - name: Dispatch dux-repo
         env:
           GH_TOKEN: ${{ steps.app_token.outputs.token }}
           OWNER: ${{ github.repository_owner }}
@@ -48,8 +48,8 @@ jobs:
           REF: ${{ github.event_name == 'push' && github.sha || github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
-          gh api "repos/${OWNER}/dux-packaging/dispatches" \
+          gh api "repos/${OWNER}/dux-repo/dispatches" \
             -f event_type="$EVENT" \
             -f "client_payload[ref]=$REF" \
             -f "client_payload[source]=${{ github.repository }}"
-          echo "dispatched ${EVENT} (${REF}) to ${OWNER}/dux-packaging" >> "$GITHUB_STEP_SUMMARY"
+          echo "dispatched ${EVENT} (${REF}) to ${OWNER}/dux-repo" >> "$GITHUB_STEP_SUMMARY"

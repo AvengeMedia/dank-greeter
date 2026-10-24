@@ -192,7 +192,7 @@ jobs:
             *-*) PRERELEASE_FLAG="--prerelease" ;;
           esac
 
-          # Draft until all assets are uploaded (dux-packaging consumes them); only the highest tag is "latest".
+          # Draft until all assets are uploaded (dux-repo consumes them); only the highest tag is "latest".
           HIGHEST_TAG=$(git tag --list 'v*' | grep -v -- '-' | sort -V | tail -1)
           LATEST_FLAG="--latest=false"
           if [[ -z "$PRERELEASE_FLAG" && "$HIGHEST_TAG" == "$VERSION" ]]; then
