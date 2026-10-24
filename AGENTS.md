@@ -36,7 +36,7 @@ The Quickshell UI. `shell.qml` is the entry and only loads `GreeterSurface`.
 ### Other directories:
 
 - `dux-qml-common/` - git submodule, the shared Dank widget library. Bump with `make update-common`, which also updates the nix flake input. Commit both together.
-- `distro/` - packaging for debian, ubuntu, fedora, opensuse, void, plus the NixOS module in `distro/nix`. `distro/scripts/` and `scripts/` are the OBS, COPR, PPA, and void publishing scripts used by CI.
+- `distro/nix/` - the NixOS module and package used by `flake.nix`. Distro packaging (Copr, OBS, PPA, Void) lives in duxlabs-dev/dux-packaging; `.github/workflows/notify-packaging.yml` pings it on push and release. `scripts/` holds the port tooling used by CI.
 - `assets/` - sysusers and tmpfiles configs under `assets/systemd`, example compositor configs under `assets/examples`.
 - `flake.nix` - nix package and NixOS module (`programs.dms-greeter`).
 

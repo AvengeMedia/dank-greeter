@@ -192,10 +192,19 @@ jobs:
             *-*) PRERELEASE_FLAG="--prerelease" ;;
           esac
 
+          # Draft until all assets are uploaded (dux-packaging consumes them); only the highest tag is "latest".
+          HIGHEST_TAG=$(git tag --list 'v*' | grep -v -- '-' | sort -V | tail -1)
+          LATEST_FLAG="--latest=false"
+          if [[ -z "$PRERELEASE_FLAG" && "$HIGHEST_TAG" == "$VERSION" ]]; then
+            LATEST_FLAG="--latest"
+          fi
+
+          gh release view "$VERSION" >/dev/null 2>&1 || \
           gh release create "$VERSION" \
+            --draft \
             --title "Release $VERSION" \
             --notes-file CHANGELOG.md \
-            $PRERELEASE_FLAG
+            $PRERELEASE_FLAG $LATEST_FLAG
 
           find ./artifacts -type f -name "dms-greeter-*" | while read file; do
             echo "Uploading: $file"
@@ -204,3 +213,5 @@ jobs:
 
           VERSION_NUM=${VERSION#v}
           gh release upload "$VERSION" "dank-greeter-${VERSION_NUM}.tar.gz" --clobber
+
+          gh release edit "$VERSION" --draft=false $LATEST_FLAG
